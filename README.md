@@ -69,11 +69,19 @@ The card shows only application-owned reflection text, symbol, window, demo stat
 
 `ReviewSession.onPour(input): Promise<InterrogationResult>` owns retrieval. The shell's `onInterrogation(result)` presents an accepted result at TeaTable; `showCard(card)` presents the matching card at Shelf. A `ReviewAdapter` is injected into the shell. PASS B can add a client transport adapter returning the same result contract, with real provider code and secrets behind a server route. No live adapter or API route exists in PASS A.
 
+## Motion behavior
+
+Station travel uses distance-aware quintic easing (roughly 0.5–1.5 seconds), preserves momentum when redirected, and adds a 2mm final settling arc. Local orbit pauses during travel; tiny camera drift stops while typing or inspecting evidence. Host attention responds to station/workflow changes rather than continuously tracking the camera. Blink, gaze and posture schedules use different bounded intervals.
+
+Pour gives immediate button feedback, then a short teapot tip around its foot rim, a brief stream and increased steam. Results appear when the adapter resolves, without waiting for the gesture. Cancellation or an early result gently returns the pot to rest. All scene motion uses R3F's coordinated loop and refs; HTML reveals use short CSS animations with readable text from the first frame. No animation library or additional rendering loop was added.
+
+The motion selector controls both HTML and WebGL. Reduced motion removes camera drift, host idles, steam and spatial UI animation while keeping all state information and controls. Full motion is an explicit override of the system preference.
+
 ## Assets and limitations
 
 Room geometry, host, sign textures and CSS were created in this repository. Typography uses the browser's installed Georgia and Arial/Helvetica fallbacks; there are no bundled third-party artwork, fonts or audio assets. The supplied specification informed the design; its concept image is not used as a production asset. Third-party libraries retain their package licenses.
 
-The room is a lightweight stylized prototype, not a detailed environment. No steam, voice, facial animation, advanced effects or external models are required. Performance varies by GPU; formal frame-rate benchmarks are not claimed. Browser checks use Chromium; Safari and Firefox have not been separately certified.
+The room is a lightweight stylized prototype, not a detailed environment. The motion layer adds procedural breathing, irregular blinks and gaze, a short teapot tip, nine soft steam sprites and restrained lighting/UI responses. No voice, lip sync, external models or physics engine is used. Performance varies by GPU; formal frame-rate benchmarks are not claimed. Browser checks use Chromium; Safari and Firefox have not been separately certified.
 
 If port 3000 is occupied, stop the other server or use `npm run dev -- --port 3001`. If an interrupted build leaves stale Next.js artifacts, stop the server, remove `.next`, and restart. A blank 3D area should recover to the fallback; all primary actions are also available through HTML.
 

@@ -78,3 +78,25 @@ describe('restrained procedural gestures', () => {
     expect(new Set(delays).size).toBeGreaterThan(25);
   });
 });
+it('brakes inherited momentum before an interrupted return overshoots the entrance', () => {
+  const shelf = STATIONS.find((s) => s.id === 'Shelf')!,
+    entrance = STATIONS[0],
+    counter = STATIONS[1];
+  const move = new CameraTravel(
+    new Vector3(...shelf.position),
+    new Vector3(...shelf.target),
+  );
+  move.retarget(
+    new Vector3(...entrance.position),
+    new Vector3(...entrance.target),
+  );
+  move.step(1.05);
+  move.retarget(
+    new Vector3(...counter.position),
+    new Vector3(...counter.target),
+  );
+  for (let i = 0; i < 120; i++) {
+    move.step(1 / 60);
+    expect(move.position.z).toBeLessThan(4.3);
+  }
+});
