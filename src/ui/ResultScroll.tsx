@@ -43,7 +43,13 @@ export function ResultScroll({
         {result.card.lookbackHours}h <span> / </span>
         <strong>DEMO DATA</strong>
       </div>
-      <ThreeThoughts card={result.card} />
+      <div
+        className="result-reading"
+        data-verdict={result.findings[0]?.verdict ?? 'unknown'}
+        key={result.requestId}
+      >
+        <ThreeThoughts card={result.card} />
+      </div>
       {result.evidence.length > 0 ? (
         <button className="evidence-link" onClick={onEvidence}>
           Inspect evidence · DEMO-E-01 <span aria-hidden="true">↗</span>

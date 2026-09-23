@@ -3,6 +3,8 @@ import { Canvas } from '@react-three/fiber';
 import { Hotspots } from './Hotspots';
 import { CameraRig } from './CameraRig';
 import { TeaHost } from './TeaHost';
+import { TeaRitual, LanternLight, ShelfPlacement } from './TeaRitual';
+import type { SceneMood } from './motion/dynamics';
 import { type Point } from './stations';
 import type { Station } from '../shared/contracts';
 function Box({
@@ -41,7 +43,17 @@ function Cup({
     </group>
   );
 }
-function RoomGeometry() {
+function RoomGeometry({
+  station,
+  mood,
+  reduced,
+  requestKey,
+}: {
+  station: Station;
+  mood: SceneMood;
+  reduced: boolean;
+  requestKey: string | null;
+}) {
   return (
     <>
       <color attach="background" args={['#352c26']} />
@@ -59,12 +71,7 @@ function RoomGeometry() {
         shadow-camera-top={5}
         shadow-camera-bottom={-5}
       />
-      <pointLight
-        position={[2.6, 2.7, -1.8]}
-        intensity={15}
-        distance={7}
-        color="#ffc36d"
-      />
+      <LanternLight mood={mood} reduced={reduced} />
       <Box position={[0, -0.12, 0.5]} size={[8, 0.2, 8]} color="#654735" />
       {Array.from({ length: 15 }, (_, i) => (
         <Box
@@ -153,20 +160,9 @@ function RoomGeometry() {
       )}
       <Cup position={[-0.38, 0.68, 0.03]} />
       <Cup position={[0.4, 0.68, -0.12]} color="#d8c19b" />
-      <mesh position={[0, 0.72, -0.3]} scale={[1, 0.8, 1]}>
-        <sphereGeometry args={[0.19, 24, 16]} />
-        <meshStandardMaterial color="#626a48" roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 0.9, -0.3]}>
-        <sphereGeometry args={[0.045, 12, 8]} />
-        <meshStandardMaterial color="#626a48" />
-      </mesh>
-      <mesh position={[0.17, 0.76, -0.3]} rotation={[0, 0, -0.8]}>
-        <coneGeometry args={[0.065, 0.22, 16]} />
-        <meshStandardMaterial color="#626a48" />
-      </mesh>
+      <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
       <Box position={[0, 0.13, 1]} size={[0.85, 0.22, 0.55]} color="#687153" />
-      <TeaHost />
+      <TeaHost station={station} mood={mood} reduced={reduced} />
       {[0.4, 1.2, 2, 2.8].map((y) => (
         <Box
           key={y}
@@ -190,21 +186,19 @@ function RoomGeometry() {
           color={i === 1 ? '#b87956' : '#cabb9a'}
         />
       ))}
-      <Box
-        position={[2.65, 2.26, -2.54]}
-        size={[0.43, 0.46, 0.04]}
-        color="#f3e9d5"
-      />
-      <Box
-        position={[2.65, 2.32, -2.51]}
-        size={[0.27, 0.015, 0.01]}
-        color="#697558"
-      />
-      <Box
-        position={[2.65, 2.22, -2.51]}
-        size={[0.27, 0.015, 0.01]}
-        color="#b86c4f"
-      />
+      <ShelfPlacement active={mood === 'card'} reduced={reduced}>
+        <Box position={[0, 0, 0]} size={[0.43, 0.46, 0.04]} color="#f3e9d5" />
+        <Box
+          position={[0, 0.06, 0.03]}
+          size={[0.27, 0.015, 0.01]}
+          color="#697558"
+        />
+        <Box
+          position={[0, -0.04, 0.03]}
+          size={[0.27, 0.015, 0.01]}
+          color="#b86c4f"
+        />
+      </ShelfPlacement>
       {[-2.5, 2.6].map((x) => (
         <group key={x} position={[x, 2.7, -1.8]}>
           <mesh>
@@ -250,12 +244,18 @@ export default function TeaRoom({
   reduced,
   resetKey,
   typing,
+  reading,
+  mood,
+  requestKey,
 }: {
   station: Station;
   onNavigate: (s: Station) => void;
   reduced: boolean;
   resetKey: number;
   typing: boolean;
+  reading: boolean;
+  mood: SceneMood;
+  requestKey: string | null;
 }) {
   const [lost, setLost] = useState(false);
   const fallback = (
@@ -284,12 +284,18 @@ export default function TeaRoom({
           );
         }}
       >
-        <RoomGeometry />
+        <RoomGeometry
+          station={station}
+          mood={mood}
+          reduced={reduced}
+          requestKey={requestKey}
+        />
         <CameraRig
           station={station}
           reduced={reduced}
           resetKey={resetKey}
           typing={typing}
+          reading={reading}
         />
         <Hotspots station={station} onNavigate={onNavigate} typing={typing} />
       </Canvas>

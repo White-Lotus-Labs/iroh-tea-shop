@@ -30,7 +30,7 @@ export const STATIONS: {
     purpose: 'Notice',
     position: [0, 1.8, 2.7],
     target: [0, 0.6, -0.2],
-    hotspot: [0, 0.85, -0.3],
+    hotspot: [-0.65, 0.84, 0.3],
   },
   {
     id: 'AvatarSeat',

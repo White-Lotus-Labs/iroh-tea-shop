@@ -834,10 +834,172 @@ input {
     font-size: 26px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  * {
-    scroll-behavior: auto !important;
-    animation: none !important;
-    transition: none !important;
+/* Motion is decorative: controls and complete text are available on the first frame. */
+.app-shell {
+  --ease-out: cubic-bezier(0.2, 0.75, 0.25, 1);
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+}
+button {
+  transition:
+    transform 150ms var(--ease-out),
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+  transform-origin: 50% 65%;
+}
+button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.975);
+  transition-duration: 55ms;
+}
+.primary:hover:not(:disabled) {
+  box-shadow: 0 3px 8px #25352d16;
+}
+.station-nav button[aria-current] {
+  box-shadow: inset 0 -2px 0 #69755845;
+}
+textarea,
+input,
+select {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+textarea:focus,
+input:focus,
+select:focus {
+  border-color: #697558;
+  box-shadow: 0 0 0 2px #69755812;
+}
+.reading-panel {
+  animation: paper-arrive 220ms var(--ease-settle) both;
+}
+.result-reading .thought {
+  animation: thought-arrive 240ms var(--ease-out) both;
+}
+.result-reading .thought:nth-child(2) {
+  animation-delay: 35ms;
+}
+.result-reading .thought:nth-child(3) {
+  animation-delay: 70ms;
+}
+.result-reading .thought h3 > span {
+  display: inline-block;
+}
+.result-reading[data-verdict='supported'] .thought-0 h3 > span {
+  animation: ink-mark 240ms var(--ease-out) both;
+}
+.result-reading[data-verdict='challenged'] .thought-1 h3 {
+  position: relative;
+}
+.result-reading[data-verdict='challenged'] .thought-1 h3::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 27px;
+  width: 27px;
+  height: 1px;
+  background: var(--clay);
+  transform-origin: left;
+  animation: ink-mark 270ms var(--ease-out) 65ms both;
+}
+.result-reading[data-verdict='unknown'] .thought-1 h3,
+.result-reading[data-verdict='mixed'] .thought-1 h3 {
+  color: var(--moss);
+}
+.result-reading[data-verdict='unknown'] .thought-1 h3::after,
+.result-reading[data-verdict='mixed'] .thought-1 h3::after {
+  content: '◌';
+  font-size: 13px;
+  margin-left: auto;
+  animation: ink-mark 220ms ease both;
+}
+.evidence-drawer[open] {
+  animation: drawer-arrive 190ms var(--ease-settle) both;
+}
+.evidence-drawer[open]::backdrop {
+  animation: backdrop-arrive 160ms ease both;
+}
+.share-card {
+  transform-origin: 50% 90%;
+  animation: card-place 280ms var(--ease-settle) both;
+}
+@keyframes paper-arrive {
+  from {
+    opacity: 0.88;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes thought-arrive {
+  from {
+    opacity: 0.82;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ink-mark {
+  from {
+    opacity: 0.45;
+    transform: scaleX(0.35);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+@keyframes drawer-arrive {
+  from {
+    opacity: 0.85;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes backdrop-arrive {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes card-place {
+  from {
+    opacity: 0.9;
+    transform: translateY(5px) rotateX(1deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.app-shell[data-motion='reduce'] *,
+.app-shell[data-motion='reduce'] *::before,
+.app-shell[data-motion='reduce'] *::after,
+.app-shell[data-motion='reduce'] *::backdrop {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+.app-shell[data-motion='reduce'] button:active {
+  transform: none;
+}
+button[type='submit']:disabled {
+  animation: pour-press 170ms var(--ease-out) both;
+}
+@keyframes pour-press {
+  from {
+    transform: translateY(1px) scale(0.978);
+  }
+  to {
+    transform: none;
   }
 }

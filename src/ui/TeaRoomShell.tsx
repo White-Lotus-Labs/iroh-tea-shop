@@ -14,6 +14,7 @@ import type {
   ReviewCard,
   Station,
 } from '../shared/contracts';
+import type { SceneMood } from '../scene/motion/dynamics';
 import { STATIONS } from '../scene/stations';
 import { MockReviewAdapter } from '../review/mock-adapter';
 import { ReviewSession } from '../review/session';
@@ -47,14 +48,15 @@ export default function TeaRoomShell({
   const [symbol, setSymbol] = useState('ETH');
   const [hours, setHours] = useState<6 | 24 | 168>(24);
   const [motion, setMotion] = useState<MotionPreference>('system');
-  const [systemReduced, setSystemReduced] = useState(false);
+  const [systemReduced, setSystemReduced] = useState<boolean | null>(null);
   const [typing, setTyping] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [card, setCard] = useState<ReviewCard | null>(null);
   const arrived = useRef(false);
   const panel = useRef<HTMLElement>(null);
-  const reduced = motion === 'reduce' || (motion === 'system' && systemReduced);
+  const reduced =
+    motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     setSystemReduced(media.matches);
@@ -63,7 +65,7 @@ export default function TeaRoomShell({
     return () => media.removeEventListener('change', change);
   }, []);
   useEffect(() => {
-    if (arrived.current) return;
+    if (arrived.current || systemReduced === null) return;
     const timer = setTimeout(
       () => {
         if (arrived.current) return;
@@ -73,7 +75,7 @@ export default function TeaRoomShell({
       reduced ? 0 : 3200,
     );
     return () => clearTimeout(timer);
-  }, [reduced]);
+  }, [reduced, systemReduced]);
   useEffect(() => () => session.cancel(), [session]);
   const navigate = useCallback((next: Station) => {
     arrived.current = true;
@@ -84,8 +86,10 @@ export default function TeaRoomShell({
   const onInterrogation = (result: InterrogationResult) => {
     setCard(result.card);
     navigate('TeaTable');
-    requestAnimationFrame(() => panel.current?.focus());
   };
+  useEffect(() => {
+    if (station === 'TeaTable' && data.result) panel.current?.focus();
+  }, [station, data.result]);
   const showCard = (next: ReviewCard) => {
     setCard(next);
     navigate('Shelf');
@@ -111,9 +115,21 @@ export default function TeaRoomShell({
     setHours(24);
   };
   const active = STATIONS.find((s) => s.id === station)!;
+  const mood: SceneMood =
+    data.workflowState === 'error'
+      ? 'error'
+      : data.workflowState === 'fetching'
+        ? 'pouring'
+        : station === 'Shelf' && data.result
+          ? 'card'
+          : (data.result?.findings[0]?.verdict ?? 'waiting');
   const busy = data.workflowState === 'fetching';
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      data-motion={reduced ? 'reduce' : 'full'}
+      data-mood={mood}
+    >
       <header className="topbar">
         <a href="#main-panel" className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -139,6 +155,9 @@ export default function TeaRoomShell({
             reduced={reduced}
             resetKey={resetKey}
             typing={typing}
+            reading={evidenceOpen}
+            mood={mood}
+            requestKey={data.activeRequestId ?? data.result?.requestId ?? null}
           />
           <div className="scene-caption">
             <span className="eyebrow">
@@ -175,6 +194,7 @@ export default function TeaRoomShell({
           </div>
         </section>
         <section
+          key={station}
           className="reading-panel"
           id="main-panel"
           ref={panel}
