@@ -1,4 +1,9 @@
-export type Station = 'Entrance' | 'Counter' | 'TeaTable' | 'AvatarSeat' | 'Shelf';
+export type Station =
+  | 'Entrance'
+  | 'Counter'
+  | 'TeaTable'
+  | 'AvatarSeat'
+  | 'Shelf';
 export type MotionPreference = 'system' | 'reduce' | 'full';
 export type WorkflowState = 'idle' | 'fetching' | 'result' | 'error';
 export interface ReviewInput {
@@ -59,15 +64,26 @@ export interface InterrogationResult {
   estimatedCredits: number;
 }
 export interface ReviewAdapter {
-  review(input: ReviewInput, signal?: AbortSignal): Promise<InterrogationResult>;
+  review(
+    input: ReviewInput,
+    signal?: AbortSignal,
+  ): Promise<InterrogationResult>;
 }
 export function validateInput(value: ReviewInput): ReviewInput {
   const thesis = value.thesis.trim();
-  if (thesis.length < 80 || thesis.length > 6000) throw new Error('Your thesis needs 80–6,000 characters. Your writing is still here.');
+  if (thesis.length < 80 || thesis.length > 6000)
+    throw new Error(
+      'Your thesis needs 80–6,000 characters. Your writing is still here.',
+    );
   const symbol = value.symbol.trim().toUpperCase();
-  if (!/^[A-Z0-9][A-Z0-9:-]{0,19}$/.test(symbol)) throw new Error('Confirm a symbol using 1–20 letters, numbers, colons or hyphens.');
-  if (![6, 24, 168].includes(value.lookbackHours)) throw new Error('Choose a 6-hour, 24-hour or 7-day review window.');
-  if (value.mode !== 'demo') throw new Error('Only DEMO DATA is available in PASS A.');
+  if (!/^[A-Z0-9][A-Z0-9:-]{0,19}$/.test(symbol))
+    throw new Error(
+      'Confirm a symbol using 1–20 letters, numbers, colons or hyphens.',
+    );
+  if (![6, 24, 168].includes(value.lookbackHours))
+    throw new Error('Choose a 6-hour, 24-hour or 7-day review window.');
+  if (value.mode !== 'demo')
+    throw new Error('Only DEMO DATA is available in PASS A.');
   if (!value.requestId) throw new Error('A review needs a request ID.');
-  return {...value, thesis, symbol};
+  return { ...value, thesis, symbol };
 }
