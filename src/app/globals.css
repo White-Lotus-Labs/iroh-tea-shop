@@ -1103,12 +1103,58 @@ body {
 .reading-panel:focus {
   outline: none;
 }
+.app-shell[data-station='Counter'] .reading-panel {
+  top: clamp(112px, 13vh, 142px);
+  left: clamp(42px, 5vw, 84px);
+  right: auto;
+  width: min(510px, 45vw);
+  max-height: calc(100dvh - 228px);
+  border: 1px solid #e1c69d;
+  border-radius: 4px;
+  background: #f3e8d0f5;
+  box-shadow:
+    0 0 0 7px #3c261a,
+    0 0 0 9px #a17448,
+    0 18px 48px #130a0780,
+    inset 0 1px #fff9e9;
+}
+.app-shell[data-station='Counter'] .reading-panel textarea {
+  min-height: 165px;
+}
+.app-shell[data-station='Counter'] .scene-caption {
+  display: none;
+}
 .app-shell[data-station='TeaTable'] .reading-panel:not(.is-steeping),
 .app-shell[data-station='AvatarSeat'] .reading-panel,
 .app-shell[data-station='Shelf'] .reading-panel {
-  left: clamp(22px, 4.5vw, 78px);
+  top: clamp(120px, 14vh, 154px);
+  left: 47%;
   right: auto;
-  width: min(438px, 38vw);
+  width: min(530px, 48vw);
+  max-height: calc(100dvh - 228px);
+  padding: clamp(30px, 3.2vw, 46px);
+}
+.app-shell[data-station='TeaTable'] .reading-panel:not(.is-steeping) h1,
+.app-shell[data-station='AvatarSeat'] .reading-panel h1,
+.app-shell[data-station='Shelf'] .reading-panel h1 {
+  font-size: clamp(34px, 3vw, 45px);
+}
+.app-shell[data-station='TeaTable'] .reading-panel:not(.is-steeping) .intro,
+.app-shell[data-station='AvatarSeat'] .reading-panel .intro,
+.app-shell[data-station='Shelf'] .reading-panel .intro {
+  font-size: 16px;
+}
+.app-shell[data-station='TeaTable']
+  .reading-panel:not(.is-steeping)
+  .thought
+  p {
+  font-size: 20px;
+}
+.app-shell[data-station='AvatarSeat'] .host-question p {
+  font-size: 32px;
+}
+.app-shell[data-station='Shelf'] .share-card .thought p {
+  font-size: 19px;
 }
 .app-shell[data-station='TeaTable'] .scene-caption,
 .app-shell[data-station='AvatarSeat'] .scene-caption,
@@ -1309,12 +1355,28 @@ body {
     padding: 20px;
     border-radius: 13px;
   }
+  .app-shell[data-station='Counter'] .reading-panel {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 84px;
+    width: auto;
+    max-height: min(65dvh, 600px);
+    border-radius: 8px;
+  }
+  .app-shell[data-station='Counter'] .reading-panel textarea {
+    height: 135px;
+    min-height: 135px;
+  }
   .app-shell[data-station='TeaTable'] .reading-panel:not(.is-steeping),
   .app-shell[data-station='AvatarSeat'] .reading-panel,
   .app-shell[data-station='Shelf'] .reading-panel {
+    top: auto;
     left: 12px;
     right: 12px;
     width: auto;
+    max-height: min(54dvh, 530px);
+    padding: 24px;
   }
   .reading-panel.is-steeping {
     max-height: none;

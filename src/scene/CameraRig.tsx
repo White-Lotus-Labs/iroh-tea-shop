@@ -39,17 +39,25 @@ export function CameraRig({
     const anchor = STATIONS.find((s) => s.id === station)!;
     const mobile = size.width < 760;
     const position =
-      mobile && (station === 'Counter' || station === 'Entrance')
-        ? ([0.55, 1.67, 9.38] as const)
-        : mobile && station === 'TeaTable'
-          ? ([0.95, 1.55, 0.56] as const)
-          : anchor.position;
+      mobile && station === 'Counter'
+        ? ([0.05, 1.66, 7.82] as const)
+        : mobile && station === 'Entrance'
+          ? ([0.55, 1.67, 9.38] as const)
+          : mobile && station === 'TeaTable'
+            ? ([0.95, 1.55, 0.56] as const)
+            : anchor.position;
     const look =
-      mobile && (station === 'Counter' || station === 'Entrance')
-        ? ([-3.14, 1.44, 6.4] as const)
-        : mobile && station === 'TeaTable'
-          ? ([1.33, 0.77, -3.45] as const)
-          : anchor.target;
+      mobile && station === 'Counter'
+        ? ([-1.16, 1.36, 2.9] as const)
+        : mobile && station === 'Entrance'
+          ? ([-3.14, 1.44, 6.4] as const)
+          : mobile && station === 'AvatarSeat'
+            ? ([2.2, 0.35, -3.52] as const)
+            : mobile && station === 'Shelf'
+              ? ([3.48, 1.52, -3.96] as const)
+              : mobile && station === 'TeaTable'
+                ? ([1.33, 0.77, -3.45] as const)
+                : anchor.target;
     const to = new Vector3(...position),
       target = new Vector3(...look),
       offset = to.clone().sub(target);
@@ -162,7 +170,7 @@ export function CameraRig({
       onEnd={() => {
         idle.current.dragging = false;
       }}
-      target={size.width < 760 ? [-3.14, 1.44, 6.4] : [-3.05, 1.22, 6.67]}
+      target={size.width < 760 ? [-1.16, 1.36, 2.9] : [-1.43, 1.37, 2.92]}
     />
   );
 }

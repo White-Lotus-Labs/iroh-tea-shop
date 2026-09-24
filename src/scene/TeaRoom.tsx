@@ -6,6 +6,7 @@ import { TeaRitual, LanternLight, ShelfPlacement } from './TeaRitual';
 import { TeaHost3D } from './TeaHost3D';
 import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
+import { STATIONS } from './stations';
 import { Surfaces, Solid } from './Surfaces';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
@@ -129,6 +130,9 @@ export default function TeaRoom({
   const [lost, setLost] = useState(false);
   const initialMobile =
     typeof window !== 'undefined' && window.innerWidth < 760;
+  const counterPosition = STATIONS.find(
+    (place) => place.id === 'Counter',
+  )!.position;
   const fallback = (
     <div className="scene-fallback">
       <span className="fallback-cup">♧</span>
@@ -146,7 +150,7 @@ export default function TeaRoom({
         shadows="percentage"
         dpr={[1, 1.5]}
         camera={{
-          position: initialMobile ? [0.55, 1.67, 9.38] : [0.9, 1.67, 9.42],
+          position: initialMobile ? [0.05, 1.66, 7.82] : counterPosition,
           fov: 58,
           near: 0.08,
           far: 45,

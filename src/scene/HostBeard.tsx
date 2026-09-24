@@ -24,15 +24,11 @@ export function HostBeard() {
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <group>
-      <mesh
-        position={[0, -0.275, 0.125]}
-        scale={[0.17, 0.15, 0.095]}
-        castShadow
-      >
+      <mesh position={[0, -0.34, 0.1]} scale={[0.17, 0.15, 0.095]} castShadow>
         <sphereGeometry args={[1, 24, 16]} />
         <meshStandardMaterial color="#ccc8bc" roughness={0.96} />
       </mesh>
-      <mesh geometry={geometry} position={[0, -0.2, 0.235]}>
+      <mesh geometry={geometry} position={[0, -0.11, 0.235]}>
         <meshStandardMaterial
           map={beard}
           transparent
