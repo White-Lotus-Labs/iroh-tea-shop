@@ -131,6 +131,17 @@ function TeaBackdrop() {
   );
 }
 
+function RightWallBackdrop() {
+  const texture = useTexture('/images/tea-right-wall.jpg');
+  texture.colorSpace = SRGBColorSpace;
+  return (
+    <mesh position={[3.994, 1.85, -3.05]} rotation={[0, -Math.PI / 2, 0]}>
+      <planeGeometry args={[9.55, 3.65]} />
+      <meshBasicMaterial map={texture} />
+    </mesh>
+  );
+}
+
 function CounterBackdrop() {
   const texture = useTexture('/images/counter-wall.jpg');
   texture.colorSpace = SRGBColorSpace;
@@ -243,8 +254,12 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
         color={plaster}
         surface="plaster"
       />
-      {[-3.98, 3.98].map((x) => (
-        <Beam key={x} position={[x, 1.85, -1.45]} size={[0.17, 3.7, 9.55]} />
+      <Beam position={[-3.98, 1.85, -1.45]} size={[0.17, 3.7, 9.55]} />
+      <Suspense fallback={null}>
+        <RightWallBackdrop />
+      </Suspense>
+      {[-5.94, -1.53, 3.17].map((z) => (
+        <Beam key={z} position={[3.91, 1.85, z]} size={[0.17, 3.7, 0.17]} />
       ))}
       {[-5.7, -3.4, -0.9, 1.7].map((z) => (
         <Beam key={z} position={[0, 3.47, z]} size={[8.1, 0.2, 0.29]} />

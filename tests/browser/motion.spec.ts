@@ -39,6 +39,7 @@ test('all directed station transitions and rapid interruptions preserve navigati
 test('motion override stops HTML animation and pours remain interruptible', async ({
   page,
 }) => {
+  await page.clock.install();
   await page.goto('/');
   await page
     .getByRole('combobox', { name: 'Motion preference' })
@@ -48,9 +49,14 @@ test('motion override stops HTML animation and pours remain interruptible', asyn
     await page
       .getByRole('button', { name: 'Load sample', exact: true })
       .click();
+    if (round === 0) {
+      const now = await page.evaluate(() => Date.now());
+      await page.clock.pauseAt(now + 1);
+    }
     await page.getByRole('button', { name: 'Pour', exact: true }).click();
     if (round === 0) {
       await page.getByRole('button', { name: 'Cancel review' }).click();
+      await page.clock.resume();
       await page
         .getByRole('navigation')
         .getByRole('button', { name: /Host/ })

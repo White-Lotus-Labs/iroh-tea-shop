@@ -197,16 +197,6 @@ function DisplayPot({ position }: { position: [number, number, number] }) {
 export function TeaShelf() {
   return (
     <group position={[3.65, 0, -3.72]} name="right-wall-tea-shelf">
-      <Solid
-        position={[0.3, 1.83, 0]}
-        size={[0.08, 3.25, 4.25]}
-        color="#3a261b"
-      />
-      <Solid
-        position={[0.26, 1.83, 0]}
-        size={[0.018, 2.98, 3.9]}
-        color="#6a4630"
-      />
       {[-1.99, 0, 1.99].map((z) => (
         <group key={z}>
           <Solid

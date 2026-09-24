@@ -1,4 +1,4 @@
-import { Component, type ReactNode, useState } from 'react';
+import { Component, Suspense, type ReactNode, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import { CameraRig } from './CameraRig';
@@ -62,7 +62,9 @@ function RoomGeometry({
         />
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
-        <TeaHost3D reduced={reduced} />
+        <Suspense fallback={null}>
+          <TeaHost3D reduced={reduced} />
+        </Suspense>
         <TeaShelf />
         <ShelfPlacement active={mood === 'card'} reduced={reduced}>
           <Solid
