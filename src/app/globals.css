@@ -1084,11 +1084,13 @@ body {
 .reading-panel {
   position: absolute;
   z-index: 10;
-  top: clamp(100px, 15vh, 160px);
-  right: clamp(22px, 4.5vw, 78px);
-  width: min(490px, 42vw);
+  top: max(92px, 8dvh);
+  left: 6.5vw;
+  right: auto;
+  width: 72vw;
+  height: 65dvh;
   min-width: 0;
-  max-height: calc(100dvh - 247px);
+  max-height: none;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: clamp(24px, 2.8vw, 36px);
@@ -1104,11 +1106,6 @@ body {
   outline: none;
 }
 .app-shell[data-station='Counter'] .reading-panel {
-  top: clamp(112px, 13vh, 142px);
-  left: clamp(42px, 5vw, 84px);
-  right: auto;
-  width: min(510px, 45vw);
-  max-height: calc(100dvh - 228px);
   border: 1px solid #e1c69d;
   border-radius: 4px;
   background: #f3e8d0f5;
@@ -1119,7 +1116,7 @@ body {
     inset 0 1px #fff9e9;
 }
 .app-shell[data-station='Counter'] .reading-panel textarea {
-  min-height: 165px;
+  min-height: clamp(165px, 24dvh, 340px);
 }
 .app-shell[data-station='Counter'] .scene-caption {
   display: none;
@@ -1127,11 +1124,6 @@ body {
 .app-shell[data-station='TeaTable'] .reading-panel:not(.is-steeping),
 .app-shell[data-station='AvatarSeat'] .reading-panel,
 .app-shell[data-station='Shelf'] .reading-panel {
-  top: clamp(120px, 14vh, 154px);
-  left: 47%;
-  right: auto;
-  width: min(530px, 48vw);
-  max-height: calc(100dvh - 228px);
   padding: clamp(30px, 3.2vw, 46px);
 }
 .app-shell[data-station='TeaTable'] .reading-panel:not(.is-steeping) h1,
@@ -1177,11 +1169,6 @@ body {
   margin-top: 20px;
 }
 .reading-panel.is-steeping {
-  top: auto;
-  right: auto;
-  left: clamp(22px, 4vw, 62px);
-  bottom: 169px;
-  width: min(380px, 38vw);
   background: #251b16d9;
   border: 1px solid #f1d6a45e;
   box-shadow: 0 17px 42px #140a0859;
@@ -1351,6 +1338,7 @@ body {
     right: 12px;
     bottom: 84px;
     width: auto;
+    height: auto;
     max-height: min(50dvh, 520px);
     padding: 20px;
     border-radius: 13px;
