@@ -4,9 +4,6 @@ import {
   CameraTravel,
   travelDuration,
   pourPose,
-  blinkClosure,
-  createRandom,
-  nextBlinkDelay,
 } from '../src/scene/motion/dynamics';
 import { STATIONS } from '../src/scene/stations';
 describe('camera travel', () => {
@@ -30,7 +27,7 @@ describe('camera travel', () => {
     expect(move.velocity.length()).toBe(0);
     expect(move.active).toBe(false);
   });
-  it('keeps every authored station path inside the room and clear of furniture', () => {
+  it('keeps every station path inside the two rooms and through the doorway', () => {
     for (const a of STATIONS)
       for (const b of STATIONS) {
         const move = new CameraTravel(
@@ -42,10 +39,12 @@ describe('camera travel', () => {
           move.step(1 / 60);
           const p = move.position;
           expect(Math.abs(p.x)).toBeLessThan(3.8);
-          expect(p.z).toBeGreaterThan(-2.3);
-          expect(p.z).toBeLessThan(4.4);
-          expect(p.y).toBeGreaterThan(1.6); // Above counter/table; east-side route clears host.
-          expect(Math.hypot(p.x - 2, p.z + 0.8)).toBeGreaterThan(0.6);
+          expect(p.z).toBeGreaterThan(-0.3);
+          expect(p.z).toBeLessThan(10.3);
+          expect(p.y).toBeGreaterThan(1.4); // Above the counter and tea table.
+          if (p.z > 3.28 && p.z < 3.52) {
+            expect(Math.abs(p.x)).toBeLessThan(1.12); // Inside the opening.
+          }
         }
       }
   });
@@ -65,17 +64,6 @@ describe('restrained procedural gestures', () => {
     expect(pourPose(0.5).tilt).toBeGreaterThan(0.2);
     expect(pourPose(0.5).stream).toBeGreaterThan(0);
     expect(pourPose(1.4)).toEqual({ tilt: 0, stream: 0 });
-  });
-  it('blinks close faster than they reopen, with varied bounded rest intervals', () => {
-    expect(blinkClosure(0)).toBe(0);
-    expect(blinkClosure(0.07)).toBe(1);
-    expect(blinkClosure(0.24)).toBe(0);
-    expect(blinkClosure(0.12)).toBeGreaterThan(0.3);
-    const rng = createRandom(42);
-    const delays = Array.from({ length: 30 }, () => nextBlinkDelay(rng));
-    expect(Math.min(...delays)).toBeGreaterThanOrEqual(2.8);
-    expect(Math.max(...delays)).toBeLessThanOrEqual(11);
-    expect(new Set(delays).size).toBeGreaterThan(25);
   });
 });
 it('brakes inherited momentum before an interrupted return overshoots the entrance', () => {
@@ -97,6 +85,6 @@ it('brakes inherited momentum before an interrupted return overshoots the entran
   );
   for (let i = 0; i < 120; i++) {
     move.step(1 / 60);
-    expect(move.position.z).toBeLessThan(4.3);
+    expect(move.position.z).toBeLessThan(entrance.position[2] + 0.1);
   }
 });

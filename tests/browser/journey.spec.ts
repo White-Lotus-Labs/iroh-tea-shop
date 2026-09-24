@@ -5,6 +5,7 @@ test('complete ritual twice, evidence, input preservation and card privacy', asy
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-station', 'Counter');
   await expect(
     page.getByRole('heading', { name: 'Pour what you have already written.' }),
   ).toBeVisible({ timeout: 15000 });
@@ -13,10 +14,14 @@ test('complete ritual twice, evidence, input preservation and card privacy', asy
       .getByRole('button', { name: 'Load sample', exact: true })
       .click();
     const thesis = await page.getByLabel('Your finished thesis').inputValue();
-    await page.getByRole('button', { name: 'Pour', exact: true }).dblclick();
+    await page.getByRole('button', { name: 'Pour', exact: true }).click();
+    await expect(page.locator('main')).toHaveAttribute(
+      'data-station',
+      'TeaTable',
+    );
     await expect(
-      page.getByRole('button', { name: 'Pouring…', exact: true }),
-    ).toBeDisabled();
+      page.getByRole('heading', { name: 'The tea is steeping.' }),
+    ).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'A little clarity, with your tea.' }),
     ).toBeVisible();
@@ -64,13 +69,27 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
     page.getByRole('heading', { name: 'Pour what you have already written.' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Retry Pour', exact: true }).click();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-station',
+    'TeaTable',
+  );
   await page
     .getByRole('button', { name: 'Cancel review', exact: true })
+    .click();
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Counter/ })
     .click();
   await expect(
     page.getByRole('button', { name: 'Pour', exact: true }),
   ).toBeEnabled();
-  for (const name of ['Entrance', 'Tea table', 'Host', 'Shelf', 'Counter']) {
+  for (const name of [
+    'Waiting room',
+    'Tea table',
+    'Host',
+    'Shelf',
+    'Counter',
+  ]) {
     await page
       .getByRole('navigation', { name: 'Tea room stations' })
       .getByRole('button', { name: new RegExp(name) })
@@ -83,9 +102,7 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
   }
   await expect(thesis).toHaveValue(/wasd$/);
 });
-test('manual navigation wins over the pending automatic arrival', async ({
-  page,
-}) => {
+test('manual navigation stays in the chosen room', async ({ page }) => {
   await page.goto('/');
   await page
     .getByRole('navigation', { name: 'Tea room stations' })

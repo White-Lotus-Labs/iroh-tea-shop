@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-const stations = ['Entrance', 'Counter', 'Tea table', 'Host', 'Shelf'];
+const stations = ['Waiting room', 'Counter', 'Tea table', 'Host', 'Shelf'];
 test('all directed station transitions and rapid interruptions preserve navigation', async ({
   page,
 }) => {
@@ -13,9 +13,9 @@ test('all directed station transitions and rapid interruptions preserve navigati
     for (const to of stations) {
       if (from === to) continue;
       await nav.getByRole('button', { name: new RegExp(from) }).click();
-      await page.waitForTimeout(1550);
+      await page.waitForTimeout(150);
       await nav.getByRole('button', { name: new RegExp(to) }).click();
-      await page.waitForTimeout(1550);
+      await page.waitForTimeout(150);
       await expect(
         nav.getByRole('button', { name: new RegExp(to) }),
       ).toHaveAttribute('aria-current', 'step');
@@ -24,7 +24,7 @@ test('all directed station transitions and rapid interruptions preserve navigati
     'Shelf',
     'Counter',
     'Host',
-    'Entrance',
+    'Waiting room',
     'Tea table',
     'Shelf',
     'Counter',
@@ -40,7 +40,6 @@ test('motion override stops HTML animation and pours remain interruptible', asyn
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Skip to counter' }).click();
   await page
     .getByRole('combobox', { name: 'Motion preference' })
     .selectOption('reduce');
@@ -50,17 +49,25 @@ test('motion override stops HTML animation and pours remain interruptible', asyn
       .getByRole('button', { name: 'Load sample', exact: true })
       .click();
     await page.getByRole('button', { name: 'Pour', exact: true }).click();
-    await page
-      .getByRole('navigation')
-      .getByRole('button', { name: /Host/ })
-      .click();
     if (round === 0) {
       await page.getByRole('button', { name: 'Cancel review' }).click();
+      await page
+        .getByRole('navigation')
+        .getByRole('button', { name: /Host/ })
+        .click();
       await page
         .getByRole('navigation')
         .getByRole('button', { name: /Counter/ })
         .click();
     } else {
+      await page
+        .getByRole('navigation')
+        .getByRole('button', { name: /Host/ })
+        .click();
+      await page
+        .getByRole('navigation')
+        .getByRole('button', { name: /Tea table/ })
+        .click();
       await expect(
         page.getByRole('heading', { name: 'A little clarity, with your tea.' }),
       ).toBeVisible();

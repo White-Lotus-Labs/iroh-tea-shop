@@ -42,19 +42,21 @@ export class CameraTravel {
     this.position = position.clone();
     this.target = target.clone();
   }
-  retarget(position: Vector3, target: Vector3) {
+  retarget(position: Vector3, target: Vector3, duration?: number) {
     this.from.copy(this.position);
     this.fromTarget.copy(this.target);
     this.to.copy(position);
     this.toTarget.copy(target);
     this.initialVelocity.copy(this.velocity);
     this.initialTargetVelocity.copy(this.targetVelocity);
-    this.duration = travelDuration(
-      Math.max(
-        this.from.distanceTo(position),
-        this.fromTarget.distanceTo(target) * 0.35,
-      ),
-    );
+    this.duration =
+      duration ??
+      travelDuration(
+        Math.max(
+          this.from.distanceTo(position),
+          this.fromTarget.distanceTo(target) * 0.35,
+        ),
+      );
     this.elapsed = 0;
     this.active = true;
   }
@@ -118,19 +120,10 @@ export function pourPose(seconds: number) {
     (1 - smootherstep((seconds - 0.76) / 0.12));
   return { tilt, stream };
 }
-export function blinkClosure(seconds: number) {
-  if (seconds < 0 || seconds >= 0.24) return 0;
-  return seconds <= 0.07
-    ? smootherstep(seconds / 0.07)
-    : 1 - smootherstep((seconds - 0.07) / 0.17);
-}
 export function createRandom(seed: number) {
   let state = seed >>> 0;
   return () => {
     state = (1664525 * state + 1013904223) >>> 0;
     return state / 4294967296;
   };
-}
-export function nextBlinkDelay(random: () => number) {
-  return 2.8 + random() * 5.2 + (random() < 0.18 ? 3 : 0);
 }

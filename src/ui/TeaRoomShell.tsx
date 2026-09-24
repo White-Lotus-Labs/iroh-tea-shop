@@ -14,6 +14,7 @@ import type {
   ReviewCard,
   Station,
 } from '../shared/contracts';
+import { validateInput } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import { STATIONS } from '../scene/stations';
 import { MockReviewAdapter } from '../review/mock-adapter';
@@ -43,7 +44,7 @@ export default function TeaRoomShell({
     session.getSnapshot,
     session.getSnapshot,
   );
-  const [station, setStation] = useState<Station>('Entrance');
+  const [station, setStation] = useState<Station>('Counter');
   const [thesis, setThesis] = useState('');
   const [symbol, setSymbol] = useState('ETH');
   const [hours, setHours] = useState<6 | 24 | 168>(24);
@@ -53,7 +54,8 @@ export default function TeaRoomShell({
   const [resetKey, setResetKey] = useState(0);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [card, setCard] = useState<ReviewCard | null>(null);
-  const arrived = useRef(false);
+  const [readingReady, setReadingReady] = useState(true);
+  const [sceneAvailable, setSceneAvailable] = useState(false);
   const panel = useRef<HTMLElement>(null);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
@@ -64,28 +66,22 @@ export default function TeaRoomShell({
     media.addEventListener('change', change);
     return () => media.removeEventListener('change', change);
   }, []);
-  useEffect(() => {
-    if (arrived.current || systemReduced === null) return;
-    const timer = setTimeout(
-      () => {
-        if (arrived.current) return;
-        arrived.current = true;
-        setStation('Counter');
-      },
-      reduced ? 0 : 3200,
-    );
-    return () => clearTimeout(timer);
-  }, [reduced, systemReduced]);
   useEffect(() => () => session.cancel(), [session]);
   const navigate = useCallback((next: Station) => {
-    arrived.current = true;
     setStation(next);
+    setReadingReady(true);
     setTyping(false);
     setEvidenceOpen(false);
   }, []);
+  const onCameraArrive = useCallback((at: Station) => {
+    if (at === 'TeaTable') setReadingReady(true);
+  }, []);
+  const onSceneAvailability = useCallback((available: boolean) => {
+    setSceneAvailable(available);
+    if (!available) setReadingReady(true);
+  }, []);
   const onInterrogation = (result: InterrogationResult) => {
     setCard(result.card);
-    navigate('TeaTable');
   };
   useEffect(() => {
     if (station === 'TeaTable' && data.result) panel.current?.focus();
@@ -96,14 +92,28 @@ export default function TeaRoomShell({
   };
   const onPour = async () => {
     if (data.activeRequestId) return;
+    const input = {
+      thesis,
+      symbol,
+      lookbackHours: hours,
+      mode: 'demo' as const,
+      requestId: crypto.randomUUID(),
+    };
     try {
-      const result = await session.onPour({
-        thesis,
-        symbol,
-        lookbackHours: hours,
-        mode: 'demo',
-        requestId: crypto.randomUUID(),
-      });
+      validateInput(input);
+    } catch {
+      // Let the session publish the same retryable error at the counter.
+      try {
+        await session.onPour(input);
+      } catch {
+        /* Validation message is in the session snapshot. */
+      }
+      return;
+    }
+    navigate('TeaTable');
+    setReadingReady(reduced || !sceneAvailable);
+    try {
+      const result = await session.onPour(input);
       onInterrogation(result);
     } catch {
       /* Session exposes retryable errors; cancelled requests never navigate. */
@@ -127,6 +137,7 @@ export default function TeaRoomShell({
   return (
     <main
       className="app-shell"
+      data-station={station}
       data-motion={reduced ? 'reduce' : 'full'}
       data-mood={mood}
     >
@@ -151,23 +162,29 @@ export default function TeaRoomShell({
         >
           <TeaRoom
             station={station}
-            onNavigate={navigate}
             reduced={reduced}
             resetKey={resetKey}
             typing={typing}
             reading={evidenceOpen}
             mood={mood}
             requestKey={data.activeRequestId ?? data.result?.requestId ?? null}
+            onArrive={onCameraArrive}
+            onAvailabilityChange={onSceneAvailability}
           />
           <div className="scene-caption">
             <span className="eyebrow">
-              THE ROOM / {active.label.toUpperCase()}
+              {station === 'Counter' || station === 'Entrance'
+                ? 'THE WAITING ROOM'
+                : 'THE TEA ROOM'}{' '}
+              / {active.label.toUpperCase()}
             </span>
             <p>
-              {station === 'Counter'
-                ? 'Bring the thought. We’ll put the kettle on.'
+              {station === 'Counter' || station === 'Entrance'
+                ? 'Your thought begins at the counter.'
                 : station === 'TeaTable'
-                  ? 'An observation is a beginning, not a verdict.'
+                  ? !readingReady || busy
+                    ? 'Take a seat. The tea is steeping.'
+                    : 'An observation is a beginning, not a verdict.'
                   : station === 'AvatarSeat'
                     ? 'There is room to change your mind.'
                     : station === 'Shelf'
@@ -195,7 +212,7 @@ export default function TeaRoomShell({
         </section>
         <section
           key={station}
-          className="reading-panel"
+          className={`reading-panel${station === 'TeaTable' && (busy || !readingReady) ? ' is-steeping' : ''}`}
           id="main-panel"
           ref={panel}
           tabIndex={-1}
@@ -245,17 +262,30 @@ export default function TeaRoomShell({
             />
           )}
           {station === 'TeaTable' &&
-            (data.result ? (
+            (data.result && readingReady ? (
               <ResultScroll
                 result={data.result}
                 onEvidence={() => setEvidenceOpen(true)}
                 onReflect={() => navigate('AvatarSeat')}
                 onCard={() => showCard(data.result!.card)}
               />
+            ) : busy || !readingReady ? (
+              <div className="steeping-content" role="status">
+                <div className="eyebrow">02 / THE TEA ROOM</div>
+                <h1>The tea is steeping.</h1>
+                <p>Settle at the table while the review arrives.</p>
+              </div>
             ) : (
               <EmptyStation
-                title="A place for the evidence."
-                text="Your review will arrive here after you pour a thesis at the counter."
+                title={
+                  data.error
+                    ? 'The pour needs another try.'
+                    : 'A place for the evidence.'
+                }
+                text={
+                  data.error ??
+                  'Your review will arrive here after you pour a thesis at the counter.'
+                }
                 onCounter={() => navigate('Counter')}
               />
             ))}
@@ -310,17 +340,20 @@ export default function TeaRoomShell({
         <span>
           {busy
             ? 'Steeping the synthetic sample…'
-            : data.workflowState === 'error'
-              ? 'The pour needs another try. Your thesis is preserved.'
-              : data.result
-                ? 'Demo review ready · no provider contacted'
-                : 'A private pause · your writing stays in memory'}
+            : station === 'TeaTable' && !readingReady
+              ? 'Arriving at the tea table…'
+              : data.workflowState === 'error'
+                ? 'The pour needs another try. Your thesis is preserved.'
+                : data.result
+                  ? 'Demo review ready · no provider contacted'
+                  : 'A private pause · your writing stays in memory'}
         </span>
         {busy && (
           <button
             onClick={() => {
               session.cancel();
               setCard(null);
+              navigate('Counter');
             }}
           >
             Cancel review

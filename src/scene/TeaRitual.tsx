@@ -7,6 +7,7 @@ import {
   PointLight,
   Quaternion,
   Vector3,
+  CatmullRomCurve3,
 } from 'three';
 import { damp, pourPose, type SceneMood } from './motion/dynamics';
 import { Steam } from './Steam';
@@ -28,7 +29,7 @@ export function TeaRitual({
   const points = useRef({
     spout: new Vector3(),
     unit: new Vector3(),
-    cup: new Vector3(0.4, 0.75, -0.12),
+    cup: new Vector3(0.58, 0.75, -2.34),
     direction: new Vector3(),
     up: new Vector3(0, 1, 0),
     rotation: new Quaternion(),
@@ -62,7 +63,7 @@ export function TeaRitual({
       );
     if (stream.current && pot.current) {
       const p = points.current;
-      p.spout.set(0.156, 0.303, 0);
+      p.spout.set(0.23, 0.308, 0);
       pot.current.localToWorld(p.spout);
       p.direction.copy(p.cup).sub(p.spout);
       stream.current.position.copy(p.spout).addScaledVector(p.direction, 0.5);
@@ -78,34 +79,73 @@ export function TeaRitual({
   });
   return (
     <>
-      <group position={[0, 0.61, -0.3]} rotation={[0, -0.423, 0]}>
+      <group position={[0, 0.6, -2.48]} rotation={[0, -0.423, 0]}>
         <group ref={pot} position={[0.13, 0, 0]} name="pouring-teapot">
           <group position={[-0.13, 0.15, 0]}>
-            <mesh position={[0, -0.13, 0]}>
-              <cylinderGeometry args={[0.13, 0.13, 0.04, 24]} />
-              <meshStandardMaterial color="#626a48" roughness={0.8} />
-            </mesh>
-            <mesh scale={[1, 0.8, 1]}>
-              <sphereGeometry args={[0.19, 24, 16]} />
-              <meshStandardMaterial
-                ref={ceramic}
-                color="#626a48"
-                emissive="#b07839"
-                emissiveIntensity={0.025}
-                roughness={0.7}
+            <mesh position={[0, -0.12, 0]} castShadow>
+              <cylinderGeometry args={[0.125, 0.12, 0.035, 32]} />
+              <meshPhysicalMaterial
+                color="#424a32"
+                roughness={0.35}
+                clearcoat={0.6}
               />
             </mesh>
-            <mesh position={[0, 0.18, 0]}>
-              <sphereGeometry args={[0.045, 12, 8]} />
-              <meshStandardMaterial color="#626a48" />
+            <mesh scale={[1.2, 0.78, 1.1]} castShadow receiveShadow>
+              <sphereGeometry args={[0.19, 40, 24]} />
+              <meshPhysicalMaterial
+                ref={ceramic}
+                color="#475235"
+                emissive="#b07839"
+                emissiveIntensity={0.025}
+                roughness={0.28}
+                clearcoat={0.8}
+                clearcoatRoughness={0.17}
+              />
             </mesh>
-            <mesh position={[0.2, 0.07, 0]} rotation={[0, 0, -0.8]}>
-              <coneGeometry args={[0.065, 0.24, 16]} />
-              <meshStandardMaterial color="#626a48" />
+            <mesh position={[0, 0.137, 0]} castShadow>
+              <cylinderGeometry args={[0.11, 0.12, 0.026, 32]} />
+              <meshPhysicalMaterial
+                color="#37422f"
+                roughness={0.33}
+                clearcoat={0.7}
+              />
             </mesh>
-            <mesh position={[-0.18, 0.03, 0]}>
-              <torusGeometry args={[0.105, 0.022, 8, 20]} />
-              <meshStandardMaterial color="#626a48" roughness={0.7} />
+            <mesh position={[0, 0.178, 0]} castShadow>
+              <sphereGeometry args={[0.037, 20, 12]} />
+              <meshPhysicalMaterial
+                color="#38432f"
+                roughness={0.3}
+                clearcoat={0.7}
+              />
+            </mesh>
+            <mesh castShadow>
+              <tubeGeometry
+                args={[
+                  new CatmullRomCurve3([
+                    new Vector3(0.16, 0.05, 0),
+                    new Vector3(0.25, 0.05, 0),
+                    new Vector3(0.31, 0.105, 0),
+                    new Vector3(0.36, 0.158, 0),
+                  ]),
+                  20,
+                  0.035,
+                  10,
+                  false,
+                ]}
+              />
+              <meshPhysicalMaterial
+                color="#475235"
+                roughness={0.3}
+                clearcoat={0.7}
+              />
+            </mesh>
+            <mesh position={[-0.195, 0.012, 0]} castShadow>
+              <torusGeometry args={[0.108, 0.026, 12, 28]} />
+              <meshPhysicalMaterial
+                color="#465038"
+                roughness={0.33}
+                clearcoat={0.65}
+              />
             </mesh>
           </group>
         </group>
@@ -119,7 +159,9 @@ export function TeaRitual({
           depthWrite={false}
         />
       </mesh>
-      <Steam active={mood === 'pouring'} reduced={reduced} />
+      <group position={[0, 0, -2.18]}>
+        <Steam active={mood === 'pouring'} reduced={reduced} />
+      </group>
     </>
   );
 }
@@ -154,7 +196,7 @@ export function LanternLight({
   return (
     <pointLight
       ref={light}
-      position={[2.6, 2.7, -1.8]}
+      position={[3.1, 2.7, -3.9]}
       intensity={15}
       distance={7}
       color="#ffc36d"
@@ -186,7 +228,7 @@ export function ShelfPlacement({
     }
   });
   return (
-    <group position={[2.65, 2.26, -2.54]}>
+    <group position={[2.82, 2.69, -5.51]}>
       <group ref={group}>{children}</group>
     </group>
   );

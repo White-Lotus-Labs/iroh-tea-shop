@@ -12,14 +12,16 @@ export function CameraRig({
   resetKey,
   typing,
   reading = false,
+  onArrive,
 }: {
   station: Station;
   reduced: boolean;
   resetKey: number;
   typing: boolean;
   reading?: boolean;
+  onArrive?: (station: Station) => void;
 }) {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const controls = useRef<OrbitImpl>(null);
   const travel = useRef<CameraTravel | null>(null);
   const idle = useRef({
@@ -30,12 +32,26 @@ export function CameraRig({
     target: new Vector3(),
   });
   const angles = useRef({ azimuth: 0, polar: Math.PI / 2, distance: 3 });
+  const priorStation = useRef<Station | null>(null);
   useEffect(() => {
     const c = controls.current;
     if (!c) return;
     const anchor = STATIONS.find((s) => s.id === station)!;
-    const to = new Vector3(...anchor.position),
-      target = new Vector3(...anchor.target),
+    const mobile = size.width < 760;
+    const position =
+      mobile && (station === 'Counter' || station === 'Entrance')
+        ? ([0.55, 1.67, 9.38] as const)
+        : mobile && station === 'TeaTable'
+          ? ([0.95, 1.55, 0.56] as const)
+          : anchor.position;
+    const look =
+      mobile && (station === 'Counter' || station === 'Entrance')
+        ? ([-3.14, 1.44, 6.4] as const)
+        : mobile && station === 'TeaTable'
+          ? ([1.33, 0.77, -3.45] as const)
+          : anchor.target;
+    const to = new Vector3(...position),
+      target = new Vector3(...look),
       offset = to.clone().sub(target);
     angles.current = {
       azimuth: Math.atan2(offset.x, offset.z),
@@ -44,17 +60,38 @@ export function CameraRig({
     };
     if (!travel.current)
       travel.current = new CameraTravel(camera.position, c.target);
+    const previous = priorStation.current;
+    const firstFrame = previous === null;
     // Capture the actual visible frame, including any local orbit, before retargeting.
     travel.current.position.copy(camera.position);
     travel.current.target.copy(c.target);
-    travel.current.retarget(to, target);
+    const crossingRooms =
+      previous !== null &&
+      (previous === 'Entrance' || previous === 'Counter') !==
+        (station === 'Entrance' || station === 'Counter');
+    travel.current.retarget(to, target, crossingRooms ? 3.1 : undefined);
+    if (firstFrame) travel.current.finish();
+    priorStation.current = station;
     c.enabled = false;
     idle.current.gain = 0;
     c.enableDamping = false;
     c.update();
     camera.position.copy(travel.current.position);
     c.target.copy(travel.current.target);
-  }, [station, resetKey, camera]);
+    if (firstFrame) {
+      c.minAzimuthAngle = angles.current.azimuth - 0.16;
+      c.maxAzimuthAngle = angles.current.azimuth + 0.16;
+      c.minPolarAngle = angles.current.polar - 0.08;
+      c.maxPolarAngle = angles.current.polar + 0.08;
+      c.minDistance = angles.current.distance;
+      c.maxDistance = angles.current.distance;
+      c.enableDamping = !reduced;
+      c.enabled = !typing && !reading;
+      c.update();
+      camera.lookAt(c.target);
+      onArrive?.(station);
+    }
+  }, [station, resetKey, camera, size.width, onArrive]);
   // drei updates orbit at priority -1. Remove last frame's decorative offsets first,
   // then apply this frame's offsets after orbit, so drift never accumulates.
   useFrame(() => {
@@ -69,7 +106,7 @@ export function CameraRig({
     const c = controls.current,
       t = travel.current;
     if (!c || !t) return;
-    const dt = Math.min(delta, 0.05),
+    const dt = Math.min(delta, 0.2),
       a = angles.current,
       i = idle.current;
     if (t.active) {
@@ -88,6 +125,7 @@ export function CameraRig({
         c.enableDamping = false;
         c.update();
         c.enableDamping = !reduced;
+        onArrive?.(station);
       }
     } else if (!reduced && !typing && !reading) {
       i.time += dt;
@@ -124,7 +162,7 @@ export function CameraRig({
       onEnd={() => {
         idle.current.dragging = false;
       }}
-      target={[0, 1, -1]}
+      target={size.width < 760 ? [-3.14, 1.44, 6.4] : [-3.05, 1.22, 6.67]}
     />
   );
 }

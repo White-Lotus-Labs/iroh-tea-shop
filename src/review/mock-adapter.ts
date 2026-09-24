@@ -21,7 +21,7 @@ function delay(ms: number, signal?: AbortSignal) {
   });
 }
 export class MockReviewAdapter implements ReviewAdapter {
-  constructor(private readonly delayMs = 1300) {}
+  constructor(private readonly delayMs = 2800) {}
   async review(
     raw: ReviewInput,
     signal?: AbortSignal,
