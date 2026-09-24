@@ -4,6 +4,8 @@ A quiet room for a finished thesis. Write at the counter in a Japanese tea shop,
 
 **PASS A is a mock experience. Every result is labeled DEMO DATA. No Nansen, Hyperliquid or LLM service is called. No credentials are required.**
 
+For a concise account of what is finished, what is verified, and what remains before a live release, see the [current project status](docs/project-status.md).
+
 ![Tea After Pour: the tea table with a clearly labeled synthetic review](docs/tea-table.png)
 
 ![The seated 3D tea host and decorated display on the right wall](docs/tea-host-and-shelf.png)
