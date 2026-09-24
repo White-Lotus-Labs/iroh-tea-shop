@@ -111,7 +111,7 @@ export function CameraRig({
       i = idle.current;
     if (t.active) {
       if (reduced) t.finish();
-      else if (!typing && !reading) t.step(dt);
+      else if (!typing && !reading) t.step(delta);
       camera.position.copy(t.position);
       c.target.copy(t.target);
       if (!t.active) {

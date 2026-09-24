@@ -6,6 +6,8 @@ A quiet room for a finished thesis. Write at the counter in a Japanese tea shop,
 
 ![Tea After Pour: the tea table with a clearly labeled synthetic review](docs/tea-table.png)
 
+![The seated 3D tea host and decorated display on the right wall](docs/tea-host-and-shelf.png)
+
 ![The separate waiting and counter room](docs/waiting-room.png)
 
 ## Run locally
@@ -61,7 +63,7 @@ The card shows only application-owned reflection text, symbol, window, demo stat
 ## Architecture
 
 - `src/app/`: Next.js App Router entry, metadata and responsive visual styles. The HTML shell loads before the dynamically imported scene.
-- `src/scene/`: one R3F canvas, two connected rooms with physical floor, counter and tea-table geometry, image-backed scenery and host, authored camera anchors and a constrained drei camera rig. DPR is capped at 1.5. Images are bundled locally.
+- `src/scene/`: one R3F canvas, two connected rooms with physical floor, counter, tea table, seated 3D host and right-wall tea display, image-backed distant scenery, authored camera anchors and a constrained drei camera rig. DPR is capped at 1.5. Images are bundled locally.
 - `src/ui/`: `TeaRoomShell` coordinates station and form state; `ThesisPanel`, `ResultScroll`, `EvidenceDrawer` and `ShareCard` provide accessible HTML interfaces.
 - `src/shared/contracts.ts`: `ReviewInput`, `EvidenceItem`, `Finding`, `InterrogationResult`, `ReviewCard`, `ReviewAdapter` and input validation.
 - `src/fixtures/`: fixed synthetic evidence and prepared thesis.
@@ -73,7 +75,7 @@ The card shows only application-owned reflection text, symbol, window, demo stat
 
 ## Motion behavior
 
-Station travel uses quintic easing; crossing between the two rooms takes about three seconds, while closer station changes use shorter distance-aware moves. The camera passes through an actual opening in the dividing wall, preserves momentum when redirected, and adds a 2mm final settling arc. Local orbit pauses during travel; tiny camera drift stops while typing or inspecting evidence. The portrait host has only a subtle breathing movement.
+Station travel uses quintic easing; crossing between the two rooms takes about three seconds, while closer station changes use shorter distance-aware moves. The camera passes through an actual opening in the dividing wall, preserves momentum when redirected, and adds a 2mm final settling arc. Local orbit pauses during travel; tiny camera drift stops while typing or inspecting evidence. The 3D host has only a subtle breathing movement.
 
 Pour starts the room transition, followed by a short teapot tip around its foot rim, a brief stream and increased steam. Review work is independent of camera movement; the reading card waits until the camera reaches the tea room. Cancellation or an early result gently returns the pot to rest. All scene motion uses R3F's coordinated loop and refs; HTML reveals use short CSS animations with readable text from the first frame. No animation library or additional rendering loop was added.
 
@@ -81,9 +83,9 @@ The motion selector controls both HTML and WebGL. Reduced motion skips camera tr
 
 ## Assets and limitations
 
-The room uses locally generated scene images for the tea-room back wall, counter wall and grandfather. The user-supplied screenshot guided their style and composition; it is not embedded in the app. The grandfather and distant walls are planes within the 3D rooms; the counter, doorway, floor, table, teapot, cups, rug and camera travel are three-dimensional. Typography uses installed Georgia and Arial/Helvetica fallbacks. There are no remote artwork, font or audio requests. Third-party libraries retain their package licenses.
+The room uses locally generated scene images for the tea-room back wall and counter wall. The user-supplied screenshot guided their style and composition; it is not embedded in the app. The grandfather is a sculpted 3D figure, and the decorated tea shelf is built into the right wall. The counter, doorway, floor, table, teapot, cups, rug and camera travel are also three-dimensional. Typography uses installed Georgia and Arial/Helvetica fallbacks. There are no remote artwork, font or audio requests. Third-party libraries retain their package licenses.
 
-The scene has controlled parallax rather than a fully modeled character or walkable environment. The image-backed host cannot turn to arbitrary angles. The motion layer adds a short teapot tip, nine soft steam sprites and restrained lighting/UI responses. No voice, lip sync, external models or physics engine is used. Performance varies by GPU; formal frame-rate benchmarks are not claimed. Browser checks use Chromium; Safari and Firefox have not been separately certified.
+The host is a stylized procedural model, not a scanned or photorealistic person. The room has controlled parallax rather than a freely walkable environment. The motion layer adds a short teapot tip, nine soft steam sprites and restrained lighting/UI responses. No voice, lip sync, external models or physics engine is used. Performance varies by GPU; formal frame-rate benchmarks are not claimed. Browser checks use Chromium; Safari and Firefox have not been separately certified.
 
 If port 3000 is occupied, stop the other server or use `npm run dev -- --port 3001`. If an interrupted build leaves stale Next.js artifacts, stop the server, remove `.next`, and restart. A blank 3D area should recover to the fallback; all primary actions are also available through HTML.
 

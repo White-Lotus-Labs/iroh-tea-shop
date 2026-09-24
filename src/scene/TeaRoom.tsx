@@ -1,9 +1,10 @@
-import { Component, Suspense, type ReactNode, useState } from 'react';
+import { Component, type ReactNode, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import { CameraRig } from './CameraRig';
 import { TeaRitual, LanternLight, ShelfPlacement } from './TeaRitual';
-import { HostPortrait } from './HostPortrait';
+import { TeaHost3D } from './TeaHost3D';
+import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
 import { Surfaces, Solid } from './Surfaces';
 import type { SceneMood } from './motion/dynamics';
@@ -21,8 +22,8 @@ function RoomGeometry({
   return (
     <>
       <color attach="background" args={['#2f2119']} />
-      <hemisphereLight args={['#a3aabb', '#604a36', 0.67]} />
-      <ambientLight intensity={0.53} color="#ffe4bb" />
+      <hemisphereLight args={['#b6bfcb', '#604a36', 0.9]} />
+      <ambientLight intensity={0.58} color="#ffe8ce" />
       <directionalLight
         position={[-5, 6, -4]}
         color="#ffce8d"
@@ -35,6 +36,17 @@ function RoomGeometry({
         shadow-camera-right={10}
         shadow-camera-top={9}
         shadow-camera-bottom={-9}
+      />
+      <directionalLight
+        position={[3, 3.8, 2.5]}
+        color="#e8d6be"
+        intensity={0.88}
+      />
+      <pointLight
+        position={[1.1, 1.75, -0.7]}
+        color="#e8d7bf"
+        intensity={2.2}
+        distance={5.3}
       />
       <WaitingRoom />
       <TeaChamber>
@@ -50,9 +62,8 @@ function RoomGeometry({
         />
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
-        <Suspense fallback={null}>
-          <HostPortrait reduced={reduced} />
-        </Suspense>
+        <TeaHost3D reduced={reduced} />
+        <TeaShelf />
         <ShelfPlacement active={mood === 'card'} reduced={reduced}>
           <Solid
             position={[0, 0, 0]}

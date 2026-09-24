@@ -228,8 +228,10 @@ export function ShelfPlacement({
     }
   });
   return (
-    <group position={[2.82, 2.69, -5.51]}>
-      <group ref={group}>{children}</group>
+    <group position={[2.96, 1.51, -3.96]} rotation={[0, -Math.PI / 2, 0]}>
+      <group ref={group} visible={active}>
+        {children}
+      </group>
     </group>
   );
 }
