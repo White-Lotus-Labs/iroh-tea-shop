@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { registerBrowserAccount } from './auth-helper';
+test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 test('complete ritual twice, evidence, input preservation and card privacy', async ({
   page,
 }) => {

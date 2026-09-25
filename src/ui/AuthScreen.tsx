@@ -1,0 +1,153 @@
+'use client';
+import { useRouter } from 'next/navigation';
+import { useState, type FormEvent } from 'react';
+
+export default function AuthScreen() {
+  const router = useRouter();
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [nickname, setNickname] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending) return;
+    setPending(true);
+    setError('');
+    try {
+      const response = await fetch(
+        `/api/auth/${mode === 'login' ? 'login' : 'register'}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname, password }),
+        },
+      );
+      if (!response.ok) {
+        const body = await response.json();
+        throw new Error(
+          typeof body.error === 'string' ? body.error : 'Please try again.',
+        );
+      }
+      setPassword('');
+      router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Please try again.');
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <main className="auth-shell">
+      <header className="auth-topbar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            ◒
+          </span>
+          <span>
+            Tea After Pour<small>A QUIET ROOM FOR A FINISHED THESIS</small>
+          </span>
+        </div>
+        <span className="auth-topbar-note">A PRIVATE PAUSE</span>
+      </header>
+      <div className="auth-layout">
+        <div className="auth-atmosphere" aria-hidden="true">
+          <div className="auth-enso">◒</div>
+          <p>
+            Slow down.
+            <br />
+            See clearly.
+            <br />
+            Begin again.
+          </p>
+          <span>THE ROOM IS READY WHEN YOU ARE</span>
+        </div>
+        <section className="auth-panel" aria-labelledby="auth-title">
+          <div className="auth-panel-inner">
+            <span className="eyebrow">TEA AFTER POUR / YOUR ROOM</span>
+            <h1 id="auth-title">Welcome to the room.</h1>
+            <p className="intro">
+              A place to sit with your thoughts. Your account keeps this room
+              yours.
+            </p>
+            <div className="auth-tabs" role="group" aria-label="Account action">
+              <button
+                type="button"
+                className={mode === 'login' ? 'is-active' : ''}
+                aria-pressed={mode === 'login'}
+                onClick={() => {
+                  setMode('login');
+                  setError('');
+                }}
+              >
+                Log in
+              </button>
+              <button
+                type="button"
+                className={mode === 'register' ? 'is-active' : ''}
+                aria-pressed={mode === 'register'}
+                onClick={() => {
+                  setMode('register');
+                  setError('');
+                }}
+              >
+                Create account
+              </button>
+            </div>
+            <form onSubmit={submit} className="auth-form">
+              <label htmlFor="auth-nickname">Nickname</label>
+              <input
+                id="auth-nickname"
+                name="nickname"
+                autoComplete="username"
+                value={nickname}
+                onChange={(event) => setNickname(event.target.value)}
+                minLength={3}
+                maxLength={24}
+                required
+              />
+              <label htmlFor="auth-password">Password</label>
+              <input
+                id="auth-password"
+                name="password"
+                type="password"
+                autoComplete={
+                  mode === 'login' ? 'current-password' : 'new-password'
+                }
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+              {mode === 'register' && (
+                <p className="auth-hint">
+                  Use 3–24 letters, numbers, underscores, or hyphens for your
+                  nickname. Passwords need at least 8 characters.
+                </p>
+              )}
+              {error && (
+                <p className="auth-error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button
+                className="primary auth-submit"
+                type="submit"
+                disabled={pending}
+              >
+                {pending
+                  ? 'One moment…'
+                  : mode === 'login'
+                    ? 'Log in'
+                    : 'Create account'}
+                {!pending && <span aria-hidden="true">→</span>}
+              </button>
+            </form>
+            <p className="auth-footnote">A quiet room for a finished thesis.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}

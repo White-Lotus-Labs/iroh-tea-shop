@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { registerBrowserAccount } from './auth-helper';
+test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 const stations = ['Waiting room', 'Counter', 'Tea table', 'Host', 'Shelf'];
 test('all directed station transitions and rapid interruptions preserve navigation', async ({
   page,
