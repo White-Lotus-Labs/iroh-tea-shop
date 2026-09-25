@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: 'npm run dev',
+    command: `npm run dev -- --port ${new URL(baseURL).port || '3000'}`,
     url: baseURL,
     reuseExistingServer: true,
     timeout: 120000,

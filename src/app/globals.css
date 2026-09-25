@@ -1065,6 +1065,237 @@ input {
     font-size: 26px;
   }
 }
+
+/* Iroh's research sits on the Host reading paper, beside the seated host. */
+.ask-iroh {
+  margin: 0 16px 16px 0;
+}
+.app-shell[data-station='AvatarSeat'] .reading-panel:has(.iroh-chat) {
+  left: auto;
+  right: clamp(32px, 4vw, 60px);
+  top: max(145px, 15dvh);
+  width: min(42vw, 550px);
+  min-width: 365px;
+  height: min(65dvh, 600px);
+  padding: 0;
+  overflow: hidden;
+  z-index: 14;
+}
+.iroh-chat {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+  color: var(--ink);
+}
+.iroh-chat-head {
+  padding: 20px clamp(22px, 3vw, 44px) 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  background: #f3e9d5;
+}
+.iroh-chat-head .eyebrow {
+  margin-bottom: 5px;
+}
+.app-shell[data-station='AvatarSeat'] .iroh-chat-head h1 {
+  font-size: clamp(28px, 2.4vw, 36px);
+  margin: 0 0 4px;
+}
+.iroh-chat-head p {
+  color: var(--moss);
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  margin: 0;
+}
+.iroh-chat-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.iroh-chat-actions button,
+.iroh-error button {
+  border: 1px solid #b9aa8d;
+  background: #f9f2e4;
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 7px 11px;
+  font-size: 12px;
+}
+.iroh-transcript {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 22px clamp(22px, 3vw, 44px);
+  scrollbar-color: #a48b67 transparent;
+}
+.iroh-greeting {
+  max-width: 52ch;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 8px auto 20px;
+  text-align: center;
+}
+.iroh-seal {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 12px;
+  border: 1px solid #bda477;
+  border-radius: 50%;
+  color: var(--moss);
+  font:
+    22px Georgia,
+    serif;
+}
+.iroh-greeting-title {
+  font:
+    21px/1.35 Georgia,
+    serif;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.iroh-greeting > p:last-child {
+  font-size: 13px;
+}
+.iroh-message {
+  max-width: 76ch;
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border: 1px solid #d9ccb5;
+  border-radius: 5px;
+  background: #fffaf0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.iroh-message.is-user {
+  margin-left: min(12%, 75px);
+  background: #e9e8d9;
+  border-color: #c9cbb6;
+}
+.iroh-speaker {
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  font-size: 10px;
+  color: var(--moss);
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+.iroh-message small {
+  color: var(--muted);
+}
+.iroh-markdown p,
+.iroh-markdown ul,
+.iroh-markdown ol {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+}
+.iroh-markdown > :last-child {
+  margin-bottom: 0;
+}
+.iroh-markdown ul,
+.iroh-markdown ol {
+  padding-left: 21px;
+}
+.iroh-markdown code {
+  font-size: 0.9em;
+  background: #eee6d6;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.iroh-markdown a {
+  color: #7a4932;
+  text-decoration: underline;
+}
+.iroh-waiting,
+.iroh-activity {
+  color: var(--moss);
+  font:
+    italic 13px Georgia,
+    serif;
+  margin: 0;
+}
+.iroh-activity {
+  margin: 0 0 15px 18px;
+}
+.iroh-error {
+  border-left: 3px solid var(--clay);
+  background: #f5e5d7;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.iroh-error p {
+  margin-bottom: 8px;
+}
+.iroh-compose {
+  border-top: 1px solid var(--line);
+  padding: 12px clamp(22px, 3vw, 44px) 15px;
+  background: #efe3ca;
+}
+.app-shell[data-station='AvatarSeat'] .iroh-compose textarea {
+  display: block;
+  width: 100%;
+  min-height: 58px;
+  max-height: 125px;
+  resize: vertical;
+  padding: 9px 11px;
+  background: #fffaf0;
+  color: var(--ink);
+  border: 1px solid #b7ad98;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.iroh-compose-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 7px;
+}
+.iroh-compose-bottom span:first-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+.iroh-compose-bottom button {
+  min-width: 85px;
+}
+@media (max-width: 760px) {
+  .app-shell[data-station='AvatarSeat'] .reading-panel:has(.iroh-chat) {
+    top: 72px;
+    bottom: 80px;
+    height: auto;
+    max-height: none;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    min-width: 0;
+    height: auto;
+  }
+  .iroh-chat-head {
+    padding: 15px 17px 12px;
+  }
+  .iroh-chat-actions {
+    flex-direction: column;
+  }
+  .iroh-chat-actions button {
+    min-height: 33px;
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+  .iroh-transcript {
+    padding: 15px 17px;
+  }
+  .iroh-compose {
+    padding: 9px 17px 12px;
+  }
+  .iroh-compose-bottom span:first-child {
+    font-size: 9px;
+  }
+}
 /* Motion is decorative: controls and complete text are available on the first frame. */
 .app-shell {
   --ease-out: cubic-bezier(0.2, 0.75, 0.25, 1);
