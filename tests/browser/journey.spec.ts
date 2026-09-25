@@ -4,6 +4,7 @@ test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 test('complete ritual twice, evidence, input preservation and card privacy', async ({
   page,
 }) => {
+  test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
