@@ -55,6 +55,7 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.clock.install();
   await page.goto('/');
   const thesis = page.getByLabel('Your finished thesis');
   await expect(thesis).toBeVisible();
@@ -69,6 +70,8 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
   await expect(
     page.getByRole('heading', { name: 'Pour what you have already written.' }),
   ).toBeVisible();
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 10_000);
   await page.getByRole('button', { name: 'Retry Pour', exact: true }).click();
   await expect(page.locator('main')).toHaveAttribute(
     'data-station',
@@ -77,6 +80,7 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
   await page
     .getByRole('button', { name: 'Cancel review', exact: true })
     .click();
+  await page.clock.resume();
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Counter/ })

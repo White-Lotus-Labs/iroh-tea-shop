@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { registerBrowserAccount } from './auth-helper';
+
+test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 
 test('Host immediately shows Iroh chat in the Host panel, keeps history across stations, and resets conversation', async ({
   page,
