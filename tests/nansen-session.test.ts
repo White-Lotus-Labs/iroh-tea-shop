@@ -134,4 +134,16 @@ describe('Iroh client session', () => {
     expect(session.getSnapshot().messages.at(-1)?.content).toBe('Kept');
     expect(session.getSnapshot().error).toContain('interrupted');
   });
+
+  it('completes an answer when DONE is the final line without a blank delimiter', async () => {
+    const session = new IrohSession(async () =>
+      sse([
+        'data: {"type":"delta","text":"Answer"}\n\ndata: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n',
+      ]),
+    );
+    await session.send('question');
+    expect(session.getSnapshot().messages.at(-1)?.status).toBe('complete');
+    expect(session.getSnapshot().conversationId).toBe('conv_1');
+    expect(session.getSnapshot().error).toBeNull();
+  });
 });

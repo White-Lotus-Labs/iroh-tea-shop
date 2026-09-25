@@ -229,4 +229,24 @@ describe('Nansen agent route', () => {
     const response = await POST(request({ text: 'hello' }));
     expect(await response.text()).toContain('credits are unavailable');
   });
+
+  it('does not report interruption after an answer whose DONE sentinel ends at EOF', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            'data: {"type":"delta","text":"Answer"}\n\ndata: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n',
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      ),
+    );
+    const response = await POST(request({ text: 'hello' }));
+    const output = await response.text();
+    expect(output).toContain('"text":"Answer"');
+    expect(output).toContain('"conversation_id":"conv_1"');
+    expect(output).toContain('data: [DONE]');
+    expect(output).not.toContain('interrupted');
+  });
 });

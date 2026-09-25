@@ -72,8 +72,11 @@ export class SseDecoder {
     return events;
   }
 
-  end() {
-    if (this.pending.trim()) throw new Error('Incomplete SSE frame');
+  end(onEvent?: (event: AgentEvent) => void): AgentEvent[] {
+    if (!this.pending.trim()) return [];
+    // An upstream may close immediately after its final data line. Parse that
+    // complete line as the last frame; incomplete JSON still raises an error.
+    return this.feed('\n\n', onEvent);
   }
 }
 

@@ -38,4 +38,14 @@ describe('Nansen SSE decoder', () => {
       ),
     ).toEqual([{ type: 'error', error: 'timeout', status_code: 504 }]);
   });
+
+  it('accepts a complete DONE sentinel at end of stream without a blank line', () => {
+    const decoder = new SseDecoder();
+    expect(
+      decoder.feed(
+        'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n',
+      ),
+    ).toEqual([{ type: 'finish', conversation_id: 'conv_1' }]);
+    expect(decoder.end()).toEqual([{ type: 'done' }]);
+  });
 });

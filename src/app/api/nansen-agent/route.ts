@@ -149,21 +149,22 @@ export async function POST(request: Request) {
       let finished = false;
       let done = false;
       let upstreamError = false;
+      const forward = (parsed: AgentEvent) => {
+        if (done || upstreamError) return;
+        const event = streamError(parsed);
+        if (event.type === 'finish') finished = true;
+        if (event.type === 'done') done = true;
+        if (event.type === 'error') upstreamError = true;
+        controller.enqueue(encodeEvent(event));
+      };
       try {
         while (true) {
           const chunk = await reader.read();
           if (chunk.done) break;
-          parser.feed(text.decode(chunk.value, { stream: true }), (parsed) => {
-            if (done || upstreamError) return;
-            const event = streamError(parsed);
-            if (event.type === 'finish') finished = true;
-            if (event.type === 'done') done = true;
-            if (event.type === 'error') upstreamError = true;
-            controller.enqueue(encodeEvent(event));
-          });
+          parser.feed(text.decode(chunk.value, { stream: true }), forward);
           if (done || upstreamError) break;
         }
-        if (!upstreamError) parser.end();
+        if (!upstreamError) parser.end(forward);
         if (!finished && !upstreamError && !upstreamController.signal.aborted)
           controller.enqueue(
             encodeEvent({

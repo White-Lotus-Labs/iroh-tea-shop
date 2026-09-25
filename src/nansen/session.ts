@@ -128,33 +128,34 @@ export class IrohSession {
       const decoder = new TextDecoder();
       const parser = new SseDecoder();
       let done = false;
+      const consume = (event: ReturnType<SseDecoder['feed']>[number]) => {
+        if (done) return;
+        if (event.type === 'delta') {
+          const old = this.state.messages.find(
+            (message) => message.id === assistantId,
+          );
+          this.updateMessage(assistantId, {
+            content: (old?.content ?? '') + event.text,
+          });
+        } else if (event.type === 'tool_call') {
+          this.update({ currentTool: event.name.slice(0, 80) });
+        } else if (event.type === 'finish') {
+          finished = true;
+          this.update({ conversationId: event.conversation_id });
+        } else if (event.type === 'error') {
+          throw new ChatError(event.error);
+        } else if (event.type === 'done') {
+          done = true;
+        }
+      };
       while (current() && !done) {
         const part = await reader.read();
         if (!current()) return;
         if (part.done) break;
-        parser.feed(decoder.decode(part.value, { stream: true }), (event) => {
-          if (done) return;
-          if (event.type === 'delta') {
-            const old = this.state.messages.find(
-              (message) => message.id === assistantId,
-            );
-            this.updateMessage(assistantId, {
-              content: (old?.content ?? '') + event.text,
-            });
-          } else if (event.type === 'tool_call') {
-            this.update({ currentTool: event.name.slice(0, 80) });
-          } else if (event.type === 'finish') {
-            finished = true;
-            this.update({ conversationId: event.conversation_id });
-          } else if (event.type === 'error') {
-            throw new ChatError(event.error);
-          } else if (event.type === 'done') {
-            done = true;
-          }
-        });
+        parser.feed(decoder.decode(part.value, { stream: true }), consume);
       }
       if (!current()) return;
-      parser.end();
+      parser.end(consume);
       if (!finished)
         throw new ChatError(
           'The research connection was interrupted. You can retry.',
