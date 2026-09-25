@@ -48,4 +48,13 @@ describe('Nansen SSE decoder', () => {
     ).toEqual([{ type: 'finish', conversation_id: 'conv_1' }]);
     expect(decoder.end()).toEqual([{ type: 'done' }]);
   });
+
+  it('accepts a successful finish when Nansen returns a null conversation ID', () => {
+    const decoder = new SseDecoder();
+    expect(
+      decoder.feed(
+        'data: {"type":"finish","conversation_id":null,"tool_calls":[]}\n\ndata: [DONE]\n\n',
+      ),
+    ).toEqual([{ type: 'finish', conversation_id: null }, { type: 'done' }]);
+  });
 });

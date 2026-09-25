@@ -249,4 +249,24 @@ describe('Nansen agent route', () => {
     expect(output).toContain('data: [DONE]');
     expect(output).not.toContain('interrupted');
   });
+
+  it('forwards Nansen completion with a null conversation ID without an interruption error', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            'data: {"type":"delta","text":"Answer"}\n\ndata: {"type":"finish","conversation_id":null,"tool_calls":[]}\n\ndata: [DONE]\n\n',
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      ),
+    );
+    const response = await POST(request({ text: 'hello' }));
+    const output = await response.text();
+    expect(output).toContain('"text":"Answer"');
+    expect(output).toContain('"type":"finish","conversation_id":null');
+    expect(output).toContain('data: [DONE]');
+    expect(output).not.toContain('interrupted');
+  });
 });

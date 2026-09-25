@@ -141,7 +141,8 @@ export class IrohSession {
           this.update({ currentTool: event.name.slice(0, 80) });
         } else if (event.type === 'finish') {
           finished = true;
-          this.update({ conversationId: event.conversation_id });
+          if (event.conversation_id)
+            this.update({ conversationId: event.conversation_id });
         } else if (event.type === 'error') {
           throw new ChatError(event.error);
         } else if (event.type === 'done') {

@@ -1,7 +1,7 @@
 export type AgentEvent =
   | { type: 'delta'; text: string }
   | { type: 'tool_call'; name: string }
-  | { type: 'finish'; conversation_id: string }
+  | { type: 'finish'; conversation_id: string | null }
   | { type: 'error'; error: string; status_code?: number }
   | { type: 'done' };
 
@@ -55,7 +55,8 @@ export class SseDecoder {
         emit({ type: 'tool_call', name: event.name });
       else if (
         event.type === 'finish' &&
-        validConversationId(event.conversation_id)
+        (event.conversation_id === null ||
+          validConversationId(event.conversation_id))
       )
         emit({ type: 'finish', conversation_id: event.conversation_id });
       else if (event.type === 'error' && typeof event.error === 'string')

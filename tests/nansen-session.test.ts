@@ -146,4 +146,16 @@ describe('Iroh client session', () => {
     expect(session.getSnapshot().conversationId).toBe('conv_1');
     expect(session.getSnapshot().error).toBeNull();
   });
+
+  it('marks a full answer complete when Nansen finishes with a null conversation ID', async () => {
+    const session = new IrohSession(async () =>
+      sse([
+        'data: {"type":"delta","text":"Answer"}\n\ndata: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n',
+      ]),
+    );
+    await session.send('question');
+    expect(session.getSnapshot().messages.at(-1)?.status).toBe('complete');
+    expect(session.getSnapshot().conversationId).toBeNull();
+    expect(session.getSnapshot().error).toBeNull();
+  });
 });

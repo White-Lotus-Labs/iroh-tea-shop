@@ -121,3 +121,26 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
     ),
   ).toBe(true);
 });
+
+test('Iroh keeps a completed answer when Nansen returns no conversation ID', async ({
+  page,
+}) => {
+  await page.route('**/api/nansen-agent', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: 'data: {"type":"delta","text":"Complete answer"}\n\ndata: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n',
+    });
+  });
+  await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Host/ })
+    .click();
+  await page
+    .getByRole('textbox', { name: 'Ask Iroh a research question' })
+    .fill('What is ETH doing?');
+  await page.getByRole('button', { name: 'Send question' }).click();
+  await expect(page.getByText('Complete answer')).toBeVisible();
+  await expect(page.locator('.iroh-error')).toHaveCount(0);
+});
