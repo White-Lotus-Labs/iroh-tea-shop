@@ -40,7 +40,7 @@ export default function TeaRoomShell({
   user,
 }: {
   adapter?: ReviewAdapter;
-  user: PublicUser;
+  user: PublicUser | null;
 }) {
   const [session] = useState(() => new ReviewSession(adapter));
   const data = useSyncExternalStore(

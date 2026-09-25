@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { PublicUser } from '../auth/service';
 
-export function AccountMenu({ user }: { user: PublicUser }) {
+export function AccountMenu({ user }: { user: PublicUser | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -19,6 +19,13 @@ export function AccountMenu({ user }: { user: PublicUser }) {
       setBusy(false);
     }
   };
+  if (!user) {
+    return (
+      <a className="account-entry" data-testid="account-entry" href="/account">
+        Log in / Create account
+      </a>
+    );
+  }
   return (
     <details className="account-menu">
       <summary

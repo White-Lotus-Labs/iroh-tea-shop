@@ -117,6 +117,17 @@ h2 {
   color: var(--muted);
   font-size: 17px;
 }
+.account-entry {
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding: 8px 0;
+}
+.account-entry:hover {
+  color: #e0b878;
+}
 .account-popover {
   position: absolute;
   top: calc(100% + 5px);
@@ -278,6 +289,14 @@ h2 {
     serif;
   text-align: center;
   margin: 28px 0 0;
+}
+.auth-continue {
+  display: block;
+  margin-top: 22px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink);
+  text-underline-offset: 4px;
 }
 @media (max-width: 800px) {
   .auth-layout {

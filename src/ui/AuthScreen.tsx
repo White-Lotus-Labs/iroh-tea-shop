@@ -1,9 +1,7 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
 export default function AuthScreen() {
-  const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +29,7 @@ export default function AuthScreen() {
         );
       }
       setPassword('');
-      router.refresh();
+      window.location.assign('/');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Please try again.');
     } finally {
@@ -69,8 +67,8 @@ export default function AuthScreen() {
             <span className="eyebrow">TEA AFTER POUR / YOUR ROOM</span>
             <h1 id="auth-title">Welcome to the room.</h1>
             <p className="intro">
-              A place to sit with your thoughts. Your account keeps this room
-              yours.
+              Your account gives you a lasting nickname. You can also use the
+              room without signing in.
             </p>
             <div className="auth-tabs" role="group" aria-label="Account action">
               <button
@@ -144,6 +142,9 @@ export default function AuthScreen() {
                 {!pending && <span aria-hidden="true">→</span>}
               </button>
             </form>
+            <a className="auth-continue" href="/">
+              Continue without an account
+            </a>
             <p className="auth-footnote">A quiet room for a finished thesis.</p>
           </div>
         </section>

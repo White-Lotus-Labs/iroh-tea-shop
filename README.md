@@ -2,7 +2,7 @@
 
 A quiet room for a finished thesis. Write at the counter in a Japanese tea shop, then move through the doorway to a tea table, host and reflection shelf. The room fills the browser window; the review appears over the scene when it is ready.
 
-**PASS A is a mock review experience. Every result is labeled DEMO DATA. No Nansen, Hyperliquid or LLM service is called. A local account is required to enter the room.**
+**PASS A is a mock review experience. Every result is labeled DEMO DATA. No Nansen, Hyperliquid or LLM service is called. You can use the room without an account.**
 
 For a concise account of what is finished, what is verified, and what remains before a live release, see the [current project status](docs/project-status.md).
 
@@ -27,7 +27,7 @@ npm run dev
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Copying the environment template is optional; it contains comments only. Initial installation requires access to the npm registry. Once installed, the app has no remote runtime asset or data dependencies; its scene images are stored in `public/images/`.
 
-Create an account with a 3–24 character nickname and a password of at least 8 characters. Nicknames are unique and matched without regard to case; your chosen casing is displayed in the top-right account menu. Logging out invalidates the server session. Accounts and sessions are stored in the ignored local SQLite file `prisma/dev.db`; run `npm run db:migrate` after pulling database schema changes. The committed Prisma migration defines the database. The database file and its journal files are not committed. SQLite is intended for local development and a single persistent server filesystem.
+The room opens for guests. Use **Log in / Create account** in the top-right corner only if you want a persistent identity. Accounts use a 3–24 character nickname and a password of at least 8 characters. Nicknames are unique and matched without regard to case; your chosen casing is displayed in the top-right account menu. Logging out invalidates the server session and returns to the guest room. Guest activity stays in browser memory and is not associated with a User ID. Accounts and sessions are stored in the ignored local SQLite file `prisma/dev.db`; run `npm run db:migrate` after pulling database schema changes. The committed Prisma migration defines the database. The database file and its journal files are not committed. SQLite is intended for local development and a single persistent server filesystem.
 
 ```sh
 npm run typecheck
