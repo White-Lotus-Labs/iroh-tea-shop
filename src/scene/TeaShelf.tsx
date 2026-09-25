@@ -1,5 +1,5 @@
 import { CatmullRomCurve3, Vector3 } from 'three';
-import { Cup } from './Ceramics';
+import { Html } from '@react-three/drei';
 import { Solid, SurfaceMaterial } from './Surfaces';
 
 function TeaJar({
@@ -150,54 +150,66 @@ function Branch({ position }: { position: [number, number, number] }) {
   );
 }
 
-function DisplayPot({ position }: { position: [number, number, number] }) {
+/** The scroll occupies the open middle bay and remains a keyboard-accessible room object. */
+function LeaderboardScroll({
+  onSelect,
+  expanded,
+}: {
+  onSelect: () => void;
+  expanded: boolean;
+}) {
   return (
-    <group position={position}>
-      <mesh position={[0, 0.16, 0]} scale={[0.2, 0.13, 0.18]} castShadow>
-        <sphereGeometry args={[1, 24, 16]} />
-        <meshPhysicalMaterial
-          color="#536354"
-          roughness={0.4}
-          clearcoat={0.35}
-        />
-      </mesh>
-      <mesh position={[0, 0.295, 0]} castShadow>
-        <cylinderGeometry args={[0.075, 0.095, 0.035, 18]} />
-        <meshPhysicalMaterial
-          color="#455a50"
-          roughness={0.42}
-          clearcoat={0.35}
-        />
-      </mesh>
-      <mesh position={[-0.21, 0.22, 0]} rotation={[0, 0, -0.67]} castShadow>
-        <cylinderGeometry args={[0.045, 0.022, 0.22, 12]} />
-        <meshPhysicalMaterial
-          color="#536354"
-          roughness={0.4}
-          clearcoat={0.35}
-        />
-      </mesh>
-      <mesh
-        position={[0.2, 0.275, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-        castShadow
-      >
-        <torusGeometry args={[0.12, 0.027, 8, 20]} />
-        <meshPhysicalMaterial
-          color="#536354"
-          roughness={0.4}
-          clearcoat={0.35}
-        />
-      </mesh>
+    <group position={[-0.69, 1.66, 0]}>
+      <Solid
+        position={[0.1, 0, 0]}
+        size={[0.075, 2.12, 1.75]}
+        color="#382619"
+      />
+      {!expanded && (
+        <Html
+          transform
+          center
+          distanceFactor={1.75}
+          rotation={[0, -Math.PI / 2, 0]}
+          position={[-0.015, 0, 0]}
+        >
+          <button
+            type="button"
+            className="shelf-scroll-preview"
+            aria-label="Open Smart Wallet leaderboard scroll"
+            onClick={onSelect}
+          >
+            <span className="shelf-scroll-seal" aria-hidden="true">
+              ◈
+            </span>
+            <span className="shelf-scroll-kicker">THE SHELF · HYPERLIQUID</span>
+            <strong>
+              Top 10
+              <br />
+              Smart Wallets
+            </strong>
+            <span className="shelf-scroll-rule" aria-hidden="true" />
+            <span className="shelf-scroll-hint">
+              OPEN THE LEADERBOARD&nbsp; ↗
+            </span>
+          </button>
+        </Html>
+      )}
     </group>
   );
 }
 
 /** Joinery and tea objects mounted to the chamber's actual right wall. */
-export function TeaShelf() {
+export function TeaShelf({
+  onSelect,
+  expanded,
+}: {
+  onSelect: () => void;
+  expanded: boolean;
+}) {
   return (
     <group position={[3.65, 0, -3.72]} name="right-wall-tea-shelf">
-      {[-1.99, 0, 1.99].map((z) => (
+      {[-1.99, -0.91, 0.91, 1.99].map((z) => (
         <group key={z}>
           <Solid
             position={[-0.05, 1.84, z]}
@@ -213,17 +225,21 @@ export function TeaShelf() {
       ))}
       {[0.5, 1.25, 2.03, 2.83].map((y) => (
         <group key={y}>
-          <Solid
-            position={[-0.17, y, 0]}
-            size={[0.88, 0.09, 4.12]}
-            color="#835938"
-          />
-          <Solid
-            position={[-0.62, y + 0.012, 0]}
-            size={[0.018, 0.025, 4.08]}
-            color="#c69a5d"
-          />
-          {[-1.55, -0.5, 0.55, 1.55].map((z) => (
+          {(y === 0.5 || y === 2.83 ? [0] : [-1.46, 1.46]).map((z) => (
+            <group key={z}>
+              <Solid
+                position={[-0.17, y, z]}
+                size={[0.88, 0.09, z === 0 ? 4.12 : 1.2]}
+                color="#835938"
+              />
+              <Solid
+                position={[-0.62, y + 0.012, z]}
+                size={[0.018, 0.025, z === 0 ? 4.08 : 1.17]}
+                color="#c69a5d"
+              />
+            </group>
+          ))}
+          {[-1.55, 1.55].map((z) => (
             <Solid
               key={z}
               position={[-0.21, y - 0.19, z]}
@@ -235,26 +251,16 @@ export function TeaShelf() {
       ))}
       <TeaJar position={[-0.28, 0.55, -1.55]} color="#6b735a" />
       <TeaJar position={[-0.28, 0.55, -1.08]} color="#8b6c49" />
-      <TeaBox position={[-0.25, 0.55, -0.46]} color="#75563a" />
-      <TeaBox position={[-0.25, 0.55, -0.14]} color="#424b40" />
-      <Cup position={[-0.28, 0.62, 0.42]} color="#b9ae8b" />
-      <Cup position={[-0.28, 0.62, 0.69]} color="#73877b" />
       <TeaJar position={[-0.28, 0.55, 1.08]} color="#414e42" />
       <TeaJar position={[-0.28, 0.55, 1.54]} color="#9b7656" />
       <TeaTin position={[-0.28, 1.3, -1.45]} color="#414f43" />
       <TeaTin position={[-0.28, 1.3, -1.12]} color="#6b553e" />
-      <Cup position={[-0.28, 1.37, 0.25]} color="#b8a77f" />
-      <Cup position={[-0.28, 1.37, 0.49]} color="#627469" />
-      <TeaBox position={[-0.25, 1.3, 0.65]} color="#5b4935" />
-      <TeaBox position={[-0.25, 1.3, 0.96]} color="#786143" />
-      <TeaBox position={[-0.25, 1.3, 1.27]} color="#4b4939" />
+      <TeaBox position={[-0.25, 1.3, 1.17]} color="#786143" />
+      <TeaBox position={[-0.25, 1.3, 1.49]} color="#4b4939" />
       <TeaJar position={[-0.25, 2.08, -1.35]} color="#465c58" lid="#b38a55" />
-      <TeaJar position={[-0.25, 2.08, -0.85]} color="#b18b62" />
-      <DisplayPot position={[-0.23, 2.08, -0.15]} />
-      <TeaTin position={[-0.25, 2.08, 0.45]} color="#3e4944" />
-      <TeaTin position={[-0.25, 2.08, 0.78]} color="#7c5b3a" />
-      <Cup position={[-0.28, 2.15, 1.3]} color="#d4be99" />
-      <Cup position={[-0.28, 2.15, 1.56]} color="#71876d" />
+      <TeaJar position={[-0.25, 2.08, -1.02]} color="#b18b62" />
+      <TeaTin position={[-0.25, 2.08, 1.04]} color="#3e4944" />
+      <TeaTin position={[-0.25, 2.08, 1.38]} color="#7c5b3a" />
       <Branch position={[-0.28, 2.87, -1.24]} />
       <TeaJar position={[-0.25, 2.87, -0.4]} color="#6f664d" />
       <TeaBox position={[-0.25, 2.87, 0.5]} color="#5a4831" />
@@ -279,6 +285,7 @@ export function TeaShelf() {
         size={[0.27, 0.025, 0.27]}
         color="#48311f"
       />
+      <LeaderboardScroll onSelect={onSelect} expanded={expanded} />
     </group>
   );
 }

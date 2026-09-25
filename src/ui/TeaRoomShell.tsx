@@ -91,6 +91,7 @@ export default function TeaRoomShell({
     [irohSession],
   );
   const navigate = useCallback((next: Station) => {
+    setCameraAt((current) => (current === next ? current : null));
     setStation(next);
     setReadingReady(true);
     setTyping(false);
@@ -191,6 +192,8 @@ export default function TeaRoomShell({
             irohActivity={irohActivity}
             onArrive={onCameraArrive}
             onAvailabilityChange={onSceneAvailability}
+            onShelfSelect={() => navigate('Shelf')}
+            shelfExpanded={station === 'Shelf' && cameraAt === 'Shelf'}
           />
           <div className="scene-caption">
             <span className="eyebrow">
@@ -313,7 +316,7 @@ export default function TeaRoomShell({
           {station === 'AvatarSeat' && (
             <IrohChat session={irohSession} user={user} />
           )}
-          {station === 'Shelf' && <SmartWalletShelf />}
+          {station === 'Shelf' && cameraAt === 'Shelf' && <SmartWalletShelf />}
         </section>
       </div>
       <div className="status-line" role="status">

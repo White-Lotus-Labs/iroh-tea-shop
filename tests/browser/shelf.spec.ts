@@ -20,6 +20,44 @@ const snapshot = {
   stale: false,
 };
 
+test('the scroll on the right shelf opens a camera close-up of the ranked wallets', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(snapshot),
+    }),
+  );
+  await page.goto('/');
+
+  const shelfScroll = page.getByRole('button', {
+    name: 'Open Smart Wallet leaderboard scroll',
+  });
+  await expect(shelfScroll).toBeVisible();
+  const scrollPosition = await shelfScroll.boundingBox();
+  expect(scrollPosition!.x).toBeGreaterThan(1000);
+  await shelfScroll.click();
+
+  await expect(page.locator('.app-shell')).toHaveAttribute(
+    'data-station',
+    'Shelf',
+  );
+  await expect(page.locator('.app-shell')).toHaveAttribute(
+    'data-camera-at',
+    'Shelf',
+  );
+  await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  await expect(shelfScroll).toBeHidden();
+  await expect(page.getByTestId('top-wallet')).toContainText('Alpha Trader');
+  await expect(
+    page.getByTestId('rank-grid').locator('[data-rank]'),
+  ).toHaveCount(9);
+});
+
 test('Shelf presents one leader above an exact 3 by 3 grid without clipping', async ({
   page,
 }) => {

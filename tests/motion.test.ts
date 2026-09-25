@@ -39,7 +39,7 @@ describe('camera travel', () => {
           move.step(1 / 60);
           const p = move.position;
           expect(Math.abs(p.x)).toBeLessThan(3.8);
-          expect(p.z).toBeGreaterThan(-0.3);
+          expect(p.z).toBeGreaterThan(-3); // The Shelf close-up enters the tea room but stays clear of the rear wall.
           expect(p.z).toBeLessThan(10.3);
           expect(p.y).toBeGreaterThan(1.4); // Above the counter and tea table.
           if (p.z > 3.28 && p.z < 3.52) {
