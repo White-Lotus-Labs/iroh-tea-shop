@@ -2,7 +2,7 @@
 
 A quiet room for a finished thesis. Write at the counter in a Japanese tea shop, then move through the doorway to a tea table, host and reflection shelf. The room fills the browser window; the review appears over the scene when it is ready.
 
-**The thesis review remains PASS A demo data. Iroh's separate Host research chat calls the live Nansen Research Agent.** The room and Iroh chat are available without an account; login and signup are optional. Set `NANSEN_API_KEY` server-side to use Iroh. No runtime mock answer or fallback is used for chat.
+**The thesis review remains PASS A demo data. Iroh's separate Host research chat calls the live Nansen Research Agent; the Shelf leaderboard uses the live Nansen leaderboard route. The room and Iroh chat are available without an account; login and signup are optional. Set `NANSEN_API_KEY` server-side to use these features. No runtime mock answer or fallback is used for chat.**
 
 For a concise account of what is finished, what is verified, and what remains before a live release, see the [current project status](docs/project-status.md).
 
@@ -22,11 +22,11 @@ Prerequisites: Node.js 22.12 or newer (tested with 24.10.0), npm, and a modern b
 npm ci
 cp .env.example .env.local
 npm run db:migrate
-# Add your Nansen key to NANSEN_API_KEY in .env.local for Iroh chat.
+# Add your Nansen key to NANSEN_API_KEY in .env.local for Iroh and Shelf.
 npm run dev
 ```
 
-Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The key is needed only for Iroh chat; the thesis demo still runs without it. Restart the server after setting the key. Initial installation requires access to the npm registry. Scene images are bundled in `public/images/`; Iroh research uses Nansen at runtime.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The key is needed for Iroh chat and the Shelf leaderboard; the thesis demo still runs without it. Restart the server after setting the key. Initial installation requires access to the npm registry. Scene images are bundled in `public/images/`.
 
 The room opens for guests. Use **Log in / Create account** in the top-right corner for persistent Iroh chats. Accounts use a 3–24 character nickname and a password of at least 8 characters. Nicknames are unique and matched without regard to case; your chosen casing is displayed in the top-right account menu. Logging out invalidates the server session and returns to the guest room. Guest Iroh conversations stay in browser memory. Accounts, sessions, chats and messages are stored in the ignored local SQLite file `prisma/dev.db`; run `npm run db:migrate` after pulling database schema changes. The committed Prisma migrations define the database. The database file and its journal files are not committed. SQLite is intended for local development and a single persistent server filesystem.
 
@@ -48,18 +48,17 @@ The browser suite starts the development server automatically unless one already
 
 ## Take a seat
 
-1. The page opens in the waiting room at the counter, with the thesis field in a large floating reading card.
+1. Enter the room at the counter with the thesis field in a large floating reading card. The room is available to guests; log in or create an account to keep Iroh chats across reloads.
 2. Choose **Load sample**, confirm **ETH** and **Recent 24 hours**, then **Pour**. The camera travels through the doorway into the tea room while the review runs. The table, host and shelf stay in this room.
 3. The tea table presents **NOTICED / CUT / ONE BREATH** after the camera arrives. **Inspect evidence** opens the synthetic receipt, including source, timestamps, metrics, coverage, evidence ID and the challenged phrase.
-4. **Take one breath** visits the host. **Keep this reflection** opens the shelf card preview.
-   At the Host, **Ask Iroh** opens a separate live research conversation. Send a question, watch Nansen's answer stream, ask a follow-up, or Stop generation. Signed-in users can start a **New Chat** or use **Chat history** to show or hide prior chats, reopen one, and continue it after a reload. Guests can start a new in-memory conversation.
-5. **Pour another thesis** returns to your preserved writing. The flow is repeatable.
+4. **Take one breath** visits the host. **Ask Iroh** opens a separate live research conversation. Signed-in users can open **Chat history**, switch between saved chats, and continue them after a reload. Guests can start an in-memory conversation.
+5. Select **Shelf** to see the room and shelf in context. Click the shelf or **Approach the Shelf** to move the camera closer; the scroll and live Smart Wallet leaderboard appear after arrival. Return to **Counter** to pour another thesis.
 
 Use the bottom station buttons with Tab and Enter. Drag gently to adjust the local view. Orbit is constrained; zoom, panning, free walking and WASD are absent. **Reset view** restores the station framing. Form focus suspends local camera movement; the trip to Host finishes if chat opens during travel. **Motion: system** respects your OS preference; **Reduce motion** skips camera travel.
 
 **Cancel review** stops an active pour without clearing the thesis. Duplicate pours are blocked. Validation and adapter failures preserve input and allow retry. The evidence dialog supports Escape, traps keyboard focus through native dialog behavior, and restores focus on close.
 
-If WebGL is unavailable or its context is lost, a quiet static backdrop replaces the room. The same form, station controls, results, evidence and card flow remain usable. On narrow screens the room stays full-screen behind a scrollable reading card.
+If WebGL is unavailable or its context is lost, a quiet static backdrop replaces the room. The same form, station controls, results, evidence and Shelf remain usable. On narrow screens the room stays full-screen behind a scrollable reading card.
 
 ## What the demo means
 
@@ -67,22 +66,23 @@ The fixture is the specification's invented ETH example: twelve synthetic wallet
 
 Only the exact prepared ETH thesis at 24 hours receives that linked example. Other valid writing, symbols or windows receive an explicit **unknown / unassessed** result with no evidence. PASS A does not extract claims or understand arbitrary theses. The symbol is manually confirmed; it is not resolved against a live registry. Theses must contain 80–6,000 trimmed characters.
 
-The card shows only application-owned reflection text, symbol, window, demo status and provenance. It never copies the full thesis, wallet information, transaction references or position sizes. The card is a **preview**; image export, clipboard export, posting and public sharing are not implemented. Thesis review input and results live in memory and are lost on reload. Signed-in Iroh chats persist; there is no analytics or thesis review storage.
+Thesis review input and results live in memory and are lost on reload. The Shelf leaderboard shows rank, Nansen label or shortened address, PnL, ROI and account value. Accounts, sessions, chats and messages are stored in the local SQLite database; there is no analytics or thesis review storage.
 
 ## Architecture
 
 - `src/app/`: Next.js App Router entry, metadata and responsive visual styles. The HTML shell loads before the dynamically imported scene.
 - `src/auth/` and `prisma/`: nickname/password accounts, bcrypt password hashes, opaque database-backed sessions, the server-side `getCurrentUser()` helper, and the SQLite schema/migrations. Browser cookies are HttpOnly, SameSite Lax, and Secure in production.
 - `src/scene/`: one R3F canvas, two connected rooms with physical floor, counter, tea table, a seated photo-textured 3D host and a right-wall tea display, image-backed wall scenery, authored camera anchors and a constrained drei camera rig. DPR is capped at 1.5. Images are bundled locally.
-- `src/ui/`: `TeaRoomShell` coordinates station and form state; `ThesisPanel`, `ResultScroll`, `EvidenceDrawer` and `ShareCard` provide accessible HTML interfaces.
+- `src/ui/`: `TeaRoomShell` coordinates station and form state; `ThesisPanel`, `ResultScroll`, `EvidenceDrawer` and `SmartWalletShelf` provide accessible HTML interfaces.
 - `src/shared/contracts.ts`: `ReviewInput`, `EvidenceItem`, `Finding`, `InterrogationResult`, `ReviewCard`, `ReviewAdapter` and input validation.
 - `src/fixtures/`: fixed synthetic evidence and prepared thesis.
 - `src/review/mock-adapter.ts`: deterministic `MockReviewAdapter`, with an abortable simulated delay and no networking.
 - `src/review/session.ts`: request ownership, duplicate protection, cancellation, errors and stale-response rejection. Camera transitions never control request lifetime.
 - `src/iroh/`, `src/nansen/` and `/api/iroh/chats`: user-owned chat storage, history endpoints, SSE parsing and client session state. The browser sends a chat ID to `/api/nansen-agent`; the server resolves the authenticated user, loads that chat's saved Nansen `conversation_id`, calls `https://api.nansen.ai/api/v1/agent/fast` with the server-side key, and saves messages and returned IDs. If Nansen returns no ID, recent saved exchanges provide context for follow-ups. Guests keep the existing in-memory conversation. Stop aborts the browser request and cancels upstream work where possible.
+- `src/leaderboard/` and `/api/smart-wallet-leaderboard`: the Shelf requests a server-owned snapshot of Nansen's Hyperliquid Perp Leaderboard. The server queries the last 30 UTC days, filters `Smart HL Perps Trader`, sorts by `total_pnl` descending, requests ten wallets with `premium_labels: false`, and normalizes the response. The 30-minute in-process snapshot survives browser refreshes and station changes; simultaneous requests share one refresh. Expired real data can remain visible only with a stale label if refresh fails. The browser never receives `NANSEN_API_KEY`. The snapshot is shared by browsers served by the same Node process; deployments with multiple workers need shared cache storage for cross-worker reuse.
 - `tests/`: contract/lifecycle unit tests and complete browser journeys, including reduced motion, early navigation, mobile and WebGL failure.
 
-`ReviewSession.onPour(input): Promise<InterrogationResult>` owns thesis-review retrieval. The camera starts toward TeaTable immediately after valid input; the result is revealed there after arrival. `showCard(card)` presents the matching card at Shelf. A `ReviewAdapter` is injected into the shell. PASS B can add a client transport adapter returning the same result contract. The live Iroh API route is separate from this review adapter.
+`ReviewSession.onPour(input): Promise<InterrogationResult>` owns thesis-review retrieval. The camera starts toward TeaTable immediately after valid input; the result is revealed there after arrival. A `ReviewAdapter` is injected into the shell. PASS B can add a client transport adapter returning the same result contract. The live Iroh and Shelf API routes are separate from this review adapter.
 
 ## Motion behavior
 
@@ -102,4 +102,4 @@ If port 3000 is occupied, stop the other server or use `npm run dev -- --port 30
 
 ## Intentionally left for PASS B
 
-Live symbol resolution and Nansen evidence retrieval **for the thesis-review flow**; claim extraction and grounded rules; real partial-data handling; full card export; hosting, demo recording and release/submission work. Iroh's research chat is live and separate from that flow. No real-key Nansen call is made by the automated tests; use a configured local key for the first live check.
+Live symbol resolution and Nansen evidence retrieval **for the thesis-review flow**; claim extraction and grounded rules; hosting, demo recording and release/submission work. Iroh's research chat and the Shelf leaderboard are live and separate from that flow. Automated tests mock their provider calls; use a configured local key for a live check.

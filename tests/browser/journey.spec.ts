@@ -1,10 +1,25 @@
 import { test, expect } from '@playwright/test';
 import { registerBrowserAccount } from './auth-helper';
-test.beforeEach(async ({ page }) => registerBrowserAccount(page));
-test('complete ritual twice, evidence, input preservation and card privacy', async ({
+test.beforeEach(async ({ page }) => {
+  await registerBrowserAccount(page);
+  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        entries: [],
+        fetchedAt: '2026-09-25T12:00:00.000Z',
+        expiresAt: '2099-09-25T12:30:00.000Z',
+        source: 'nansen',
+        stale: false,
+      }),
+    }),
+  );
+});
+test('complete ritual twice, evidence, input preservation and Shelf navigation', async ({
   page,
 }) => {
-  test.setTimeout(90000);
+  test.setTimeout(90_000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -27,7 +42,7 @@ test('complete ritual twice, evidence, input preservation and card privacy', asy
     ).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'A little clarity, with your tea.' }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
     await page
       .getByRole('button', { name: 'Inspect evidence · DEMO-E-01' })
       .click();
@@ -43,10 +58,15 @@ test('complete ritual twice, evidence, input preservation and card privacy', asy
       .getByRole('navigation', { name: 'Tea room stations' })
       .getByRole('button', { name: /Shelf/ })
       .click();
-    await expect(page.getByTestId('share-card')).toContainText('DEMO DATA');
-    await expect(page.getByTestId('share-card')).not.toContainText(thesis);
+    await expect(
+      page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
+      thesis,
+    );
     await page
-      .getByRole('button', { name: 'Pour another thesis', exact: true })
+      .getByRole('navigation', { name: 'Tea room stations' })
+      .getByRole('button', { name: /Counter/ })
       .click();
     await expect(page.getByLabel('Your finished thesis')).toHaveValue(thesis);
   }
@@ -140,8 +160,12 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   await expect(page.getByText('The room is resting.')).toBeVisible();
   await page.getByRole('button', { name: 'Load sample', exact: true }).click();
   await page.getByRole('button', { name: 'Pour', exact: true }).click();
-  await page.getByRole('button', { name: 'Preview card', exact: true }).click();
-  await expect(page.getByTestId('share-card')).toContainText('DEMO DATA');
+  await page
+    .getByRole('button', { name: 'Visit the Shelf', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
+  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

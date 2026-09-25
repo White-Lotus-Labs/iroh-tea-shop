@@ -8,10 +8,8 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type {
-  InterrogationResult,
   MotionPreference,
   ReviewAdapter,
-  ReviewCard,
   Station,
 } from '../shared/contracts';
 import { validateInput } from '../shared/contracts';
@@ -23,9 +21,9 @@ import { ReviewSession } from '../review/session';
 import { SAMPLE_THESIS } from '../fixtures/eth-demo';
 import { ThesisPanel } from './ThesisPanel';
 import { ResultScroll } from './ResultScroll';
-import { ShareCard } from './ShareCard';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
+import { SmartWalletShelf } from './SmartWalletShelf';
 import { EvidenceDrawer } from './EvidenceDrawer';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
@@ -63,7 +61,6 @@ export default function TeaRoomShell({
   const [typing, setTyping] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
-  const [card, setCard] = useState<ReviewCard | null>(null);
   const [readingReady, setReadingReady] = useState(true);
   const [sceneAvailable, setSceneAvailable] = useState(false);
   const panel = useRef<HTMLElement>(null);
@@ -107,16 +104,9 @@ export default function TeaRoomShell({
     setSceneAvailable(available);
     if (!available) setReadingReady(true);
   }, []);
-  const onInterrogation = (result: InterrogationResult) => {
-    setCard(result.card);
-  };
   useEffect(() => {
     if (station === 'TeaTable' && data.result) panel.current?.focus();
   }, [station, data.result]);
-  const showCard = (next: ReviewCard) => {
-    setCard(next);
-    navigate('Shelf');
-  };
   const onPour = async () => {
     if (data.activeRequestId) return;
     const input = {
@@ -140,8 +130,7 @@ export default function TeaRoomShell({
     navigate('TeaTable');
     setReadingReady(reduced || !sceneAvailable);
     try {
-      const result = await session.onPour(input);
-      onInterrogation(result);
+      await session.onPour(input);
     } catch {
       /* Session exposes retryable errors; cancelled requests never navigate. */
     }
@@ -157,9 +146,7 @@ export default function TeaRoomShell({
       ? 'error'
       : data.workflowState === 'fetching'
         ? 'pouring'
-        : station === 'Shelf' && data.result
-          ? 'card'
-          : (data.result?.findings[0]?.verdict ?? 'waiting');
+        : (data.result?.findings[0]?.verdict ?? 'waiting');
   const busy = data.workflowState === 'fetching';
   return (
     <main
@@ -301,7 +288,7 @@ export default function TeaRoomShell({
                 result={data.result}
                 onEvidence={() => setEvidenceOpen(true)}
                 onChat={() => navigate('AvatarSeat')}
-                onCard={() => showCard(data.result!.card)}
+                onCard={() => navigate('Shelf')}
               />
             ) : busy || !readingReady ? (
               <div className="steeping-content" role="status">
@@ -326,16 +313,7 @@ export default function TeaRoomShell({
           {station === 'AvatarSeat' && (
             <IrohChat session={irohSession} user={user} />
           )}
-          {station === 'Shelf' &&
-            (card && data.result ? (
-              <ShareCard card={card} onAgain={() => navigate('Counter')} />
-            ) : (
-              <EmptyStation
-                title="A shelf for clearer thoughts."
-                text="Pour a thesis first. Your noticed / cut / one breath card will be waiting here."
-                onCounter={() => navigate('Counter')}
-              />
-            ))}
+          {station === 'Shelf' && <SmartWalletShelf />}
         </section>
       </div>
       <div className="status-line" role="status">
@@ -354,7 +332,6 @@ export default function TeaRoomShell({
           <button
             onClick={() => {
               session.cancel();
-              setCard(null);
               navigate('Counter');
             }}
           >

@@ -2,12 +2,12 @@ import { Component, Suspense, type ReactNode, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import { CameraRig } from './CameraRig';
-import { TeaRitual, LanternLight, ShelfPlacement } from './TeaRitual';
+import { TeaRitual, LanternLight } from './TeaRitual';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
 import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
 import { STATIONS } from './stations';
-import { Surfaces, Solid } from './Surfaces';
+import { Surfaces } from './Surfaces';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 
@@ -69,24 +69,6 @@ function RoomGeometry({
           <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>
         <TeaShelf />
-        <ShelfPlacement active={mood === 'card'} reduced={reduced}>
-          <Solid
-            position={[0, 0, 0]}
-            size={[0.43, 0.46, 0.04]}
-            color="#f3e9d5"
-            surface="paper"
-          />
-          <Solid
-            position={[0, 0.06, 0.03]}
-            size={[0.27, 0.015, 0.01]}
-            color="#697558"
-          />
-          <Solid
-            position={[0, -0.04, 0.03]}
-            size={[0.27, 0.015, 0.01]}
-            color="#b86c4f"
-          />
-        </ShelfPlacement>
       </TeaChamber>
     </>
   );
