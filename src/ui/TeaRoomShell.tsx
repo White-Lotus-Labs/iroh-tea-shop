@@ -47,9 +47,7 @@ export default function TeaRoomShell({
 }) {
   const [session] = useState(() => new ReviewSession(adapter));
   const [irohSession] = useState(() => new IrohSession());
-  const [chatOpen, setChatOpen] = useState(false);
   const [irohActivity, setIrohActivity] = useState<IrohActivity>('idle');
-  const askIroh = useRef<HTMLButtonElement>(null);
   const data = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
@@ -97,7 +95,6 @@ export default function TeaRoomShell({
   );
   const navigate = useCallback((next: Station) => {
     setStation(next);
-    setChatOpen(false);
     setReadingReady(true);
     setTyping(false);
     setEvidenceOpen(false);
@@ -201,7 +198,7 @@ export default function TeaRoomShell({
             resetKey={resetKey}
             typing={typing}
             reading={evidenceOpen}
-            allowTravelWhileTyping={station === 'AvatarSeat' && chatOpen}
+            allowTravelWhileTyping={station === 'AvatarSeat'}
             mood={mood}
             requestKey={data.activeRequestId ?? data.result?.requestId ?? null}
             irohActivity={irohActivity}
@@ -303,7 +300,7 @@ export default function TeaRoomShell({
               <ResultScroll
                 result={data.result}
                 onEvidence={() => setEvidenceOpen(true)}
-                onReflect={() => navigate('AvatarSeat')}
+                onChat={() => navigate('AvatarSeat')}
                 onCard={() => showCard(data.result!.card)}
               />
             ) : busy || !readingReady ? (
@@ -326,60 +323,7 @@ export default function TeaRoomShell({
                 onCounter={() => navigate('Counter')}
               />
             ))}
-          {station === 'AvatarSeat' &&
-            (chatOpen ? (
-              <IrohChat
-                session={irohSession}
-                onClose={() => {
-                  setChatOpen(false);
-                  requestAnimationFrame(() => askIroh.current?.focus());
-                }}
-              />
-            ) : (
-              <>
-                <div className="eyebrow">03 / THE HOST · ONE BREATH</div>
-                <h1>
-                  One breath
-                  <br />
-                  before you go.
-                </h1>
-                <div className="host-question">
-                  <span aria-hidden="true">“</span>
-                  <p>
-                    {data.result?.card.oneBreath ??
-                      'What would help you see the difference between what you observed and what you inferred?'}
-                  </p>
-                </div>
-                <p className="intro">
-                  No answer is owed to the room.
-                  <br />
-                  The question is yours to carry.
-                </p>
-                <p className="host-signature">YOUR TEA HOST</p>
-                <button
-                  ref={askIroh}
-                  className="primary ask-iroh"
-                  onClick={() => setChatOpen(true)}
-                >
-                  Ask Iroh <span aria-hidden="true">→</span>
-                </button>
-                {data.result ? (
-                  <button
-                    className="primary"
-                    onClick={() => showCard(data.result!.card)}
-                  >
-                    Keep this reflection <span aria-hidden="true">→</span>
-                  </button>
-                ) : (
-                  <button
-                    className="primary"
-                    onClick={() => navigate('Counter')}
-                  >
-                    Bring a thesis
-                  </button>
-                )}
-              </>
-            ))}
+          {station === 'AvatarSeat' && <IrohChat session={irohSession} />}
           {station === 'Shelf' &&
             (card && data.result ? (
               <ShareCard card={card} onAgain={() => navigate('Counter')} />

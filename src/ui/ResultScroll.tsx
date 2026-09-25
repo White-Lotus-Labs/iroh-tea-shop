@@ -23,12 +23,12 @@ export function ThreeThoughts({ card }: { card: ReviewCard }) {
 export function ResultScroll({
   result,
   onEvidence,
-  onReflect,
+  onChat,
   onCard,
 }: {
   result: InterrogationResult;
   onEvidence: () => void;
-  onReflect: () => void;
+  onChat: () => void;
   onCard: () => void;
 }) {
   return (
@@ -62,8 +62,8 @@ export function ResultScroll({
       )}
       <p className="field-note">{result.warnings[0]}</p>
       <div className="actions">
-        <button className="primary" onClick={onReflect}>
-          Take one breath <span aria-hidden="true">→</span>
+        <button className="primary" onClick={onChat}>
+          Chat with Iroh <span aria-hidden="true">→</span>
         </button>
         <button className="secondary" onClick={onCard}>
           Preview card

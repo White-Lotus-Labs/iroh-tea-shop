@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('Host opens live Iroh chat, keeps history across stations, and resets conversation', async ({
+test('Host immediately shows Iroh chat in the Host panel, keeps history across stations, and resets conversation', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -19,16 +19,18 @@ test('Host opens live Iroh chat, keeps history across stations, and resets conve
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Tea room stations' });
   await nav.getByRole('button', { name: /Host/ }).click();
-  await page.getByRole('button', { name: 'Ask Iroh' }).click();
   await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
+  await expect(page.getByText(/One breath before you go/)).toHaveCount(0);
+  await expect(page.locator('.status-line')).toBeHidden();
   await expect(page.locator('main')).toHaveAttribute(
     'data-camera-at',
     'AvatarSeat',
     { timeout: 7000 },
   );
   const panel = await page.locator('.reading-panel').boundingBox();
-  expect(panel!.width).toBeLessThan((page.viewportSize()?.width ?? 1280) / 2);
-  expect(panel!.x).toBeGreaterThan((page.viewportSize()?.width ?? 1280) / 2);
+  expect(panel!.width).toBeGreaterThan(
+    (page.viewportSize()?.width ?? 1280) * 0.65,
+  );
   const input = page.getByRole('textbox', {
     name: 'Ask Iroh a research question',
   });
@@ -40,7 +42,6 @@ test('Host opens live Iroh chat, keeps history across stations, and resets conve
   await expect(page.getByText('Nansen answer 1')).toBeVisible();
   await nav.getByRole('button', { name: /Shelf/ }).click();
   await nav.getByRole('button', { name: /Host/ }).click();
-  await page.getByRole('button', { name: 'Ask Iroh' }).click();
   await expect(page.getByText('Nansen answer 1')).toBeVisible();
   await input.fill('What about HYPE?');
   await page.getByRole('button', { name: 'Send question' }).click();
@@ -55,8 +56,9 @@ test('Host opens live Iroh chat, keeps history across stations, and resets conve
   await input.fill('Fresh question');
   await page.getByRole('button', { name: 'Send question' }).click();
   expect(bodies[2]).toEqual({ text: 'Fresh question' });
-  await page.getByRole('button', { name: 'Close Iroh chat' }).click();
-  await expect(page.getByRole('button', { name: 'Ask Iroh' })).toBeFocused();
+  await expect(
+    page.getByRole('button', { name: 'Close Iroh chat' }),
+  ).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -79,7 +81,6 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Host/ })
     .click();
-  await page.getByRole('button', { name: 'Ask Iroh' }).click();
   const input = page.getByRole('textbox', {
     name: 'Ask Iroh a research question',
   });

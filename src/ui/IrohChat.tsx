@@ -3,13 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { IrohSession } from '../nansen/session';
 import { IrohMessage } from './IrohMessage';
 
-export function IrohChat({
-  session,
-  onClose,
-}: {
-  session: IrohSession;
-  onClose: () => void;
-}) {
+export function IrohChat({ session }: { session: IrohSession }) {
   const chat = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
@@ -44,9 +38,6 @@ export function IrohChat({
         <div className="iroh-chat-actions">
           <button type="button" onClick={reset} aria-label="New conversation">
             New conversation
-          </button>
-          <button type="button" onClick={onClose} aria-label="Close Iroh chat">
-            Close
           </button>
         </div>
       </header>

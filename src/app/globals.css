@@ -709,30 +709,6 @@ input {
   background: #e9dfca;
   padding: 15px;
 }
-.host-question {
-  padding: 22px 0 16px;
-  border-top: 1px solid var(--line);
-  margin-top: 35px;
-}
-.host-question > span {
-  font:
-    70px Georgia,
-    serif;
-  color: #9caa85;
-  line-height: 0.9;
-}
-.host-question p {
-  font:
-    29px/1.5 Georgia,
-    serif;
-  letter-spacing: -0.4px;
-}
-.host-signature {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  color: var(--muted);
-  margin-bottom: 35px;
-}
 .share-card {
   background: #fcf7eb;
   border: 1px solid #c3b99f;
@@ -1061,25 +1037,15 @@ input {
   .share-card {
     padding: 22px;
   }
-  .host-question p {
-    font-size: 26px;
-  }
 }
 
-/* Iroh's research sits on the Host reading paper, beside the seated host. */
-.ask-iroh {
-  margin: 0 16px 16px 0;
-}
+/* The Host reading paper is the chat window. */
 .app-shell[data-station='AvatarSeat'] .reading-panel:has(.iroh-chat) {
-  left: auto;
-  right: clamp(32px, 4vw, 60px);
-  top: max(145px, 15dvh);
-  width: min(42vw, 550px);
-  min-width: 365px;
-  height: min(65dvh, 600px);
   padding: 0;
   overflow: hidden;
-  z-index: 14;
+}
+.app-shell[data-station='AvatarSeat'] .status-line {
+  display: none;
 }
 .iroh-chat {
   display: grid;
@@ -1100,7 +1066,7 @@ input {
 .iroh-chat-head .eyebrow {
   margin-bottom: 5px;
 }
-.app-shell[data-station='AvatarSeat'] .iroh-chat-head h1 {
+.app-shell[data-station='AvatarSeat'] .reading-panel .iroh-chat-head h1 {
   font-size: clamp(28px, 2.4vw, 36px);
   margin: 0 0 4px;
 }
@@ -1265,15 +1231,7 @@ input {
 }
 @media (max-width: 760px) {
   .app-shell[data-station='AvatarSeat'] .reading-panel:has(.iroh-chat) {
-    top: 72px;
-    bottom: 80px;
-    height: auto;
-    max-height: none;
-    left: 12px;
-    right: 12px;
-    width: auto;
-    min-width: 0;
-    height: auto;
+    height: min(54dvh, 530px);
   }
   .iroh-chat-head {
     padding: 15px 17px 12px;
@@ -1613,9 +1571,6 @@ body:has(.auth-shell) {
   .thought
   p {
   font-size: 20px;
-}
-.app-shell[data-station='AvatarSeat'] .host-question p {
-  font-size: 32px;
 }
 .app-shell[data-station='Shelf'] .share-card .thought p {
   font-size: 19px;
