@@ -144,3 +144,49 @@ test('Iroh keeps a completed answer when Nansen returns no conversation ID', asy
   await expect(page.getByText('Complete answer')).toBeVisible();
   await expect(page.locator('.iroh-error')).toHaveCount(0);
 });
+
+test('Iroh carries the prior ETH exchange into a follow-up without a conversation ID', async ({
+  page,
+}) => {
+  const requests: { text: string; conversation_id?: string }[] = [];
+  await page.route('**/api/nansen-agent', async (route) => {
+    requests.push(route.request().postDataJSON());
+    const answer =
+      requests.length === 1
+        ? 'ETH Smart Trader wallets had net outflow over 24 hours.'
+        : 'Here is the seven-day ETH comparison.';
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: `data: ${JSON.stringify({ type: 'delta', text: answer })}\n\ndata: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n`,
+    });
+  });
+  await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Host/ })
+    .click();
+  const input = page.getByRole('textbox', {
+    name: 'Ask Iroh a research question',
+  });
+  await input.fill(
+    'What is smart money doing with ETH on Ethereum over the last 24 hours?',
+  );
+  await page.getByRole('button', { name: 'Send question' }).click();
+  await expect(
+    page.getByText('ETH Smart Trader wallets had net outflow over 24 hours.'),
+  ).toBeVisible();
+  await input.fill('How does that compare with the last 7 days?');
+  await page.getByRole('button', { name: 'Send question' }).click();
+  await expect(
+    page.getByText('Here is the seven-day ETH comparison.'),
+  ).toBeVisible();
+  expect(requests[1].text).toContain('ETH on Ethereum over the last 24 hours');
+  expect(requests[1].text).toContain(
+    'ETH Smart Trader wallets had net outflow',
+  );
+  expect(requests[1].text).toContain(
+    'How does that compare with the last 7 days?',
+  );
+  expect(requests[1].conversation_id).toBeUndefined();
+});

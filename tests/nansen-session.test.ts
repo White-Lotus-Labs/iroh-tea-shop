@@ -158,4 +158,60 @@ describe('Iroh client session', () => {
     expect(session.getSnapshot().conversationId).toBeNull();
     expect(session.getSnapshot().error).toBeNull();
   });
+
+  it('includes the previous ETH exchange when a follow-up has no Nansen conversation ID', async () => {
+    const previousQuestion =
+      'What is smart money doing with ETH on Ethereum over the last 24 hours?';
+    const previousAnswer =
+      'Smart Trader wallets had $201.6K net outflow; Top PnL wallets had $7.0M net inflow.';
+    const followUp = 'How does that compare with the last 7 days?';
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        sse([
+          `data: ${JSON.stringify({ type: 'delta', text: previousAnswer })}\n\ndata: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n`,
+        ]),
+      )
+      .mockResolvedValueOnce(
+        sse([
+          'data: {"type":"delta","text":"Seven-day comparison"}\n\ndata: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n',
+        ]),
+      );
+    const session = new IrohSession(fetcher);
+    await session.send(previousQuestion);
+    await session.send(followUp);
+    const body = JSON.parse(
+      (fetcher.mock.calls[1][1] as RequestInit).body as string,
+    );
+    expect(body.text).toContain(previousQuestion);
+    expect(body.text).toContain(previousAnswer);
+    expect(body.text).toContain(followUp);
+    expect(body.conversation_id).toBeUndefined();
+    expect(session.getSnapshot().messages.at(-2)?.content).toBe(followUp);
+  });
+
+  it('keeps context-bearing requests within the Nansen text limit', async () => {
+    const longAnswer = 'A'.repeat(10_000);
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        sse([
+          `data: ${JSON.stringify({ type: 'delta', text: longAnswer })}\n\ndata: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n`,
+        ]),
+      )
+      .mockResolvedValueOnce(
+        sse([
+          'data: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n',
+        ]),
+      );
+    const session = new IrohSession(fetcher);
+    await session.send('Tell me about ETH.');
+    await session.send(`Compare this: ${'B'.repeat(3800)}`);
+    const body = JSON.parse(
+      (fetcher.mock.calls[1][1] as RequestInit).body as string,
+    );
+    expect(body.text.length).toBeLessThanOrEqual(6000);
+    expect(body.text).toContain('Tell me about ETH.');
+    expect(body.text).toContain('Compare this:');
+  });
 });

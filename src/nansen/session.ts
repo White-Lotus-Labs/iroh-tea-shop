@@ -27,6 +27,38 @@ const initial = (): ChatSnapshot => ({
 
 class ChatError extends Error {}
 
+const MAX_TEXT = 6000;
+const MAX_CONTEXT = 3000;
+
+function followUpText(question: string, messages: ChatMessage[]): string {
+  for (let i = messages.length - 1; i > 0; i--) {
+    const answer = messages[i];
+    const previousQuestion = messages[i - 1];
+    if (
+      answer.role !== 'assistant' ||
+      answer.status !== 'complete' ||
+      !answer.content.trim() ||
+      previousQuestion.role !== 'user'
+    )
+      continue;
+    const before = 'Previous user question: ';
+    const between = '\nPrevious Iroh answer: ';
+    const after = `\n\nCurrent user question: ${question}\nAnswer the current question using the previous exchange to resolve references. Retrieve new data where needed.`;
+    const available = Math.min(
+      MAX_CONTEXT,
+      MAX_TEXT - before.length - between.length - after.length,
+    );
+    if (available <= 0) return question;
+    const priorQuestion = previousQuestion.content.slice(0, available);
+    const priorAnswer = answer.content.slice(
+      0,
+      available - priorQuestion.length,
+    );
+    return before + priorQuestion + between + priorAnswer + after;
+  }
+  return question;
+}
+
 export class IrohSession {
   private state = initial();
   private listeners = new Set<() => void>();
@@ -59,7 +91,11 @@ export class IrohSession {
 
   send(question: string): Promise<void> | false {
     const text = question.trim();
-    if (this.active || !text || text.length > 6000) return false;
+    if (this.active || !text || text.length > MAX_TEXT) return false;
+    const conversationId = this.state.conversationId;
+    const requestText = conversationId
+      ? text
+      : followUpText(text, this.state.messages);
     const owner = ++this.generation;
     const abort = new AbortController();
     this.active = abort;
@@ -85,11 +121,12 @@ export class IrohSession {
       error: null,
       lastQuestion: text,
     });
-    return this.run(text, assistantId, owner, abort);
+    return this.run(requestText, conversationId, assistantId, owner, abort);
   }
 
   private async run(
     text: string,
+    conversationId: string | null,
     assistantId: string,
     owner: number,
     abort: AbortController,
@@ -102,9 +139,7 @@ export class IrohSession {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           text,
-          ...(this.state.conversationId
-            ? { conversation_id: this.state.conversationId }
-            : {}),
+          ...(conversationId ? { conversation_id: conversationId } : {}),
         }),
         signal: abort.signal,
       });
