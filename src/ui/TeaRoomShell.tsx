@@ -194,18 +194,52 @@ export default function TeaRoomShell({
           <span className="brand-mark" aria-hidden="true">
             ◒
           </span>
-          <span>
-            Tea After Pour<small>A QUIET ROOM FOR A FINISHED THESIS</small>
+          <span className="brand-text">
+            Tea After Pour
+            <small>A QUIET ROOM FOR A FINISHED THESIS</small>
           </span>
         </a>
+
         <div className="topbar-right">
-          <span className="demo-label">
-            <span aria-hidden="true">●</span> THESIS: DEMO DATA{' '}
-            <small>IROH: LIVE NANSEN RESEARCH</small>
-          </span>
+          <div className="status-indicator">
+            <button className="status-icon" aria-label="Data source status">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="6.5"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                />
+                <path
+                  d="M8 7.2V11"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
+                <circle cx="8" cy="5" r="0.8" fill="currentColor" />
+              </svg>
+            </button>
+
+            <div className="status-popup" role="tooltip">
+              <div className="status-row">
+                <span className="status-label">Thesis</span>
+                <span className="status-value demo">Demo data</span>
+              </div>
+
+              <div className="status-row">
+                <span className="status-label">Iroh</span>
+                <span className="status-value live">
+                  Live · Nansen Research
+                </span>
+              </div>
+            </div>
+          </div>
+
           <AccountMenu user={user} />
         </div>
       </header>
+
       <div className="room-layout">
         <section
           className="room-stage"

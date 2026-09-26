@@ -22,10 +22,32 @@ export function AccountMenu({ user }: { user: PublicUser | null }) {
   if (!user) {
     return (
       <a className="account-entry" data-testid="account-entry" href="/account">
-        Log in / Create account
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle
+            cx="8"
+            cy="5.5"
+            r="3"
+            stroke="currentColor"
+            strokeWidth="1.3"
+          />
+          <path
+            d="M2.5 13.2c0-2.9 2.5-4.6 5.5-4.6s5.5 1.7 5.5 4.6"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
+        </svg>
+        <span>Log in</span>
       </a>
     );
   }
+
   return (
     <details className="account-menu">
       <summary

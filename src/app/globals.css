@@ -80,17 +80,18 @@ h2 {
 .topbar {
   position: relative;
   z-index: 30;
-  height: 112px;
-  padding: 0 4%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-}
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 26px;
+  padding: 20px 40px;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 14, 10, 0.85),
+    rgba(20, 14, 10, 0.4)
+  );
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(212, 175, 120, 0.15);
 }
 .account-menu {
   position: relative;
@@ -164,8 +165,7 @@ h2 {
   background: var(--paper);
 }
 .auth-topbar {
-  height: 112px;
-  padding: 0 4%;
+  padding: 20px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -184,6 +184,7 @@ h2 {
 }
 .auth-atmosphere {
   min-height: 640px;
+  height: calc(100vh - 86px);
   padding: clamp(38px, 6vw, 100px);
   display: flex;
   flex-direction: column;
@@ -309,9 +310,6 @@ h2 {
   .auth-panel {
     min-height: calc(100dvh - 112px);
   }
-  .topbar-right {
-    gap: 12px;
-  }
   .demo-label {
     display: none;
   }
@@ -337,7 +335,7 @@ h2 {
     sans-serif;
   letter-spacing: 2px;
   display: block;
-  margin-top: 9px;
+  margin-top: 4px;
 }
 .demo-label {
   font-size: 11px;
@@ -2201,4 +2199,300 @@ body:has(.auth-shell) {
   .leaderboard-foot {
     padding-top: 5px;
   }
+}
+
+/* Бренд */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: #f3ead9;
+}
+
+.brand-mark {
+  font-size: 28px;
+  color: #d4af78;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(212, 175, 120, 0.4));
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  letter-spacing: 0.2px;
+}
+
+.brand-text small {
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  font-weight: 500;
+  color: rgba(243, 234, 217, 0.55);
+  text-transform: uppercase;
+}
+
+/* Правый блок */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Статус-индикатор */
+.status-indicator {
+  position: relative;
+  display: inline-flex;
+}
+
+.status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13.5px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 120, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(243, 234, 217, 0.7);
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.status-icon:hover,
+.status-icon:focus-visible {
+  border-color: rgba(212, 175, 120, 0.5);
+  color: #f3ead9;
+  background: rgba(212, 175, 120, 0.08);
+}
+
+.status-popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 4px;
+  min-width: 220px;
+  padding: 10px 16px;
+  background: rgba(24, 17, 12, 0.97);
+  border: 1px solid rgba(212, 175, 120, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0.18s;
+  z-index: 50;
+}
+
+.status-indicator:hover .status-popup,
+.status-icon:focus-visible ~ .status-popup {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 0;
+  font-size: 12.5px;
+}
+
+.status-row + .status-row {
+  border-top: 1px solid rgba(243, 234, 217, 0.08);
+}
+
+.status-label {
+  color: rgba(243, 234, 217, 0.5);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.status-value {
+  font-weight: 500;
+  color: #f3ead9;
+}
+
+.status-popup::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 12px;
+  width: 9px;
+  height: 9px;
+  background: rgba(24, 17, 12, 0.97);
+  border-left: 1px solid rgba(212, 175, 120, 0.2);
+  border-top: 1px solid rgba(212, 175, 120, 0.2);
+  transform: rotate(45deg);
+}
+
+/* Кнопка "Log in" — минималистичная, в тон status-icon */
+.account-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 120, 0.3);
+  background: rgba(212, 175, 120, 0.06);
+  color: #f3ead9;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.account-entry:hover {
+  border-color: rgba(212, 175, 120, 0.6);
+  background: rgba(212, 175, 120, 0.14);
+  transform: translateY(-1px);
+}
+
+.account-entry svg {
+  color: rgba(243, 234, 217, 0.65);
+}
+
+/* Аккаунт-меню (залогинен) */
+.account-menu {
+  position: relative;
+}
+
+.account-menu summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 120, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f3ead9;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-menu summary:hover,
+.account-menu[open] summary {
+  border-color: rgba(212, 175, 120, 0.5);
+  background: rgba(212, 175, 120, 0.08);
+}
+
+.account-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(212, 175, 120, 0.15);
+  color: #d4af78;
+  font-size: 14px;
+}
+
+.account-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-chevron {
+  color: rgba(243, 234, 217, 0.5);
+  font-size: 11px;
+  transition: transform 0.2s ease;
+}
+
+.account-menu[open] .account-chevron {
+  transform: rotate(180deg);
+}
+
+/* Попап аккаунта — тот же язык, что и status-popup */
+.account-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 200px;
+  padding: 14px 16px;
+  background: rgba(24, 17, 12, 0.97);
+  border: 1px solid rgba(212, 175, 120, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+}
+
+.account-popover-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f3ead9;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(243, 234, 217, 0.08);
+}
+
+.account-popover button {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(212, 175, 120, 0.12);
+  color: #f3ead9;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.account-popover button:hover:not(:disabled) {
+  background: rgba(212, 175, 120, 0.22);
+}
+
+.account-popover button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.account-popover [role='alert'] {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #e08a7d;
+}
+
+.account-popover::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 12px;
+  width: 9px;
+  height: 9px;
+  background: rgba(24, 17, 12, 0.97);
+  border-left: 1px solid rgba(212, 175, 120, 0.2);
+  border-top: 1px solid rgba(212, 175, 120, 0.2);
+  transform: rotate(45deg);
 }
