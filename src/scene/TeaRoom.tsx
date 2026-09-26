@@ -2,12 +2,12 @@ import { Component, Suspense, type ReactNode, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import { CameraRig } from './CameraRig';
-import { TeaRitual, LanternLight, ShelfPlacement } from './TeaRitual';
+import { TeaRitual, LanternLight } from './TeaRitual';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
 import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
 import { STATIONS } from './stations';
-import { Surfaces, Solid } from './Surfaces';
+import { Surfaces } from './Surfaces';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 
@@ -16,11 +16,15 @@ function RoomGeometry({
   reduced,
   requestKey,
   irohActivity,
+  onShelfSelect,
+  shelfRevealed,
 }: {
   mood: SceneMood;
   reduced: boolean;
   requestKey: string | null;
   irohActivity: IrohActivity;
+  onShelfSelect: () => void;
+  shelfRevealed: boolean;
 }) {
   return (
     <>
@@ -68,25 +72,7 @@ function RoomGeometry({
         <Suspense fallback={null}>
           <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>
-        <TeaShelf />
-        <ShelfPlacement active={mood === 'card'} reduced={reduced}>
-          <Solid
-            position={[0, 0, 0]}
-            size={[0.43, 0.46, 0.04]}
-            color="#f3e9d5"
-            surface="paper"
-          />
-          <Solid
-            position={[0, 0.06, 0.03]}
-            size={[0.27, 0.015, 0.01]}
-            color="#697558"
-          />
-          <Solid
-            position={[0, -0.04, 0.03]}
-            size={[0.27, 0.015, 0.01]}
-            color="#b86c4f"
-          />
-        </ShelfPlacement>
+        <TeaShelf onSelect={onShelfSelect} revealed={shelfRevealed} />
       </TeaChamber>
     </>
   );
@@ -120,6 +106,9 @@ export default function TeaRoom({
   irohActivity,
   onArrive,
   onAvailabilityChange,
+  onShelfSelect,
+  shelfFocused,
+  shelfRevealed,
 }: {
   station: Station;
   reduced: boolean;
@@ -132,6 +121,9 @@ export default function TeaRoom({
   irohActivity: IrohActivity;
   onArrive: (station: Station) => void;
   onAvailabilityChange: (available: boolean) => void;
+  onShelfSelect: () => void;
+  shelfFocused: boolean;
+  shelfRevealed: boolean;
 }) {
   const [lost, setLost] = useState(false);
   const initialMobile =
@@ -182,10 +174,13 @@ export default function TeaRoom({
             reduced={reduced}
             requestKey={requestKey}
             irohActivity={irohActivity}
+            onShelfSelect={onShelfSelect}
+            shelfRevealed={shelfRevealed}
           />
         </Surfaces>
         <CameraRig
           station={station}
+          shelfFocused={shelfFocused}
           reduced={reduced}
           resetKey={resetKey}
           typing={typing}

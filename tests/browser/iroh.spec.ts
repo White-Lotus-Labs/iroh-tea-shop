@@ -3,6 +3,16 @@ import { registerBrowserAccount } from './auth-helper';
 
 test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Nansen API is not configured.' }),
+    }),
+  );
+});
+
 test('Host restores previous chats after reload and switches between them', async ({
   page,
 }) => {

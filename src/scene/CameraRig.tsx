@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitImpl } from 'three-stdlib';
 import { Vector3 } from 'three';
 import type { Station } from '../shared/contracts';
-import { STATIONS } from './stations';
+import { SHELF_APPROACH, SHELF_FOCUS, STATIONS } from './stations';
 import { CameraTravel, damp } from './motion/dynamics';
 export function CameraRig({
   station,
@@ -13,6 +13,7 @@ export function CameraRig({
   typing,
   reading = false,
   allowTravelWhileTyping = false,
+  shelfFocused = false,
   onArrive,
 }: {
   station: Station;
@@ -21,6 +22,7 @@ export function CameraRig({
   typing: boolean;
   reading?: boolean;
   allowTravelWhileTyping?: boolean;
+  shelfFocused?: boolean;
   onArrive?: (station: Station) => void;
 }) {
   const { camera, size } = useThree();
@@ -35,10 +37,16 @@ export function CameraRig({
   });
   const angles = useRef({ azimuth: 0, polar: Math.PI / 2, distance: 3 });
   const priorStation = useRef<Station | null>(null);
+  const priorShelfFocused = useRef(false);
+  const shelfApproachLeg = useRef(false);
   useEffect(() => {
     const c = controls.current;
     if (!c) return;
     const anchor = STATIONS.find((s) => s.id === station)!;
+    const pose = station === 'Shelf' && shelfFocused ? SHELF_FOCUS : anchor;
+    const approachingShelf =
+      station === 'Shelf' && shelfFocused && !priorShelfFocused.current;
+    const travelPose = approachingShelf ? SHELF_APPROACH : pose;
     const mobile = size.width < 760;
     const position =
       mobile && station === 'Counter'
@@ -47,7 +55,7 @@ export function CameraRig({
           ? ([0.55, 1.67, 9.38] as const)
           : mobile && station === 'TeaTable'
             ? ([0.95, 1.55, 0.56] as const)
-            : anchor.position;
+            : travelPose.position;
     const look =
       mobile && station === 'Counter'
         ? ([-1.16, 1.36, 2.9] as const)
@@ -55,14 +63,14 @@ export function CameraRig({
           ? ([-3.14, 1.44, 6.4] as const)
           : mobile && station === 'AvatarSeat'
             ? ([2.2, 0.35, -3.52] as const)
-            : mobile && station === 'Shelf'
-              ? ([3.48, 1.52, -3.96] as const)
-              : mobile && station === 'TeaTable'
-                ? ([1.33, 0.77, -3.45] as const)
-                : anchor.target;
+            : mobile && station === 'TeaTable'
+              ? ([1.33, 0.77, -3.45] as const)
+              : travelPose.target;
     const to = new Vector3(...position),
       target = new Vector3(...look),
-      offset = to.clone().sub(target);
+      offset = approachingShelf
+        ? new Vector3(...pose.position).sub(new Vector3(...pose.target))
+        : to.clone().sub(target);
     angles.current = {
       azimuth: Math.atan2(offset.x, offset.z),
       polar: Math.acos(offset.y / offset.length()),
@@ -82,6 +90,8 @@ export function CameraRig({
     travel.current.retarget(to, target, crossingRooms ? 3.1 : undefined);
     if (firstFrame) travel.current.finish();
     priorStation.current = station;
+    priorShelfFocused.current = station === 'Shelf' && shelfFocused;
+    shelfApproachLeg.current = approachingShelf;
     c.enabled = false;
     idle.current.gain = 0;
     c.enableDamping = false;
@@ -101,7 +111,7 @@ export function CameraRig({
       camera.lookAt(c.target);
       onArrive?.(station);
     }
-  }, [station, resetKey, camera, size.width, onArrive]);
+  }, [station, shelfFocused, resetKey, camera, size.width, onArrive]);
   // drei updates orbit at priority -1. Remove last frame's decorative offsets first,
   // then apply this frame's offsets after orbit, so drift never accumulates.
   useFrame(() => {
@@ -125,6 +135,16 @@ export function CameraRig({
       camera.position.copy(t.position);
       c.target.copy(t.target);
       if (!t.active) {
+        if (shelfApproachLeg.current) {
+          shelfApproachLeg.current = false;
+          t.retarget(
+            new Vector3(...SHELF_FOCUS.position),
+            new Vector3(...SHELF_FOCUS.target),
+            0.82,
+          );
+          camera.lookAt(c.target);
+          return;
+        }
         c.minAzimuthAngle = a.azimuth - 0.16;
         c.maxAzimuthAngle = a.azimuth + 0.16;
         c.minPolarAngle = a.polar - 0.08;

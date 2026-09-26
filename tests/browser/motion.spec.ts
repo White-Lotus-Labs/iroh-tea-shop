@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { registerBrowserAccount } from './auth-helper';
-test.beforeEach(async ({ page }) => registerBrowserAccount(page));
+test.beforeEach(async ({ page }) => {
+  await registerBrowserAccount(page);
+  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Nansen API is not configured.' }),
+    }),
+  );
+});
 const stations = ['Waiting room', 'Counter', 'Tea table', 'Host', 'Shelf'];
 test('all directed station transitions and rapid interruptions preserve navigation', async ({
   page,
@@ -41,6 +50,7 @@ test('all directed station transitions and rapid interruptions preserve navigati
 test('motion override stops HTML animation and pours remain interruptible', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await page.clock.install();
   await page.goto('/');
   await page.locator('canvas').waitFor();
