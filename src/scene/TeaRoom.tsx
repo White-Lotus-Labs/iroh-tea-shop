@@ -11,6 +11,7 @@ import { Billboard, ContactShadows, useProgress } from '@react-three/drei';
 import type { Group } from 'three';
 import { CameraRig } from './CameraRig';
 import { TeaRitual, LanternLight } from './TeaRitual';
+import { MechanicalPlanetarySystem } from './MechanicalPlanetarySystem';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
 import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
@@ -156,6 +157,7 @@ function RoomGeometry({
         />
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
+        <MechanicalPlanetarySystem reduced={reduced} />
         <Suspense fallback={null}>
           <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>

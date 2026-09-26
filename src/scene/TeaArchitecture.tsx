@@ -301,7 +301,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
           color="#a36b3e"
         />
       ))}
-      <Cup position={[-0.63, 0.68, -2.2]} color="#828069" />
+      <Cup position={[-0.72, 0.68, -2.15]} color="#828069" />
       <Cup position={[0.58, 0.68, -2.34]} color="#a9a18a" />
       <mesh
         position={[-0.76, 0.13, -0.93]}

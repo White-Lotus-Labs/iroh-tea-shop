@@ -28,9 +28,9 @@ export const STATIONS: {
     id: 'TeaTable',
     label: 'Tea table',
     purpose: 'Notice',
-    position: [0.1, 1.58, 1.1],
-    target: [2.6, 0.9, -3.23],
-    hotspot: [1.1, 0.9, -2.35],
+    position: [0.05, 1.56, 0.95],
+    target: [0.0, 0.72, -2.45],
+    hotspot: [0.95, 0.88, -2.35],
   },
   {
     id: 'AvatarSeat',

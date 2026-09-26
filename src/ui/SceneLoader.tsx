@@ -60,7 +60,10 @@ export function SceneLoader({
   useEffect(() => {
     if (!leaving) return;
     onReveal();
-    const timer = window.setTimeout(() => setGone(true), reduced ? 0 : LEAVE_MS);
+    const timer = window.setTimeout(
+      () => setGone(true),
+      reduced ? 0 : LEAVE_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [leaving, reduced, onReveal]);
   if (gone) return null;
