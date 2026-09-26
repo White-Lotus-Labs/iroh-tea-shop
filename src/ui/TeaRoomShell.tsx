@@ -16,6 +16,7 @@ import type {
 } from '../shared/contracts';
 import { validateInput } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
+import type { IrohActivity } from '../scene/TeaHost3D';
 import { STATIONS } from '../scene/stations';
 import { MockReviewAdapter } from '../review/mock-adapter';
 import { ReviewSession } from '../review/session';
@@ -26,6 +27,8 @@ import { ShareCard } from './ShareCard';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
 import { EvidenceDrawer } from './EvidenceDrawer';
+import { IrohSession } from '../nansen/session';
+import { IrohChat } from './IrohChat';
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
   ssr: false,
   loading: () => (
@@ -43,12 +46,15 @@ export default function TeaRoomShell({
   user: PublicUser | null;
 }) {
   const [session] = useState(() => new ReviewSession(adapter));
+  const [irohSession] = useState(() => new IrohSession());
+  const [irohActivity, setIrohActivity] = useState<IrohActivity>('idle');
   const data = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
     session.getSnapshot,
   );
   const [station, setStation] = useState<Station>('Counter');
+  const [cameraAt, setCameraAt] = useState<Station | null>(null);
   const [thesis, setThesis] = useState('');
   const [symbol, setSymbol] = useState('ETH');
   const [hours, setHours] = useState<6 | 24 | 168>(24);
@@ -71,6 +77,22 @@ export default function TeaRoomShell({
     return () => media.removeEventListener('change', change);
   }, []);
   useEffect(() => () => session.cancel(), [session]);
+  useEffect(() => () => irohSession.stop(), [irohSession]);
+  useEffect(
+    () =>
+      irohSession.subscribe(() => {
+        const chat = irohSession.getSnapshot();
+        const next: IrohActivity = chat.isStreaming
+          ? chat.currentTool || !chat.messages.at(-1)?.content
+            ? 'researching'
+            : 'responding'
+          : chat.error
+            ? 'error'
+            : 'idle';
+        setIrohActivity((current) => (current === next ? current : next));
+      }),
+    [irohSession],
+  );
   const navigate = useCallback((next: Station) => {
     setStation(next);
     setReadingReady(true);
@@ -78,6 +100,7 @@ export default function TeaRoomShell({
     setEvidenceOpen(false);
   }, []);
   const onCameraArrive = useCallback((at: Station) => {
+    setCameraAt(at);
     if (at === 'TeaTable') setReadingReady(true);
   }, []);
   const onSceneAvailability = useCallback((available: boolean) => {
@@ -144,6 +167,8 @@ export default function TeaRoomShell({
       data-station={station}
       data-motion={reduced ? 'reduce' : 'full'}
       data-mood={mood}
+      data-iroh-activity={irohActivity}
+      data-camera-at={cameraAt ?? undefined}
     >
       <header className="topbar">
         <a href="#main-panel" className="brand">
@@ -156,8 +181,8 @@ export default function TeaRoomShell({
         </a>
         <div className="topbar-right">
           <span className="demo-label">
-            <span aria-hidden="true">●</span> DEMO DATA{' '}
-            <small>NO LIVE CONNECTION</small>
+            <span aria-hidden="true">●</span> THESIS: DEMO DATA{' '}
+            <small>IROH: LIVE NANSEN RESEARCH</small>
           </span>
           <AccountMenu user={user} />
         </div>
@@ -173,8 +198,10 @@ export default function TeaRoomShell({
             resetKey={resetKey}
             typing={typing}
             reading={evidenceOpen}
+            allowTravelWhileTyping={station === 'AvatarSeat'}
             mood={mood}
             requestKey={data.activeRequestId ?? data.result?.requestId ?? null}
+            irohActivity={irohActivity}
             onArrive={onCameraArrive}
             onAvailabilityChange={onSceneAvailability}
           />
@@ -273,7 +300,7 @@ export default function TeaRoomShell({
               <ResultScroll
                 result={data.result}
                 onEvidence={() => setEvidenceOpen(true)}
-                onReflect={() => navigate('AvatarSeat')}
+                onChat={() => navigate('AvatarSeat')}
                 onCard={() => showCard(data.result!.card)}
               />
             ) : busy || !readingReady ? (
@@ -297,39 +324,7 @@ export default function TeaRoomShell({
               />
             ))}
           {station === 'AvatarSeat' && (
-            <>
-              <div className="eyebrow">03 / THE HOST · ONE BREATH</div>
-              <h1>
-                One breath
-                <br />
-                before you go.
-              </h1>
-              <div className="host-question">
-                <span aria-hidden="true">“</span>
-                <p>
-                  {data.result?.card.oneBreath ??
-                    'What would help you see the difference between what you observed and what you inferred?'}
-                </p>
-              </div>
-              <p className="intro">
-                No answer is owed to the room.
-                <br />
-                The question is yours to carry.
-              </p>
-              <p className="host-signature">YOUR TEA HOST</p>
-              {data.result ? (
-                <button
-                  className="primary"
-                  onClick={() => showCard(data.result!.card)}
-                >
-                  Keep this reflection <span aria-hidden="true">→</span>
-                </button>
-              ) : (
-                <button className="primary" onClick={() => navigate('Counter')}>
-                  Bring a thesis
-                </button>
-              )}
-            </>
+            <IrohChat session={irohSession} user={user} />
           )}
           {station === 'Shelf' &&
             (card && data.result ? (

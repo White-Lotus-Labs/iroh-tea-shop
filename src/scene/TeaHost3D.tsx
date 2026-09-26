@@ -163,20 +163,37 @@ function Head() {
 }
 
 /** A sculpted, seated tea host. All silhouettes are volumetric geometry, never a billboard. */
-export function TeaHost3D({ reduced }: { reduced: boolean }) {
+export type IrohActivity = 'idle' | 'researching' | 'responding' | 'error';
+
+export function TeaHost3D({
+  reduced,
+  activity = 'idle',
+}: {
+  reduced: boolean;
+  activity?: IrohActivity;
+}) {
   const fabric = useTexture('/images/kimono-weave.jpg');
   fabric.colorSpace = SRGBColorSpace;
   fabric.wrapS = fabric.wrapT = RepeatWrapping;
   fabric.repeat.set(1.6, 1.6);
   const head = useRef<Group>(null);
   const body = useRef<Group>(null);
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!head.current || !body.current) return;
     const breath = reduced ? 0 : Math.sin(clock.elapsedTime * 0.74);
     body.current.scale.y = 1 + breath * 0.0025;
     head.current.rotation.z = reduced
       ? 0
       : Math.sin(clock.elapsedTime * 0.38) * 0.012;
+    const thoughtfulTilt = reduced
+      ? 0
+      : activity === 'researching'
+        ? -0.035
+        : activity === 'responding'
+          ? 0.018
+          : 0;
+    head.current.rotation.x +=
+      (thoughtfulTilt - head.current.rotation.x) * Math.min(1, delta * 2.5);
   });
   return (
     <FabricContext.Provider value={fabric}>

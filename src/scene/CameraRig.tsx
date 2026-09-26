@@ -12,6 +12,7 @@ export function CameraRig({
   resetKey,
   typing,
   reading = false,
+  allowTravelWhileTyping = false,
   onArrive,
 }: {
   station: Station;
@@ -19,6 +20,7 @@ export function CameraRig({
   resetKey: number;
   typing: boolean;
   reading?: boolean;
+  allowTravelWhileTyping?: boolean;
   onArrive?: (station: Station) => void;
 }) {
   const { camera, size } = useThree();
@@ -119,7 +121,7 @@ export function CameraRig({
       i = idle.current;
     if (t.active) {
       if (reduced) t.finish();
-      else if (!typing && !reading) t.step(delta);
+      else if ((!typing && !reading) || allowTravelWhileTyping) t.step(delta);
       camera.position.copy(t.position);
       c.target.copy(t.target);
       if (!t.active) {
