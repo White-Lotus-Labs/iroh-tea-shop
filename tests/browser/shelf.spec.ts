@@ -9,7 +9,11 @@ const snapshot = {
     rank: i + 1,
     address: address(i + 1),
     displayName:
-      i === 0 ? 'Alpha Trader' : i === 9 ? '0x0000...000a' : `Trader ${i + 1}`,
+      i === 0
+        ? 'Uses "SANTOCHAN" HL Referral Code'
+        : i === 9
+          ? 'HL Perps Whale'
+          : `Trader ${i + 1}`,
     pnl: i === 1 ? -482_000 : 1_820_000 - i * 10_000,
     roi: i === 1 ? -0.082 : 0.274,
     accountValue: i === 9 ? null : 4_600_000,
@@ -99,7 +103,13 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
     'Shelf',
   );
   await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
-  await expect(page.getByTestId('top-wallet')).toContainText('Alpha Trader');
+  await expect(page.getByTestId('top-wallet')).toContainText('Iroh');
+  await expect(page.getByTestId('top-wallet')).toContainText('santochan');
+  await expect(page.getByTestId('top-wallet')).toContainText('+$1.82M');
+  await expect(page.locator('[data-rank="2"]')).toContainText('-$482K');
+  await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
+    'HL Referral',
+  );
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
   ).toHaveCount(9);
@@ -126,7 +136,7 @@ test('clicking the Shelf in the room starts the focus journey', async ({
   );
 });
 
-test('Shelf presents one leader above an exact 3 by 3 grid without clipping', async ({
+test('Shelf presents one leader above an exact 3 by 3 scrollable grid', async ({
   page,
 }) => {
   test.setTimeout(45_000);
@@ -146,9 +156,13 @@ test('Shelf presents one leader above an exact 3 by 3 grid without clipping', as
   await expect(
     page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
   ).toBeVisible();
-  await expect(page.getByTestId('top-wallet')).toContainText('Alpha Trader', {
+  await expect(page.getByTestId('top-wallet')).toContainText('Iroh', {
     timeout: 15_000,
   });
+  await expect(page.locator('[data-rank="2"]')).toContainText('Bumi');
+  await expect(page.locator('[data-rank="10"]')).toContainText(
+    'The White Lotus Tile',
+  );
   await expect(page.getByTestId('top-wallet')).toContainText('+27.4%');
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
@@ -163,6 +177,7 @@ test('Shelf presents one leader above an exact 3 by 3 grid without clipping', as
   ).toBe(3);
   await expect(page.locator('[data-rank="10"]')).toBeVisible();
   await expect(page.locator('[data-rank="10"]')).toContainText('—');
+  await page.locator('[data-rank="10"]').scrollIntoViewIfNeeded();
   const parchment = await page
     .getByTestId('leaderboard-parchment')
     .boundingBox();
@@ -226,8 +241,6 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
   await page.goto('/');
   await focusShelf(page);
   await expect(page.locator('[data-rank="10"]')).toBeVisible();
-  const paper = await page.locator('.leaderboard-parchment').boundingBox();
-  const rank = await page.locator('[data-rank="10"]').boundingBox();
   const panel = await page.getByTestId('leaderboard-parchment').boundingBox();
   const heading = await page
     .getByRole('heading', { name: 'Top 10 Smart Wallets' })
@@ -235,8 +248,11 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
   expect(panel!.y).toBeGreaterThanOrEqual(78);
   expect(panel!.y + panel!.height).toBeLessThanOrEqual(720 - 80);
   expect(heading!.y).toBeGreaterThanOrEqual(panel!.y);
+  await page.locator('[data-rank="10"]').scrollIntoViewIfNeeded();
+  const paper = await page.locator('.leaderboard-parchment').boundingBox();
+  const rank = await page.locator('[data-rank="10"]').boundingBox();
   expect(rank!.y + rank!.height).toBeLessThanOrEqual(
-    paper!.y + paper!.height - 15,
+    paper!.y + paper!.height + 1,
   );
 });
 

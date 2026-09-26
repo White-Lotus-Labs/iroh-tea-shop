@@ -6,6 +6,7 @@ import {
   type SmartWalletLeaderboardEntry,
   type SmartWalletLeaderboardSnapshot,
 } from '../leaderboard/model';
+import { shelfIdentityForRank } from './shelfIdentities';
 
 let lastSnapshot: SmartWalletLeaderboardSnapshot | null = null;
 
@@ -33,31 +34,50 @@ function Wallet({
   entry: SmartWalletLeaderboardEntry;
   featured?: boolean;
 }) {
+  const identity = shelfIdentityForRank(entry.rank);
+  const portraitIndex = identity?.portraitIndex ?? 9;
   return (
     <article
       className={`wallet-rank${featured ? ' wallet-rank-featured' : ''}`}
       data-rank={entry.rank}
       data-testid={featured ? 'top-wallet' : undefined}
-      aria-label={`Rank ${entry.rank}, ${entry.displayName}, wallet ${entry.address}`}
+      aria-label={`Rank ${entry.rank}, ${identity?.name ?? 'White Lotus guest'}, wallet ${entry.address}`}
     >
-      <div className="wallet-identity">
-        <span className="wallet-place">#{entry.rank}</span>
-        <h2 title={entry.address}>{entry.displayName}</h2>
+      <div className="wallet-portrait-frame">
+        <div
+          className="wallet-portrait"
+          role="img"
+          aria-label={identity?.name ?? 'White Lotus guest'}
+          style={{
+            backgroundPosition: `${(portraitIndex % 5) * 25}% ${portraitIndex < 5 ? 15 : 85}%`,
+          }}
+        />
+        <span className="wallet-place" aria-hidden="true">
+          {entry.rank}
+        </span>
       </div>
-      <dl className="wallet-metrics">
-        <div>
-          <dt>PnL</dt>
-          <dd>{formatMoney(entry.pnl, true)}</dd>
+      <div className="wallet-card-details">
+        <div className="wallet-identity">
+          <h2>{identity?.name ?? 'White Lotus guest'}</h2>
+          {identity?.nickname && (
+            <p className="wallet-nickname">{identity.nickname}</p>
+          )}
         </div>
-        <div>
-          <dt>ROI</dt>
-          <dd>{formatRoi(entry.roi)}</dd>
-        </div>
-        <div>
-          <dt>Account Value</dt>
-          <dd>{formatMoney(entry.accountValue)}</dd>
-        </div>
-      </dl>
+        <dl className="wallet-metrics">
+          <div>
+            <dt>PNL</dt>
+            <dd>{formatMoney(entry.pnl, true)}</dd>
+          </div>
+          <div>
+            <dt>ROI</dt>
+            <dd>{formatRoi(entry.roi)}</dd>
+          </div>
+          <div>
+            <dt>ACCOUNT VALUE</dt>
+            <dd>{formatMoney(entry.accountValue)}</dd>
+          </div>
+        </dl>
+      </div>
     </article>
   );
 }
@@ -136,9 +156,18 @@ export function SmartWalletShelf() {
       <div className="parchment-rod" aria-hidden="true" />
       <div className="leaderboard-parchment">
         <header className="leaderboard-head">
-          <p className="leaderboard-kicker">THE SHELF · HYPERLIQUID</p>
+          <svg
+            className="leaderboard-lotus"
+            viewBox="0 0 48 34"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path d="M24 29C15 22 16 13 24 4c8 9 9 18 0 25Z" />
+            <path d="M24 29C12 29 7 23 6 13c10 2 16 8 18 16Zm0 0c12 0 17-6 18-16-10 2-16 8-18 16Z" />
+            <path d="M24 29C15 33 7 30 2 24c8-2 16-1 22 5Zm0 0c9 4 17 1 22-5-8-2-16-1-22 5Z" />
+          </svg>
           <h1>Top 10 Smart Wallets</h1>
-          <p>Nansen · Smart HL Perps Traders · 30D</p>
+          <p>The White Lotus Order</p>
         </header>
         {snapshot?.stale && (
           <p className="leaderboard-stale" role="status">
@@ -177,7 +206,9 @@ export function SmartWalletShelf() {
           </p>
         )}
         <footer className="leaderboard-foot">
-          <span>Server snapshot · refreshes every 30 min</span>
+          <span>
+            Illustrated ranks · server snapshot refreshes every 30 min
+          </span>
           {snapshot && <span>Updated {age} min ago</span>}
           {snapshot?.stale && (
             <button type="button" onClick={() => void load()}>
