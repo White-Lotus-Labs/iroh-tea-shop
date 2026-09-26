@@ -359,7 +359,7 @@ export default function TeaRoomShell({
         </section>
       </div>
 
-      <nav className={`station-nav is-expanded`} aria-label="Tea room stations">
+      <nav className="station-nav is-expanded" aria-label="Tea room stations">
         <div className="station-list" role="list">
           {STATIONS.map((s, i) => {
             const isActive = s.id === station;
