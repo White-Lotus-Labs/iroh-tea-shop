@@ -27,6 +27,7 @@ import { SmartWalletShelf } from './SmartWalletShelf';
 import { EvidenceDrawer } from './EvidenceDrawer';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
+
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
   ssr: false,
   loading: () => (
@@ -193,18 +194,52 @@ export default function TeaRoomShell({
           <span className="brand-mark" aria-hidden="true">
             ◒
           </span>
-          <span>
-            Tea After Pour<small>A QUIET ROOM FOR A FINISHED THESIS</small>
+          <span className="brand-text">
+            Tea After Pour
+            <small>A QUIET ROOM FOR A FINISHED THESIS</small>
           </span>
         </a>
+
         <div className="topbar-right">
-          <span className="demo-label">
-            <span aria-hidden="true">●</span> THESIS: DEMO DATA{' '}
-            <small>IROH: LIVE NANSEN RESEARCH</small>
-          </span>
+          <div className="status-indicator">
+            <button className="status-icon" aria-label="Data source status">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="6.5"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                />
+                <path
+                  d="M8 7.2V11"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
+                <circle cx="8" cy="5" r="0.8" fill="currentColor" />
+              </svg>
+            </button>
+
+            <div className="status-popup" role="tooltip">
+              <div className="status-row">
+                <span className="status-label">Thesis</span>
+                <span className="status-value demo">Demo data</span>
+              </div>
+
+              <div className="status-row">
+                <span className="status-label">Iroh</span>
+                <span className="status-value live">
+                  Live · Nansen Research
+                </span>
+              </div>
+            </div>
+          </div>
+
           <AccountMenu user={user} />
         </div>
       </header>
+
       <div className="room-layout">
         <section
           className="room-stage"
@@ -237,44 +272,6 @@ export default function TeaRoomShell({
               Approach the Shelf <span aria-hidden="true">↗</span>
             </button>
           )}
-          <div className="scene-caption">
-            <span className="eyebrow">
-              {station === 'Counter' || station === 'Entrance'
-                ? 'THE WAITING ROOM'
-                : 'THE TEA ROOM'}{' '}
-              / {active.label.toUpperCase()}
-            </span>
-            <p>
-              {station === 'Counter' || station === 'Entrance'
-                ? 'Your thought begins at the counter.'
-                : station === 'TeaTable'
-                  ? !readingReady || busy
-                    ? 'Take a seat. The tea is steeping.'
-                    : 'An observation is a beginning, not a verdict.'
-                  : station === 'AvatarSeat'
-                    ? 'There is room to change your mind.'
-                    : station === 'Shelf'
-                      ? 'Keep the question. Leave the certainty.'
-                      : 'Come in. There is no hurry.'}
-            </p>
-          </div>
-          <div className="scene-controls">
-            <button onClick={() => setResetKey((v) => v + 1)}>
-              ↺ Reset view
-            </button>
-            <label>
-              <span className="sr-only">Motion preference</span>
-              <select
-                aria-label="Motion preference"
-                value={motion}
-                onChange={(e) => setMotion(e.target.value as MotionPreference)}
-              >
-                <option value="system">Motion: system</option>
-                <option value="reduce">Reduce motion</option>
-                <option value="full">Full motion</option>
-              </select>
-            </label>
-          </div>
         </section>
         <section
           key={station}
@@ -361,50 +358,33 @@ export default function TeaRoomShell({
           {shelfOpen && <SmartWalletShelf />}
         </section>
       </div>
-      <div className="status-line" role="status">
-        <span>
-          {busy
-            ? 'Steeping the synthetic sample…'
-            : station === 'TeaTable' && !readingReady
-              ? 'Arriving at the tea table…'
-              : data.workflowState === 'error'
-                ? 'The pour needs another try. Your thesis is preserved.'
-                : data.result
-                  ? 'Demo review ready · no provider contacted'
-                  : 'A private pause · your writing stays in memory'}
-        </span>
-        {busy && (
-          <button
-            onClick={() => {
-              session.cancel();
-              navigate('Counter');
-            }}
-          >
-            Cancel review
-          </button>
-        )}
-        <span className="status-tail">
-          ONLY THE EVIDENCE IS MOCKED. THE PAUSE IS YOURS.
-        </span>
-      </div>
-      <nav className="station-nav" aria-label="Tea room stations">
-        {STATIONS.map((s, i) => (
-          <button
-            key={s.id}
-            onClick={() => navigate(s.id)}
-            aria-current={s.id === station ? 'step' : undefined}
-          >
-            <span className="station-number">0{i + 1}</span>
-            <span>
-              {s.label}
-              <small>{s.purpose}</small>
-            </span>
-            <span className="station-dot" aria-hidden="true">
-              {s.id === station ? '●' : '○'}
-            </span>
-          </button>
-        ))}
+
+      <nav className="station-nav is-expanded" aria-label="Tea room stations">
+        <div className="station-list" role="list">
+          {STATIONS.map((s, i) => {
+            const isActive = s.id === station;
+            return (
+              <button
+                key={s.id}
+                className={`station-item ${isActive ? 'active' : ''}`}
+                onClick={() => navigate(s.id)}
+                aria-current={isActive ? 'step' : undefined}
+                role="listitem"
+              >
+                <span className="station-number">0{i + 1}</span>
+                <span className="station-text">
+                  {s.label}
+                  <small>{s.purpose}</small>
+                </span>
+                <span className="station-dot" aria-hidden="true">
+                  {isActive ? '●' : '○'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
+
       <footer className="app-footer">
         <span>
           AI reviews the tea after I poured it. It does not pick the leaf.
