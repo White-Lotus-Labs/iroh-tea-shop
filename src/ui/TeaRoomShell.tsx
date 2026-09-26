@@ -272,44 +272,6 @@ export default function TeaRoomShell({
               Approach the Shelf <span aria-hidden="true">↗</span>
             </button>
           )}
-          <div className="scene-caption">
-            <span className="eyebrow">
-              {station === 'Counter' || station === 'Entrance'
-                ? 'THE WAITING ROOM'
-                : 'THE TEA ROOM'}{' '}
-              / {active.label.toUpperCase()}
-            </span>
-            <p>
-              {station === 'Counter' || station === 'Entrance'
-                ? 'Your thought begins at the counter.'
-                : station === 'TeaTable'
-                  ? !readingReady || busy
-                    ? 'Take a seat. The tea is steeping.'
-                    : 'An observation is a beginning, not a verdict.'
-                  : station === 'AvatarSeat'
-                    ? 'There is room to change your mind.'
-                    : station === 'Shelf'
-                      ? 'Keep the question. Leave the certainty.'
-                      : 'Come in. There is no hurry.'}
-            </p>
-          </div>
-          {/*<div className="scene-controls">*/}
-          {/*  <button onClick={() => setResetKey((v) => v + 1)}>*/}
-          {/*    ↺ Reset view*/}
-          {/*  </button>*/}
-          {/*  <label>*/}
-          {/*    <span className="sr-only">Motion preference</span>*/}
-          {/*    <select*/}
-          {/*      aria-label="Motion preference"*/}
-          {/*      value={motion}*/}
-          {/*      onChange={(e) => setMotion(e.target.value as MotionPreference)}*/}
-          {/*    >*/}
-          {/*      <option value="system">Motion: system</option>*/}
-          {/*      <option value="reduce">Reduce motion</option>*/}
-          {/*      <option value="full">Full motion</option>*/}
-          {/*    </select>*/}
-          {/*  </label>*/}
-          {/*</div>*/}
         </section>
         <section
           key={station}
@@ -396,24 +358,33 @@ export default function TeaRoomShell({
           {shelfOpen && <SmartWalletShelf />}
         </section>
       </div>
-      <nav className="station-nav" aria-label="Tea room stations">
-        {STATIONS.map((s, i) => (
-          <button
-            key={s.id}
-            onClick={() => navigate(s.id)}
-            aria-current={s.id === station ? 'step' : undefined}
-          >
-            <span className="station-number">0{i + 1}</span>
-            <span>
-              {s.label}
-              <small>{s.purpose}</small>
-            </span>
-            <span className="station-dot" aria-hidden="true">
-              {s.id === station ? '●' : '○'}
-            </span>
-          </button>
-        ))}
+
+      <nav className={`station-nav is-expanded`} aria-label="Tea room stations">
+        <div className="station-list" role="list">
+          {STATIONS.map((s, i) => {
+            const isActive = s.id === station;
+            return (
+              <button
+                key={s.id}
+                className={`station-item ${isActive ? 'active' : ''}`}
+                onClick={() => navigate(s.id)}
+                aria-current={isActive ? 'step' : undefined}
+                role="listitem"
+              >
+                <span className="station-number">0{i + 1}</span>
+                <span className="station-text">
+                  {s.label}
+                  <small>{s.purpose}</small>
+                </span>
+                <span className="station-dot" aria-hidden="true">
+                  {isActive ? '●' : '○'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
+
       <footer className="app-footer">
         <span>
           AI reviews the tea after I poured it. It does not pick the leaf.
