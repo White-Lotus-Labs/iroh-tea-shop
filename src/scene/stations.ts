@@ -56,6 +56,6 @@ export const SHELF_APPROACH = {
 };
 
 export const SHELF_FOCUS = {
-  position: [1.95, 1.55, -5.1] as Point,
+  position: [0.95, 1.55, -5.1] as Point,
   target: [3.25, 1.43, -4.55] as Point,
 };

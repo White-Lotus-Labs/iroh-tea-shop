@@ -1712,14 +1712,16 @@ body:has(.auth-shell) {
 
 /* The same parchment expands into a readable full leaderboard after travel. */
 .app-shell[data-station='Shelf'] .reading-panel {
+  position: fixed;
   top: 88px;
+  bottom: 106px;
   left: 50%;
   right: auto;
   width: min(790px, calc(100vw - 330px));
-  height: calc(100dvh - 194px);
+  height: auto;
   max-height: none;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1739,38 +1741,47 @@ body:has(.auth-shell) {
 .parchment-hanger {
   position: relative;
   height: 100%;
-  padding: 12px 0;
-  filter: drop-shadow(14px 18px 20px #170c08a1);
+  padding: 13px 0;
+  filter: drop-shadow(15px 19px 22px #170c08ba);
 }
 .parchment-rod {
   position: absolute;
-  z-index: 2;
+  z-index: 3;
   top: 0;
-  left: -13px;
-  right: -13px;
-  height: 19px;
-  border: 1px solid #2e1c10;
-  border-radius: 12px;
-  background: linear-gradient(#bd9460, #6b4829 42%, #3b2619 79%, #a3713e);
+  left: -18px;
+  right: -18px;
+  height: 25px;
+  border: 2px solid #44250e;
+  border-radius: 15px;
+  background:
+    repeating-linear-gradient(
+      118deg,
+      transparent 0 13px,
+      #d1a65b45 13px 16px,
+      transparent 16px 31px
+    ),
+    linear-gradient(#d8a45a, #98602b 35%, #5c3517 65%, #b67b35 93%);
   box-shadow:
-    inset 0 1px #e3b679,
-    0 4px 7px #170b0759;
+    inset 0 2px #f3c982,
+    inset 0 -2px #35200e,
+    0 5px 9px #170b0780;
 }
 .parchment-rod::before,
 .parchment-rod::after {
   content: '';
   position: absolute;
-  top: -3px;
-  width: 13px;
-  height: 23px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #8f683c, #d4ac70, #644024);
+  top: -5px;
+  width: 19px;
+  height: 31px;
+  border: 2px solid #43280f;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #653817, #dcaa61 45%, #6a3d1a);
 }
 .parchment-rod::before {
-  left: -5px;
+  left: -9px;
 }
 .parchment-rod::after {
-  right: -5px;
+  right: -9px;
 }
 .parchment-rod-bottom {
   top: auto;
@@ -1784,143 +1795,288 @@ body:has(.auth-shell) {
   height: 100%;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px clamp(20px, 2.3vw, 34px) 15px;
-  color: #312b21;
-  border-left: 3px solid #a6875f;
-  border-right: 3px solid #a6875f;
+  padding: 16px clamp(21px, 3vw, 40px) 9px;
+  color: #382314;
+  border-left: 7px double #835027;
+  border-right: 7px double #835027;
   background:
-    radial-gradient(ellipse at 50% 13%, #fff7dfb0, transparent 64%),
-    repeating-linear-gradient(105deg, #8c643006 0 2px, transparent 2px 11px),
-    linear-gradient(
-      90deg,
-      #c9ad80 0,
-      #eee0bb 3%,
-      #f5e9cb 52%,
-      #ead9b5 97%,
-      #b99a68 100%
-    );
+    linear-gradient(#f5e3bf69, #f3e0b866),
+    url('/images/shelf/white-lotus-parchment.png') center / 100% 100%;
   box-shadow:
-    inset 0 0 26px #6845212e,
-    inset 0 0 0 1px #fff9df8c;
+    inset 0 0 35px #59320d70,
+    inset 0 0 0 2px #d6a663;
   scrollbar-color: #987a53 transparent;
 }
 .leaderboard-head {
   text-align: center;
-  border-bottom: 1px solid #9b7b5680;
-  padding-bottom: 11px;
+  padding-bottom: 6px;
   flex: none;
 }
-.leaderboard-head::before {
-  content: '◈';
+.leaderboard-lotus {
   display: block;
-  color: #856a45;
-  font-size: 13px;
-  line-height: 1;
-  margin-bottom: 5px;
-}
-.leaderboard-kicker {
-  margin: 0 0 4px;
-  color: #705637;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 2.5px;
+  width: 32px;
+  height: 23px;
+  margin: 0 auto 2px;
+  stroke: #6e281c;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
 }
 .leaderboard-head h1,
 .app-shell[data-station='Shelf'] .reading-panel h1 {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   font:
-    32px/1.1 Georgia,
+    700 clamp(27px, 2.6vw, 36px) / 1.07 Georgia,
     'Times New Roman',
     serif;
-  letter-spacing: -0.8px;
-  color: #332719;
+  letter-spacing: -1.1px;
+  color: #3d180e;
+  text-shadow: 0 1px #f7e9c9;
 }
 .leaderboard-head > p:last-child {
   margin: 0;
-  color: #634e35;
-  font-size: 10px;
-  letter-spacing: 0.6px;
+  color: #63351f;
+  font:
+    700 11px Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+.leaderboard-head > p:last-child::before,
+.leaderboard-head > p:last-child::after {
+  content: '─────';
+  margin: 0 12px;
+  color: #a67042;
+  letter-spacing: -2px;
 }
 .leaderboard-content {
   min-height: 0;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.wallet-rank {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 2px solid #77441f;
+  outline: 1px solid #bd9158;
+  outline-offset: -6px;
+  background: #f2d8aacf;
+  box-shadow:
+    inset 0 0 17px #6d3c1740,
+    0 2px 5px #4c2a1938;
+}
+.wallet-rank::before,
+.wallet-rank::after {
+  content: '⌜';
+  position: absolute;
+  z-index: 2;
+  color: #6e361a;
+  font:
+    700 27px/1 Georgia,
+    serif;
+  pointer-events: none;
+}
+.wallet-rank::before {
+  top: 0;
+  left: 3px;
+}
+.wallet-rank::after {
+  right: 3px;
+  bottom: 0;
+  transform: rotate(180deg);
 }
 .wallet-rank-featured {
-  width: min(74%, 540px);
-  margin: 11px auto 12px;
-  padding: 12px 17px 13px;
+  display: grid;
+  grid-template-columns: 42% minmax(0, 1fr);
+  width: 83%;
+  min-height: clamp(180px, 20dvh, 225px);
+  margin: 0 auto 10px;
+  background: #f4ddb5e8;
+  border-width: 3px;
+  outline-offset: -8px;
+}
+.wallet-portrait-frame {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-bottom: 2px solid #855126;
+  background: #a97b4c;
+}
+.wallet-portrait-frame::before {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  top: 5px;
+  right: 5px;
+  width: 14px;
+  height: 14px;
+  border-top: 3px double #eed093;
+  border-right: 3px double #eed093;
+  pointer-events: none;
+}
+.wallet-portrait-frame::after {
+  content: '☁';
+  position: absolute;
+  right: 4px;
+  bottom: -13px;
+  color: #e7c995c4;
+  font-size: 39px;
+  pointer-events: none;
+}
+.wallet-portrait {
+  width: 100%;
+  height: 100%;
+  min-height: 67px;
+  background-image: url('/images/shelf/white-lotus-portraits.png');
+  background-size: 500% 200%;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 0 0 4px #a16834,
+    inset 0 0 0 6px #e5bc7b;
+}
+.wallet-rank-featured .wallet-portrait-frame {
+  border-right: 3px double #71401d;
+  border-bottom: 0;
+}
+.wallet-place {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #f5d7a2;
+  background: #632b20;
+  border: 2px solid #bd8c4d;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  font:
+    700 17px Georgia,
+    serif;
+  text-shadow: 0 1px #39180e;
+}
+.wallet-rank-featured .wallet-place {
+  width: 45px;
+  height: 45px;
+  font-size: 25px;
+}
+.wallet-card-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 4px 7px 7px;
   text-align: center;
-  border-top: 1px solid #8f6d45;
-  border-bottom: 1px solid #8f6d45;
-  background: #fff7df4f;
 }
 .wallet-identity {
   min-width: 0;
 }
-.wallet-place {
-  display: block;
-  color: #8d6236;
-  font:
-    700 14px/1.1 Georgia,
-    serif;
-}
-.wallet-rank-featured .wallet-place {
-  font-size: 27px;
-}
 .wallet-rank h2 {
-  overflow: hidden;
-  margin: 3px 0 8px;
-  color: #2f281c;
+  margin: 2px 0 3px;
+  color: #39190f;
   font:
-    600 14px/1.2 Georgia,
+    700 17px/1.04 Georgia,
+    'Times New Roman',
     serif;
   letter-spacing: 0;
+}
+.wallet-rank-featured h2 {
+  margin: 0;
+  font-size: clamp(29px, 3.2vw, 42px);
+}
+.wallet-rank-featured .wallet-card-details {
+  justify-content: center;
+  padding: 12px clamp(13px, 2vw, 28px);
+  text-align: left;
+}
+.wallet-label {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  margin: 2px 0 4px;
+  padding: 2px 7px;
+  border: 1px solid #a9743c;
+  background: #efd4a3;
+  color: #542b18;
+  font:
+    700 10px/1.15 Georgia,
+    serif;
+  letter-spacing: 0.6px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.wallet-rank-featured h2 {
-  font-size: 22px;
-  margin-bottom: 11px;
+.wallet-rank-featured .wallet-label {
+  font-size: 13px;
+  letter-spacing: 1.5px;
+}
+.wallet-rank-featured .wallet-identity::after {
+  content: '──── ❀ ────';
+  display: block;
+  margin: 6px 0;
+  color: #a77941;
+  font-size: 10px;
+  letter-spacing: -1px;
 }
 .wallet-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  gap: 2px;
   margin: 0;
+  padding-top: 5px;
+  border-top: 1px solid #9b6b3c8a;
 }
 .wallet-metrics > div {
   min-width: 0;
+  padding: 0 2px;
+}
+.wallet-metrics > div + div {
+  border-left: 1px solid #a36e3b65;
 }
 .wallet-metrics dt {
-  color: #745c40;
-  font-size: 8px;
+  color: #704124;
+  font-size: 7px;
   font-weight: 700;
-  letter-spacing: 0.7px;
+  letter-spacing: 0.15px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .wallet-metrics dd {
   margin: 3px 0 0;
   font:
-    600 13px/1.15 Georgia,
+    700 12px/1.1 Georgia,
     serif;
   white-space: nowrap;
 }
 .wallet-rank-featured .wallet-metrics dt {
-  font-size: 9px;
+  font-size: 8px;
 }
 .wallet-rank-featured .wallet-metrics dd {
-  font-size: 17px;
+  font-size: clamp(15px, 1.8vw, 20px);
 }
 .wallet-grid {
   display: grid;
+  flex: 1 0 auto;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px 12px;
+  grid-template-rows: repeat(3, minmax(170px, 1fr));
+  gap: 8px 9px;
 }
 .wallet-grid .wallet-rank {
-  min-width: 0;
-  min-height: 103px;
-  padding: 8px 9px 9px;
-  border-top: 1px solid #9e7f584f;
-  background: linear-gradient(#fff9e12e, #fff9e108);
+  display: flex;
+  flex-direction: column;
+  min-height: clamp(170px, 18dvh, 220px);
+}
+.wallet-grid .wallet-portrait-frame {
+  flex: 1 1 auto;
+  min-height: 105px;
+}
+.wallet-grid .wallet-card-details {
+  flex: 0 0 auto;
+  background: #f0d5a8e3;
+}
+.wallet-grid [data-rank='10'] h2 {
+  font-size: 13px;
 }
 .leaderboard-message {
   margin: auto;
@@ -1990,37 +2146,38 @@ body:has(.auth-shell) {
     padding: 9px 0;
   }
   .parchment-rod {
-    height: 14px;
-    left: -6px;
-    right: -6px;
+    height: 18px;
+    left: -7px;
+    right: -7px;
   }
   .parchment-rod::before,
   .parchment-rod::after {
-    height: 18px;
-    width: 9px;
+    height: 24px;
+    width: 13px;
   }
   .leaderboard-parchment {
-    padding: 17px 15px 12px;
+    overflow: auto;
+    padding: 17px 12px 12px;
+  }
+  .leaderboard-head,
+  .leaderboard-content,
+  .leaderboard-foot {
+    min-width: 610px;
   }
   .leaderboard-head h1,
   .app-shell[data-station='Shelf'] .reading-panel h1 {
-    font-size: 26px;
+    font-size: 30px;
   }
   .wallet-rank-featured {
-    width: 100%;
+    width: 85%;
   }
   .wallet-grid {
-    grid-template-columns: 1fr;
-    gap: 3px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
   }
   .wallet-grid .wallet-rank {
-    min-height: 0;
-    padding: 7px 4px;
+    min-height: 180px;
   }
-  .wallet-grid .wallet-rank h2 {
-    margin-bottom: 5px;
-  }
-  .leaderboard-content,
   .leaderboard-foot {
     flex: none;
   }
@@ -2037,31 +2194,22 @@ body:has(.auth-shell) {
   .leaderboard-head {
     padding-bottom: 6px;
   }
-  .leaderboard-head::before {
-    margin-bottom: 2px;
-  }
   .leaderboard-head h1,
   .app-shell[data-station='Shelf'] .reading-panel h1 {
     font-size: 27px;
   }
   .wallet-rank-featured {
-    margin-top: 6px;
     margin-bottom: 8px;
-    padding: 7px 13px;
-  }
-  .wallet-rank-featured .wallet-place {
-    font-size: 22px;
+    min-height: 180px;
   }
   .wallet-rank-featured h2 {
-    font-size: 20px;
-    margin-bottom: 6px;
+    font-size: 31px;
   }
   .wallet-grid .wallet-rank {
-    min-height: 78px;
-    padding: 5px 8px 6px;
+    min-height: 170px;
   }
-  .wallet-grid .wallet-rank h2 {
-    margin: 1px 0 5px;
+  .wallet-grid .wallet-portrait-frame {
+    min-height: 105px;
   }
   .leaderboard-foot {
     padding-top: 5px;

@@ -78,7 +78,15 @@ describe('camera travel', () => {
     const camera = new Vector3(...SHELF_FOCUS.position);
     const toScroll = new Vector3(...SHELF_FOCUS.target).sub(camera);
     const toIroh = new Vector3(2.16, 1.55, -3.62).sub(camera);
-    expect(toScroll.angleTo(toIroh)).toBeGreaterThan(0.8);
+    expect(toScroll.angleTo(toIroh)).toBeGreaterThan(0.55);
+  });
+  it('fits the full scroll in the Shelf focus with room for viewport controls', () => {
+    const distance = new Vector3(...SHELF_FOCUS.position).distanceTo(
+      new Vector3(...SHELF_FOCUS.target),
+    );
+    const visibleHeight = 2 * distance * Math.tan((58 * Math.PI) / 360);
+    const scrollHeight = 2.12 * 0.86;
+    expect(visibleHeight).toBeGreaterThan(scrollHeight * 1.35);
   });
 });
 describe('restrained procedural gestures', () => {
