@@ -1959,14 +1959,16 @@ body:has(.auth-shell) {
 
 /* The same parchment expands into a readable full leaderboard after travel. */
 .app-shell[data-station='Shelf'] .reading-panel {
+  position: fixed;
   top: 88px;
+  bottom: 106px;
   left: 50%;
   right: auto;
   width: min(790px, calc(100vw - 330px));
-  height: calc(100dvh - 194px);
+  height: auto;
   max-height: none;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;

@@ -228,6 +228,13 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
   await expect(page.locator('[data-rank="10"]')).toBeVisible();
   const paper = await page.locator('.leaderboard-parchment').boundingBox();
   const rank = await page.locator('[data-rank="10"]').boundingBox();
+  const panel = await page.getByTestId('leaderboard-parchment').boundingBox();
+  const heading = await page
+    .getByRole('heading', { name: 'Top 10 Smart Wallets' })
+    .boundingBox();
+  expect(panel!.y).toBeGreaterThanOrEqual(78);
+  expect(panel!.y + panel!.height).toBeLessThanOrEqual(720 - 80);
+  expect(heading!.y).toBeGreaterThanOrEqual(panel!.y);
   expect(rank!.y + rank!.height).toBeLessThanOrEqual(
     paper!.y + paper!.height - 15,
   );

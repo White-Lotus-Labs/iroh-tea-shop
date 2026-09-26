@@ -11,6 +11,7 @@ Replace the static tea shelf with a parchment-style Hyperliquid Smart Wallet lea
 - Parchment leaderboard presents rank, wallet, PnL, ROI, and account value with loading, empty, error, retry, and stale states.
 - The shelf sits farther right and deeper in the room, beyond Iroh in the broad Shelf view. The paper stays rolled in its center bay and aligned with the wall until focus.
 - Selecting the Shelf station shows the room first, with the scroll rolled and the leaderboard de-emphasized. Clicking the shelf or scroll in the 3D scene, or using the accessible **Approach the Shelf** button, animates the camera behind Iroh and closer to the shelf. The scroll opens and the leaderboard becomes readable after the camera arrives.
+- The focused camera frames the full height of the opened scroll, while the readable leaderboard panel stays anchored between the header and station navigation.
 - When WebGL is unavailable, the **Approach the Shelf** button opens the readable leaderboard without camera travel. The leaderboard remains hidden at other stations.
 
 ## Remaining work
@@ -30,6 +31,8 @@ Replace the static tea shelf with a parchment-style Hyperliquid Smart Wallet lea
 ## Validation performed
 
 On 26 September 2026 after rebasing on persistent Iroh chat history, validation passed: typecheck; 81 unit tests across 13 files; 23 browser tests; formatting; and the production build. The commands were `npx prisma generate`, `npm run typecheck`, `npm test`, `npm run format:check`, `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3187 npm run test:e2e`, and `npm run build`. The Iroh chat-history migration was applied locally before browser tests. The Shelf browser suite covers the broad room view, direct shelf/scroll click, camera focus, leaderboard states, and mobile layout.
+
+For the later scroll framing fix, `npm test` passed 82 unit tests across 13 files, and `npm run typecheck`, `npm run format:check`, and `npm run build` passed. The added browser viewport assertion and the final visual layout were not run in this session because browser access to the local app was blocked by the browser security policy.
 
 ## Recommended next steps
 
