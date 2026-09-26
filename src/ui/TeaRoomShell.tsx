@@ -27,6 +27,7 @@ import { SmartWalletShelf } from './SmartWalletShelf';
 import { EvidenceDrawer } from './EvidenceDrawer';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
+
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
   ssr: false,
   loading: () => (
@@ -258,23 +259,23 @@ export default function TeaRoomShell({
                       : 'Come in. There is no hurry.'}
             </p>
           </div>
-          <div className="scene-controls">
-            <button onClick={() => setResetKey((v) => v + 1)}>
-              ↺ Reset view
-            </button>
-            <label>
-              <span className="sr-only">Motion preference</span>
-              <select
-                aria-label="Motion preference"
-                value={motion}
-                onChange={(e) => setMotion(e.target.value as MotionPreference)}
-              >
-                <option value="system">Motion: system</option>
-                <option value="reduce">Reduce motion</option>
-                <option value="full">Full motion</option>
-              </select>
-            </label>
-          </div>
+          {/*<div className="scene-controls">*/}
+          {/*  <button onClick={() => setResetKey((v) => v + 1)}>*/}
+          {/*    ↺ Reset view*/}
+          {/*  </button>*/}
+          {/*  <label>*/}
+          {/*    <span className="sr-only">Motion preference</span>*/}
+          {/*    <select*/}
+          {/*      aria-label="Motion preference"*/}
+          {/*      value={motion}*/}
+          {/*      onChange={(e) => setMotion(e.target.value as MotionPreference)}*/}
+          {/*    >*/}
+          {/*      <option value="system">Motion: system</option>*/}
+          {/*      <option value="reduce">Reduce motion</option>*/}
+          {/*      <option value="full">Full motion</option>*/}
+          {/*    </select>*/}
+          {/*  </label>*/}
+          {/*</div>*/}
         </section>
         <section
           key={station}

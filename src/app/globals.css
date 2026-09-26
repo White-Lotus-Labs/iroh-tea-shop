@@ -392,25 +392,6 @@ h2 {
   max-width: 330px;
   margin: 10px 0 0;
 }
-.scene-controls {
-  position: absolute;
-  bottom: 26px;
-  left: 30px;
-  right: 30px;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-.scene-controls button,
-.scene-controls select {
-  border: 1px solid #b6a081;
-  background: #332a22;
-  color: #f3e9d5;
-  border-radius: 4px;
-  min-height: 44px;
-  padding: 8px 13px;
-  font-size: 12px;
-}
 .hotspot {
   white-space: nowrap;
   border: 1px solid #b9a581;
@@ -913,11 +894,6 @@ input {
   .scene-caption p {
     font-size: 21px;
   }
-  .scene-controls {
-    left: 18px;
-    right: 18px;
-    flex-wrap: wrap;
-  }
   .status-tail {
     display: none;
   }
@@ -971,11 +947,6 @@ input {
   .scene-caption p {
     font-size: 20px;
     max-width: 250px;
-  }
-  .scene-controls {
-    bottom: 14px;
-    left: 20px;
-    right: 20px;
   }
   .reading-panel {
     padding: 30px 24px 34px;
@@ -1714,21 +1685,6 @@ body:has(.auth-shell) {
   .scene-caption {
   display: none;
 }
-.scene-controls {
-  z-index: 13;
-  top: 91px;
-  bottom: auto;
-  left: auto;
-  right: clamp(22px, 3vw, 50px);
-  width: auto;
-}
-.scene-controls button,
-.scene-controls select {
-  border: 1px solid #f0d6ab73;
-  background: #201713ad;
-  color: #fff1d7;
-  backdrop-filter: blur(8px);
-}
 .status-line {
   position: absolute;
   z-index: 11;
@@ -1815,18 +1771,6 @@ body:has(.auth-shell) {
   }
   .demo-label {
     font-size: 8px;
-  }
-  .scene-controls {
-    top: 75px;
-    right: 13px;
-    left: auto;
-  }
-  .scene-controls button {
-    display: none;
-  }
-  .scene-controls select {
-    font-size: 10px;
-    min-height: 38px;
   }
   .status-line {
     top: 75px;
