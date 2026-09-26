@@ -487,12 +487,6 @@ select {
 input {
   text-transform: uppercase;
 }
-.field-note {
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--muted);
-  margin: 9px 0 20px;
-}
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
@@ -509,7 +503,7 @@ input {
   background: #344a3b;
   color: #fff7e5;
   border: 1px solid #344a3b;
-  border-radius: 4px;
+  border-radius: 555px;
   padding: 12px 22px;
   min-height: 48px;
   font-size: 13px;
@@ -552,10 +546,7 @@ input {
   font-weight: 600;
   color: var(--ink);
 }
-.status-tail {
-  font-size: 8px;
-  letter-spacing: 1.3px;
-}
+
 .station-number {
   font:
     15px Georgia,
@@ -859,9 +850,6 @@ input {
   }
   .scene-caption p {
     font-size: 21px;
-  }
-  .status-tail {
-    display: none;
   }
   .station-dot {
     display: none;
@@ -1579,10 +1567,6 @@ body:has(.auth-shell) {
 .app-shell[data-station='TeaTable']
   .room-stage:has(+ .reading-panel.is-steeping)
   .scene-caption {
-  display: none;
-}
-.status-tail,
-.app-footer {
   display: none;
 }
 @media (max-width: 760px) {
@@ -2684,5 +2668,342 @@ body:has(.auth-shell) {
   .station-item .station-number,
   .station-dot {
     display: none;
+  }
+}
+
+.entrance-hero {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.entrance-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 60% 55% at 50% 48%,
+      rgba(20, 14, 10, 0.55),
+      rgba(20, 14, 10, 0.2) 70%,
+      transparent
+    ),
+    radial-gradient(
+      ellipse at 50% 45%,
+      rgba(20, 14, 10, 0.2),
+      rgba(20, 14, 10, 0.78) 80%
+    );
+  pointer-events: none;
+  animation: backdrop-arrive 0.9s ease-out both;
+}
+
+.entrance-hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 600px;
+  padding: 0 32px;
+  color: #f6ecd8;
+  pointer-events: auto;
+}
+
+.entrance-hero-content > * {
+  animation: entrance-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.entrance-hero-content > :nth-child(2) {
+  animation-delay: 0.08s;
+}
+.entrance-hero-content > :nth-child(3) {
+  animation-delay: 0.16s;
+}
+.entrance-hero-content > :nth-child(4) {
+  animation-delay: 0.26s;
+}
+.entrance-hero-content > :nth-child(5) {
+  animation-delay: 0.34s;
+}
+.entrance-hero-content > :nth-child(6) {
+  animation-delay: 0.44s;
+}
+
+.entrance-hero-mark {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 22px;
+  border: 1px solid rgba(215, 170, 105, 0.35);
+  border-radius: 50%;
+  font-size: 30px;
+  line-height: 1;
+  color: #d7aa69;
+  background: radial-gradient(rgba(215, 170, 105, 0.14), transparent 70%);
+  box-shadow: 0 0 32px rgba(212, 175, 120, 0.18);
+}
+
+.entrance-hero .eyebrow {
+  margin-bottom: 20px;
+  color: #e6bd84;
+  font-size: 11px;
+  letter-spacing: 3px;
+}
+
+.entrance-hero h1 {
+  margin-bottom: 0;
+  color: #f6ecd8;
+  font-size: clamp(38px, 4.4vw, 60px);
+  line-height: 1.08;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 24px rgba(10, 7, 5, 0.55);
+  text-wrap: balance;
+}
+
+.entrance-hero h1 em {
+  color: #eecb95;
+}
+
+.entrance-hero-rule {
+  width: 56px;
+  height: 1px;
+  margin: 26px 0 22px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(230, 189, 132, 0.8),
+    transparent
+  );
+}
+
+.entrance-hero .intro {
+  max-width: 440px;
+  margin-bottom: 34px;
+  color: rgba(246, 236, 216, 0.78);
+  font-size: 17px;
+  line-height: 1.7;
+  text-shadow: 0 1px 12px rgba(10, 7, 5, 0.6);
+  text-wrap: pretty;
+}
+
+.entrance-hero-cta {
+  gap: 14px;
+  min-width: 168px;
+  padding: 14px 26px 14px 30px;
+  justify-content: center;
+  font-size: 15px;
+  letter-spacing: 0.4px;
+  background: #d7aa69;
+  border-color: #d7aa69;
+  color: #1f160f;
+  box-shadow:
+    0 10px 30px rgba(10, 7, 5, 0.45),
+    0 0 0 6px rgba(215, 170, 105, 0.12);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.entrance-hero-cta:hover,
+.entrance-hero-cta:hover:not(:disabled) {
+  background: #e6bd84;
+  border-color: #e6bd84;
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 34px rgba(10, 7, 5, 0.5),
+    0 0 0 8px rgba(215, 170, 105, 0.16);
+}
+.entrance-hero-cta:active {
+  transform: translateY(0) scale(0.98);
+}
+.entrance-hero-cta:focus-visible {
+  outline-color: #e6bd84;
+}
+
+.entrance-hero-cta-arrow {
+  transition: transform 0.2s ease;
+}
+.entrance-hero-cta:hover .entrance-hero-cta-arrow {
+  transform: translateX(3px);
+}
+
+/* Hold the entrance reveal until the loader lifts. */
+.app-shell[aria-busy='true'] .entrance-hero::before,
+.app-shell[aria-busy='true'] .entrance-hero-content > * {
+  animation-play-state: paused;
+}
+
+.scene-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  color: #f6ecd8;
+  background:
+    radial-gradient(
+      ellipse 55% 50% at 50% 46%,
+      rgba(173, 123, 67, 0.28),
+      transparent 70%
+    ),
+    rgba(28, 20, 14, 0.82);
+  backdrop-filter: blur(22px) saturate(1.1);
+  -webkit-backdrop-filter: blur(22px) saturate(1.1);
+  transition:
+    opacity 0.9s ease,
+    backdrop-filter 0.9s ease,
+    -webkit-backdrop-filter 0.9s ease;
+}
+.scene-loader.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(0) saturate(1);
+  -webkit-backdrop-filter: blur(0) saturate(1);
+}
+
+.scene-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 24px;
+  transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.scene-loader.is-leaving .scene-loader-content {
+  transform: translateY(-8px) scale(0.98);
+}
+
+.scene-loader-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 24px;
+  font-size: 32px;
+  line-height: 1;
+  color: #d7aa69;
+  animation: loader-breathe 2.8s ease-in-out infinite;
+}
+
+.scene-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(215, 170, 105, 0.18);
+  border-top-color: rgba(230, 189, 132, 0.9);
+  animation: loader-spin 1.6s linear infinite;
+}
+
+.scene-loader .eyebrow {
+  margin-bottom: 14px;
+  color: #e6bd84;
+  font-size: 11px;
+  letter-spacing: 3px;
+}
+
+.scene-loader-line {
+  min-height: 1.4em;
+  margin-bottom: 26px;
+  font:
+    italic clamp(22px, 2.2vw, 28px) Georgia,
+    serif;
+  color: #f6ecd8;
+}
+
+.scene-loader-bar {
+  width: min(240px, 60vw);
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(246, 236, 216, 0.14);
+}
+.scene-loader-bar > span {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #a1583f, #e6bd84);
+  box-shadow: 0 0 12px rgba(230, 189, 132, 0.6);
+  will-change: transform;
+}
+
+.scene-loader-percent {
+  margin-top: 12px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(246, 236, 216, 0.55);
+}
+
+@keyframes loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes loader-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(212, 175, 120, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(212, 175, 120, 0.5));
+  }
+}
+
+@keyframes entrance-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entrance-hero::before,
+  .entrance-hero-content > *,
+  .scene-loader-mark {
+    animation: none;
+  }
+  .scene-loader-ring {
+    animation-duration: 4s;
+  }
+  .entrance-hero-cta,
+  .entrance-hero-cta-arrow,
+  .scene-loader,
+  .scene-loader-content {
+    transition: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .entrance-hero-content {
+    padding: 0 22px;
+  }
+  .entrance-hero-mark {
+    width: 54px;
+    height: 54px;
+    margin-bottom: 18px;
+    font-size: 26px;
+  }
+  .entrance-hero .eyebrow {
+    letter-spacing: 2.4px;
+  }
+  .entrance-hero h1 {
+    font-size: 36px;
+  }
+  .entrance-hero-rule {
+    margin: 20px 0 18px;
+  }
+  .entrance-hero .intro {
+    font-size: 15px;
+    margin-bottom: 28px;
   }
 }

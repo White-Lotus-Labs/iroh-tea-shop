@@ -27,14 +27,12 @@ import { SmartWalletShelf } from './SmartWalletShelf';
 import { EvidenceDrawer } from './EvidenceDrawer';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
+import { SceneLoader } from './SceneLoader';
 
+// SceneLoader covers the stage while the scene chunk downloads.
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
   ssr: false,
-  loading: () => (
-    <div className="scene-fallback">
-      <p>Lighting the room…</p>
-    </div>
-  ),
+  loading: () => <div className="scene-fallback" />,
 });
 const defaultAdapter = new MockReviewAdapter();
 export default function TeaRoomShell({
@@ -52,7 +50,7 @@ export default function TeaRoomShell({
     session.getSnapshot,
     session.getSnapshot,
   );
-  const [station, setStation] = useState<Station>('Counter');
+  const [station, setStation] = useState<Station>('Entrance');
   const [cameraAt, setCameraAt] = useState<Station | null>(null);
   const [shelfFocused, setShelfFocused] = useState(false);
   const [thesis, setThesis] = useState('');
@@ -66,6 +64,11 @@ export default function TeaRoomShell({
   const [readingReady, setReadingReady] = useState(true);
   const [sceneAvailable, setSceneAvailable] = useState(false);
   const [sceneFailed, setSceneFailed] = useState(false);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetProgress, setAssetProgress] = useState(0);
+  const [sceneReady, setSceneReady] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const onReveal = useCallback(() => setRevealed(true), []);
   const panel = useRef<HTMLElement>(null);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
@@ -119,6 +122,21 @@ export default function TeaRoomShell({
     setSceneFailed(!available);
     if (!available) setReadingReady(true);
   }, []);
+  const onLoadProgress = useCallback((active: boolean, progress: number) => {
+    setAssetsLoading(active);
+    setAssetProgress((current) => Math.max(current, progress));
+  }, []);
+  const sceneSettled = sceneFailed || (sceneAvailable && !assetsLoading);
+  useEffect(() => {
+    if (sceneReady) return;
+    // Wait for loading to stay quiet briefly; never hold the room past 20s.
+    const timer = window.setTimeout(
+      () => setSceneReady(true),
+      sceneSettled ? 450 : 20000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [sceneSettled, sceneReady]);
+  const loaderProgress = sceneAvailable ? 15 + assetProgress * 0.85 : 6;
   useEffect(() => {
     if (station === 'TeaTable' && data.result) panel.current?.focus();
   }, [station, data.result]);
@@ -134,7 +152,6 @@ export default function TeaRoomShell({
     try {
       validateInput(input);
     } catch {
-      // Let the session publish the same retryable error at the counter.
       try {
         await session.onPour(input);
       } catch {
@@ -179,6 +196,7 @@ export default function TeaRoomShell({
     station === 'Shelf' &&
     !shelfFocused &&
     (cameraAt === 'Shelf' || sceneFailed);
+  const isEntrance = station === 'Entrance';
   return (
     <main
       className="app-shell"
@@ -188,7 +206,14 @@ export default function TeaRoomShell({
       data-iroh-activity={irohActivity}
       data-camera-at={cameraAt ?? undefined}
       data-shelf-view={shelfView}
+      aria-busy={!revealed}
     >
+      <SceneLoader
+        ready={sceneReady}
+        progress={loaderProgress}
+        reduced={reduced}
+        onReveal={onReveal}
+      />
       <header className="topbar">
         <a href="#main-panel" className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -252,15 +277,17 @@ export default function TeaRoomShell({
             typing={typing}
             reading={evidenceOpen}
             allowTravelWhileTyping={station === 'AvatarSeat'}
-            mood={mood}
+            mood={isEntrance ? 'waiting' : mood}
             requestKey={data.activeRequestId ?? data.result?.requestId ?? null}
             irohActivity={irohActivity}
             onArrive={onCameraArrive}
             onAvailabilityChange={onSceneAvailability}
+            onLoadProgress={onLoadProgress}
             onShelfSelect={focusShelf}
             shelfFocused={shelfFocused}
             shelfRevealed={shelfOpen}
           />
+
           {canApproachShelf && (
             <button
               type="button"
@@ -273,124 +300,133 @@ export default function TeaRoomShell({
             </button>
           )}
         </section>
-        <section
-          key={station}
-          className={`reading-panel${station === 'TeaTable' && (busy || !readingReady) ? ' is-steeping' : ''}`}
-          id="main-panel"
-          ref={panel}
-          tabIndex={-1}
-          aria-label={active.label}
-          onFocusCapture={(e) =>
-            setTyping(
-              e.target instanceof HTMLInputElement ||
-                e.target instanceof HTMLTextAreaElement ||
-                e.target instanceof HTMLSelectElement,
-            )
-          }
-          onBlurCapture={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget)) setTyping(false);
-          }}
-        >
-          {station === 'Entrance' && (
-            <div className="arrival">
+
+        {isEntrance ? (
+          <div className="entrance-hero">
+            <div className="entrance-hero-content">
+              <span className="entrance-hero-mark" aria-hidden="true">
+                ◒
+              </span>
               <div className="eyebrow">WELCOME / TAKE YOUR TIME</div>
               <h1>
                 A quiet room.
-                <br />A clearer thought.
+                <br />
+                <em>A clearer thought.</em>
               </h1>
+              <span className="entrance-hero-rule" aria-hidden="true" />
               <p className="intro">
                 Bring the reasoning you have already written. Notice what it
                 holds, and what it asks you to assume.
               </p>
-              <button className="primary" onClick={() => navigate('Counter')}>
-                Skip to counter <span aria-hidden="true">→</span>
+              <button
+                type="button"
+                className="primary entrance-hero-cta"
+                onClick={() => navigate('Counter')}
+              >
+                <span>Begin</span>
+                <span className="entrance-hero-cta-arrow" aria-hidden="true">
+                  →
+                </span>
               </button>
-              <p className="field-note">
-                We’ll meet you at the counter in a moment.
-              </p>
             </div>
-          )}
-          {station === 'Counter' && (
-            <ThesisPanel
-              thesis={thesis}
-              symbol={symbol}
-              hours={hours}
-              onThesis={setThesis}
-              onSymbol={setSymbol}
-              onHours={setHours}
-              onPour={onPour}
-              onSample={onSample}
-              busy={busy}
-              error={data.error}
-            />
-          )}
-          {station === 'TeaTable' &&
-            (data.result && readingReady ? (
-              <ResultScroll
-                result={data.result}
-                onEvidence={() => setEvidenceOpen(true)}
-                onChat={() => navigate('AvatarSeat')}
-                onCard={() => navigate('Shelf')}
+          </div>
+        ) : (
+          <section
+            key={station}
+            className={`reading-panel${station === 'TeaTable' && (busy || !readingReady) ? ' is-steeping' : ''}`}
+            id="main-panel"
+            ref={panel}
+            tabIndex={-1}
+            aria-label={active.label}
+            onFocusCapture={(e) =>
+              setTyping(
+                e.target instanceof HTMLInputElement ||
+                  e.target instanceof HTMLTextAreaElement ||
+                  e.target instanceof HTMLSelectElement,
+              )
+            }
+            onBlurCapture={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) setTyping(false);
+            }}
+          >
+            {station === 'Counter' && (
+              <ThesisPanel
+                thesis={thesis}
+                symbol={symbol}
+                hours={hours}
+                onThesis={setThesis}
+                onSymbol={setSymbol}
+                onHours={setHours}
+                onPour={onPour}
+                onSample={onSample}
+                busy={busy}
+                error={data.error}
               />
-            ) : busy || !readingReady ? (
-              <div className="steeping-content" role="status">
-                <div className="eyebrow">02 / THE TEA ROOM</div>
-                <h1>The tea is steeping.</h1>
-                <p>Settle at the table while the review arrives.</p>
-              </div>
-            ) : (
-              <EmptyStation
-                title={
-                  data.error
-                    ? 'The pour needs another try.'
-                    : 'A place for the evidence.'
-                }
-                text={
-                  data.error ??
-                  'Your review will arrive here after you pour a thesis at the counter.'
-                }
-                onCounter={() => navigate('Counter')}
-              />
-            ))}
-          {station === 'AvatarSeat' && (
-            <IrohChat session={irohSession} user={user} />
-          )}
-          {shelfOpen && <SmartWalletShelf />}
-        </section>
+            )}
+            {station === 'TeaTable' &&
+              (data.result && readingReady ? (
+                <ResultScroll
+                  result={data.result}
+                  onEvidence={() => setEvidenceOpen(true)}
+                  onChat={() => navigate('AvatarSeat')}
+                  onCard={() => navigate('Shelf')}
+                />
+              ) : busy || !readingReady ? (
+                <div className="steeping-content" role="status">
+                  <div className="eyebrow">02 / THE TEA ROOM</div>
+                  <h1>The tea is steeping.</h1>
+                  <p>Settle at the table while the review arrives.</p>
+                </div>
+              ) : (
+                <EmptyStation
+                  title={
+                    data.error
+                      ? 'The pour needs another try.'
+                      : 'A place for the evidence.'
+                  }
+                  text={
+                    data.error ??
+                    'Your review will arrive here after you pour a thesis at the counter.'
+                  }
+                  onCounter={() => navigate('Counter')}
+                />
+              ))}
+            {station === 'AvatarSeat' && (
+              <IrohChat session={irohSession} user={user} />
+            )}
+            {shelfOpen && <SmartWalletShelf />}
+          </section>
+        )}
       </div>
 
-      <nav className="station-nav is-expanded" aria-label="Tea room stations">
-        <div className="station-list" role="list">
-          {STATIONS.map((s, i) => {
-            const isActive = s.id === station;
-            return (
-              <button
-                key={s.id}
-                className={`station-item ${isActive ? 'active' : ''}`}
-                onClick={() => navigate(s.id)}
-                aria-current={isActive ? 'step' : undefined}
-                role="listitem"
-              >
-                <span className="station-number">0{i + 1}</span>
-                <span className="station-text">
-                  {s.label}
-                  <small>{s.purpose}</small>
-                </span>
-                <span className="station-dot" aria-hidden="true">
-                  {isActive ? '●' : '○'}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      {station !== 'Entrance' && (
+        <nav className="station-nav is-expanded" aria-label="Tea room stations">
+          <div className="station-list" role="list">
+            {STATIONS.map((s, i) => {
+              const isActive = s.id === station;
+              return (
+                <button
+                  key={s.id}
+                  className={`station-item ${isActive ? 'active' : ''}`}
+                  onClick={() => navigate(s.id)}
+                  aria-current={isActive ? 'step' : undefined}
+                  role="listitem"
+                >
+                  <span className="station-number">0{i + 1}</span>
+                  <span className="station-text">
+                    {s.label}
+                    <small>{s.purpose}</small>
+                  </span>
+                  <span className="station-dot" aria-hidden="true">
+                    {isActive ? '●' : '○'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
 
-      <footer className="app-footer">
-        <span>
-          AI reviews the tea after I poured it. It does not pick the leaf.
-        </span>
-        <span>PASS A / A SYNTHETIC REHEARSAL</span>
-      </footer>
       {evidenceOpen && data.result?.evidence[0] && (
         <EvidenceDrawer
           evidence={data.result.evidence[0]}
@@ -401,6 +437,7 @@ export default function TeaRoomShell({
     </main>
   );
 }
+
 function EmptyStation({
   title,
   text,
