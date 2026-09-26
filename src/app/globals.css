@@ -407,10 +407,30 @@ h2 {
   margin-left: 10px;
 }
 .reading-panel {
+  position: absolute;
+  z-index: 10;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+  width: 72vw;
+  height: 65dvh;
+  min-width: 0;
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #fff4ddbb;
+  border-radius: 15px;
+  background: #f3e9d5f2;
+  box-shadow:
+    0 23px 65px #160c075e,
+    inset 0 1px #fff9e9;
+  scrollbar-color: #a48b67 transparent;
   background: var(--paper);
   padding: 42px clamp(24px, 3.8vw, 64px) 36px;
   outline: none;
-  min-width: 0;
+}
+.reading-panel:focus {
+  outline: none;
 }
 .eyebrow {
   font-size: 10px;
@@ -992,9 +1012,6 @@ input {
   padding: 0;
   overflow: hidden;
 }
-.app-shell[data-station='AvatarSeat'] {
-  display: none;
-}
 .iroh-chat {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -1535,30 +1552,6 @@ body:has(.auth-shell) {
 .demo-label {
   color: #f7e8d2;
 }
-.reading-panel {
-  position: absolute;
-  z-index: 10;
-  top: max(92px, 8dvh);
-  left: 6.5vw;
-  right: auto;
-  width: 72vw;
-  height: 65dvh;
-  min-width: 0;
-  max-height: none;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: clamp(24px, 2.8vw, 36px);
-  border: 1px solid #fff4ddbb;
-  border-radius: 15px;
-  background: #f3e9d5f2;
-  box-shadow:
-    0 23px 65px #160c075e,
-    inset 0 1px #fff9e9;
-  scrollbar-color: #a48b67 transparent;
-}
-.reading-panel:focus {
-  outline: none;
-}
 .app-shell[data-station='Counter'] .reading-panel {
   border: 1px solid #e1c69d;
   border-radius: 4px;
@@ -1866,7 +1859,6 @@ body:has(.auth-shell) {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  transform: translateX(-50%);
   animation: shelf-arrive 230ms var(--ease-settle) both;
 }
 @keyframes shelf-arrive {
@@ -2108,8 +2100,7 @@ body:has(.auth-shell) {
 .leaderboard-foot button {
   margin: 0;
 }
-.app-shell[data-station='Shelf'] .scene-caption,
-.app-shell[data-station='Shelf'] {
+.app-shell[data-station='Shelf'] .scene-caption {
   display: none;
 }
 @media (max-width: 960px) {
