@@ -1,6 +1,12 @@
-import { Component, Suspense, type ReactNode, useState } from 'react';
+import {
+  Component,
+  Suspense,
+  type ReactNode,
+  useEffect,
+  useState,
+} from 'react';
 import { Canvas } from '@react-three/fiber';
-import { ContactShadows } from '@react-three/drei';
+import { ContactShadows, useProgress } from '@react-three/drei';
 import { CameraRig } from './CameraRig';
 import { TeaRitual, LanternLight } from './TeaRitual';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
@@ -106,6 +112,7 @@ export default function TeaRoom({
   irohActivity,
   onArrive,
   onAvailabilityChange,
+  onLoadProgress,
   onShelfSelect,
   shelfFocused,
   shelfRevealed,
@@ -121,11 +128,17 @@ export default function TeaRoom({
   irohActivity: IrohActivity;
   onArrive: (station: Station) => void;
   onAvailabilityChange: (available: boolean) => void;
+  onLoadProgress?: (active: boolean, progress: number) => void;
   onShelfSelect: () => void;
   shelfFocused: boolean;
   shelfRevealed: boolean;
 }) {
   const [lost, setLost] = useState(false);
+  // Textures load through three's default manager, which useProgress observes.
+  const { active, progress } = useProgress();
+  useEffect(() => {
+    onLoadProgress?.(active, progress);
+  }, [active, progress, onLoadProgress]);
   const initialMobile =
     typeof window !== 'undefined' && window.innerWidth < 760;
   const counterPosition = STATIONS.find(
