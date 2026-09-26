@@ -43,9 +43,19 @@ export const STATIONS: {
   {
     id: 'Shelf',
     label: 'Shelf',
-    purpose: 'Keep',
-    position: [0.45, 1.59, 0.48],
-    target: [5.2, 1.52, -3.96],
-    hotspot: [3.35, 1.75, -3.96],
+    purpose: 'Observe',
+    position: [0.28, 1.68, 0.65],
+    target: [2, 1.2, -4],
+    hotspot: [3.25, 1.43, -4.55],
   },
 ];
+
+export const SHELF_APPROACH = {
+  position: [0.65, 1.58, -5.1] as Point,
+  target: [2.7, 1.43, -4.55] as Point,
+};
+
+export const SHELF_FOCUS = {
+  position: [1.95, 1.55, -5.1] as Point,
+  target: [3.25, 1.43, -4.55] as Point,
+};

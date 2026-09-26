@@ -66,7 +66,7 @@ export function ResultScroll({
           Chat with Iroh <span aria-hidden="true">→</span>
         </button>
         <button className="secondary" onClick={onCard}>
-          Preview card
+          Visit the Shelf
         </button>
       </div>
     </>

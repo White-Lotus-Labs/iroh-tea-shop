@@ -8,10 +8,8 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type {
-  InterrogationResult,
   MotionPreference,
   ReviewAdapter,
-  ReviewCard,
   Station,
 } from '../shared/contracts';
 import { validateInput } from '../shared/contracts';
@@ -23,9 +21,9 @@ import { ReviewSession } from '../review/session';
 import { SAMPLE_THESIS } from '../fixtures/eth-demo';
 import { ThesisPanel } from './ThesisPanel';
 import { ResultScroll } from './ResultScroll';
-import { ShareCard } from './ShareCard';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
+import { SmartWalletShelf } from './SmartWalletShelf';
 import { EvidenceDrawer } from './EvidenceDrawer';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
@@ -55,6 +53,7 @@ export default function TeaRoomShell({
   );
   const [station, setStation] = useState<Station>('Counter');
   const [cameraAt, setCameraAt] = useState<Station | null>(null);
+  const [shelfFocused, setShelfFocused] = useState(false);
   const [thesis, setThesis] = useState('');
   const [symbol, setSymbol] = useState('ETH');
   const [hours, setHours] = useState<6 | 24 | 168>(24);
@@ -63,9 +62,9 @@ export default function TeaRoomShell({
   const [typing, setTyping] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
-  const [card, setCard] = useState<ReviewCard | null>(null);
   const [readingReady, setReadingReady] = useState(true);
   const [sceneAvailable, setSceneAvailable] = useState(false);
+  const [sceneFailed, setSceneFailed] = useState(false);
   const panel = useRef<HTMLElement>(null);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
@@ -94,29 +93,34 @@ export default function TeaRoomShell({
     [irohSession],
   );
   const navigate = useCallback((next: Station) => {
+    setCameraAt(null);
+    setShelfFocused(false);
     setStation(next);
     setReadingReady(true);
     setTyping(false);
     setEvidenceOpen(false);
   }, []);
+  const focusShelf = useCallback(() => {
+    if (shelfFocused) return;
+    setCameraAt(null);
+    setShelfFocused(true);
+    setStation('Shelf');
+    setReadingReady(true);
+    setTyping(false);
+    setEvidenceOpen(false);
+  }, [shelfFocused]);
   const onCameraArrive = useCallback((at: Station) => {
     setCameraAt(at);
     if (at === 'TeaTable') setReadingReady(true);
   }, []);
   const onSceneAvailability = useCallback((available: boolean) => {
     setSceneAvailable(available);
+    setSceneFailed(!available);
     if (!available) setReadingReady(true);
   }, []);
-  const onInterrogation = (result: InterrogationResult) => {
-    setCard(result.card);
-  };
   useEffect(() => {
     if (station === 'TeaTable' && data.result) panel.current?.focus();
   }, [station, data.result]);
-  const showCard = (next: ReviewCard) => {
-    setCard(next);
-    navigate('Shelf');
-  };
   const onPour = async () => {
     if (data.activeRequestId) return;
     const input = {
@@ -140,8 +144,7 @@ export default function TeaRoomShell({
     navigate('TeaTable');
     setReadingReady(reduced || !sceneAvailable);
     try {
-      const result = await session.onPour(input);
-      onInterrogation(result);
+      await session.onPour(input);
     } catch {
       /* Session exposes retryable errors; cancelled requests never navigate. */
     }
@@ -157,10 +160,24 @@ export default function TeaRoomShell({
       ? 'error'
       : data.workflowState === 'fetching'
         ? 'pouring'
-        : station === 'Shelf' && data.result
-          ? 'card'
-          : (data.result?.findings[0]?.verdict ?? 'waiting');
+        : (data.result?.findings[0]?.verdict ?? 'waiting');
   const busy = data.workflowState === 'fetching';
+  const shelfOpen =
+    station === 'Shelf' &&
+    shelfFocused &&
+    (cameraAt === 'Shelf' || sceneFailed);
+  const shelfView =
+    station === 'Shelf'
+      ? shelfOpen
+        ? 'open'
+        : shelfFocused
+          ? 'focusing'
+          : 'browse'
+      : undefined;
+  const canApproachShelf =
+    station === 'Shelf' &&
+    !shelfFocused &&
+    (cameraAt === 'Shelf' || sceneFailed);
   return (
     <main
       className="app-shell"
@@ -169,6 +186,7 @@ export default function TeaRoomShell({
       data-mood={mood}
       data-iroh-activity={irohActivity}
       data-camera-at={cameraAt ?? undefined}
+      data-shelf-view={shelfView}
     >
       <header className="topbar">
         <a href="#main-panel" className="brand">
@@ -204,7 +222,21 @@ export default function TeaRoomShell({
             irohActivity={irohActivity}
             onArrive={onCameraArrive}
             onAvailabilityChange={onSceneAvailability}
+            onShelfSelect={focusShelf}
+            shelfFocused={shelfFocused}
+            shelfRevealed={shelfOpen}
           />
+          {canApproachShelf && (
+            <button
+              type="button"
+              className="shelf-approach"
+              aria-label="Approach the Shelf"
+              onClick={focusShelf}
+            >
+              <span>THE SHELF</span>
+              Approach the Shelf <span aria-hidden="true">↗</span>
+            </button>
+          )}
           <div className="scene-caption">
             <span className="eyebrow">
               {station === 'Counter' || station === 'Entrance'
@@ -301,7 +333,7 @@ export default function TeaRoomShell({
                 result={data.result}
                 onEvidence={() => setEvidenceOpen(true)}
                 onChat={() => navigate('AvatarSeat')}
-                onCard={() => showCard(data.result!.card)}
+                onCard={() => navigate('Shelf')}
               />
             ) : busy || !readingReady ? (
               <div className="steeping-content" role="status">
@@ -326,16 +358,7 @@ export default function TeaRoomShell({
           {station === 'AvatarSeat' && (
             <IrohChat session={irohSession} user={user} />
           )}
-          {station === 'Shelf' &&
-            (card && data.result ? (
-              <ShareCard card={card} onAgain={() => navigate('Counter')} />
-            ) : (
-              <EmptyStation
-                title="A shelf for clearer thoughts."
-                text="Pour a thesis first. Your noticed / cut / one breath card will be waiting here."
-                onCounter={() => navigate('Counter')}
-              />
-            ))}
+          {shelfOpen && <SmartWalletShelf />}
         </section>
       </div>
       <div className="status-line" role="status">
@@ -354,7 +377,6 @@ export default function TeaRoomShell({
           <button
             onClick={() => {
               session.cancel();
-              setCard(null);
               navigate('Counter');
             }}
           >
