@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { IrohSession, type ChatMessage } from '../nansen/session';
+import type { NansenAvailability } from '../nansen/availability';
 import type { PublicUser } from '../auth/service';
 import { IrohMessage } from './IrohMessage';
 
@@ -12,9 +13,11 @@ type SavedMessage = Pick<ChatMessage, 'role' | 'content' | 'status'> & {
 export function IrohChat({
   session,
   user,
+  nansen,
 }: {
   session: IrohSession;
   user: PublicUser | null;
+  nansen: NansenAvailability;
 }) {
   const chat = useSyncExternalStore(
     session.subscribe,
@@ -164,7 +167,11 @@ export function IrohChat({
         <div>
           <div className="eyebrow">03 / THE HOST · RESEARCH</div>
           <h1>Ask Iroh</h1>
-          <p>Powered by Nansen Research Agent · Fast mode</p>
+          <p>
+            {nansen === 'configured'
+              ? 'Powered by Nansen Research Agent · Fast mode'
+              : 'Nansen research is offline · demo voice only'}
+          </p>
         </div>
         <div className="iroh-chat-actions">
           {user && (
@@ -231,10 +238,12 @@ export function IrohChat({
               <p className="iroh-greeting-title">
                 Let us look at what the evidence shows.
               </p>
-              <p>
-                Ask a question about on-chain activity. I’ll consult Nansen
-                Research Agent and bring its answer here.
-              </p>
+              {nansen === 'configured' && (
+                <p>
+                  Ask a question about on-chain activity. I’ll consult Nansen
+                  Research Agent and bring its answer here.
+                </p>
+              )}
             </div>
           )}
           {chat.messages.map((message) => (
@@ -248,7 +257,11 @@ export function IrohChat({
               {message.content ? (
                 <IrohMessage content={message.content} />
               ) : message.status === 'streaming' ? (
-                <p className="iroh-waiting">Waiting for Nansen…</p>
+                <p className="iroh-waiting">
+                  {nansen === 'configured'
+                    ? 'Waiting for Nansen…'
+                    : 'Nansen research is offline · demo voice only'}
+                </p>
               ) : null}
               {message.status === 'stopped' && (
                 <small>Stopped · partial answer</small>
@@ -257,9 +270,11 @@ export function IrohChat({
           ))}
           {chat.isStreaming && (
             <p className="iroh-activity" role="status">
-              {chat.currentTool
-                ? `Researching with Nansen: ${chat.currentTool}`
-                : 'Iroh is consulting Nansen…'}
+              {nansen === 'unavailable'
+                ? 'Nansen research is offline · demo voice only'
+                : chat.currentTool
+                  ? `Researching with Nansen: ${chat.currentTool}`
+                  : 'Iroh is consulting Nansen…'}
             </p>
           )}
           {chat.error && (

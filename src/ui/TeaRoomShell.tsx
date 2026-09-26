@@ -25,6 +25,10 @@ import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
 import { SmartWalletShelf } from './SmartWalletShelf';
 import { EvidenceDrawer } from './EvidenceDrawer';
+import {
+  isNansenAvailability,
+  type NansenAvailability,
+} from '../nansen/availability';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
 import { SceneLoader } from './SceneLoader';
@@ -38,12 +42,15 @@ const defaultAdapter = new MockReviewAdapter();
 export default function TeaRoomShell({
   adapter = defaultAdapter,
   user,
+  nansen: initialNansen,
 }: {
   adapter?: ReviewAdapter;
   user: PublicUser | null;
+  nansen: NansenAvailability;
 }) {
   const [session] = useState(() => new ReviewSession(adapter));
   const [irohSession] = useState(() => new IrohSession());
+  const [nansen, setNansen] = useState(initialNansen);
   const [irohActivity, setIrohActivity] = useState<IrohActivity>('idle');
   const data = useSyncExternalStore(
     session.subscribe,
@@ -79,6 +86,27 @@ export default function TeaRoomShell({
     const change = () => setSystemReduced(media.matches);
     media.addEventListener('change', change);
     return () => media.removeEventListener('change', change);
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await fetch('/api/nansen-status', {
+          cache: 'no-store',
+        });
+        if (!response.ok) return;
+        const body: unknown = await response.json();
+        if (!body || typeof body !== 'object' || !('nansen' in body)) return;
+        if (!isNansenAvailability(body.nansen) || cancelled) return;
+        setNansen(body.nansen);
+      } catch {
+        /* Keep the server-rendered availability. */
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
   useEffect(() => () => session.cancel(), [session]);
   useEffect(() => () => irohSession.stop(), [irohSession]);
@@ -211,6 +239,7 @@ export default function TeaRoomShell({
       data-station={station}
       data-motion={reduced ? 'reduce' : 'full'}
       data-mood={mood}
+      data-nansen={nansen}
       data-iroh-activity={irohActivity}
       data-camera-at={cameraAt ?? undefined}
       data-shelf-view={shelfView}
@@ -262,8 +291,16 @@ export default function TeaRoomShell({
 
               <div className="status-row">
                 <span className="status-label">Iroh</span>
-                <span className="status-value live">
-                  Live · Nansen Research
+                <span
+                  className={
+                    nansen === 'configured'
+                      ? 'status-value live'
+                      : 'status-value'
+                  }
+                >
+                  {nansen === 'configured'
+                    ? 'Live · Nansen Research'
+                    : 'Offline'}
                 </span>
               </div>
             </div>
@@ -411,9 +448,9 @@ export default function TeaRoomShell({
                 />
               ))}
             {station === 'AvatarSeat' && (
-              <IrohChat session={irohSession} user={user} />
+              <IrohChat session={irohSession} user={user} nansen={nansen} />
             )}
-            {shelfOpen && <SmartWalletShelf />}
+            {shelfOpen && <SmartWalletShelf nansen={nansen} />}
           </section>
         )}
       </div>
