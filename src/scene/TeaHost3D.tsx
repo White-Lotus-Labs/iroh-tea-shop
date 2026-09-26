@@ -165,12 +165,19 @@ function Head() {
 /** A sculpted, seated tea host. All silhouettes are volumetric geometry, never a billboard. */
 export type IrohActivity = 'idle' | 'researching' | 'responding' | 'error';
 
+export const IROH_DEFAULT_POSITION: Point = [0, 0, -3.62];
+export const IROH_DEFAULT_ROTATION: Point = [0, 0, 0];
+
 export function TeaHost3D({
   reduced,
   activity = 'idle',
+  position = IROH_DEFAULT_POSITION,
+  rotation = IROH_DEFAULT_ROTATION,
 }: {
   reduced: boolean;
   activity?: IrohActivity;
+  position?: Point;
+  rotation?: Point;
 }) {
   const fabric = useTexture('/images/kimono-weave.jpg');
   fabric.colorSpace = SRGBColorSpace;
@@ -197,11 +204,7 @@ export function TeaHost3D({
   });
   return (
     <FabricContext.Provider value={fabric}>
-      <group
-        position={[2.16, 0, -3.62]}
-        rotation={[0, -0.13, 0]}
-        name="tea-host-3d"
-      >
+      <group position={position} rotation={rotation} name="tea-host-3d">
         <Form
           position={[0, 0.085, 0.02]}
           scale={[0.75, 0.105, 0.5]}

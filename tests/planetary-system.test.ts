@@ -44,30 +44,35 @@ describe('mechanical planetary system (orrery)', () => {
     expect(speed).toBeGreaterThanOrEqual(1.0);
   });
 
-  it('fits on the tea table without intersecting table bounds or camera path', () => {
-    const orreryPosition = [-0.62, 0.61, -2.52];
-    const orreryRadius = 0.32; // Outer Saturn arm radius
-    const orreryHeight = 0.42; // Base to Sun apex
+  it('stands on the ground next to the left wall, further toward host', () => {
+    const scale = 1.55;
+    const orreryPosition = [-2.85, 0, -3.15];
+    const standHeight = 0.38 * scale;
+    const mechanismHeight = 0.42 * scale; // Plinth to Sun apex
+    const totalApexY = orreryPosition[1] + standHeight + mechanismHeight;
+    const outerSaturnRadius = 0.32 * scale;
 
-    // Table boundary constants from TeaArchitecture.tsx
-    // Solid position={[0, 0.53, -2.41]} size={[2.58, 0.16, 1.37]}
+    // Boundary constants from TeaArchitecture.tsx
     const tableMinX = -2.58 / 2; // -1.29
-    const tableMaxX = 2.58 / 2; // +1.29
-    const tableMinZ = -2.41 - 1.37 / 2; // -3.095
-    const tableMaxZ = -2.41 + 1.37 / 2; // -1.725
-    const tableTopY = 0.53 + 0.16 / 2; // 0.61
+    const leftWallBeamX = -3.98 + 0.17 / 2; // -3.895
+    const tableCenterZ = -2.41;
+    const hostZ = -3.62;
 
-    // Verify resting height
-    expect(orreryPosition[1]).toBe(tableTopY);
+    // Verify resting on the ground
+    expect(orreryPosition[1]).toBe(0);
 
-    // Verify horizontal base footprint and arms stay within table dimensions
-    expect(orreryPosition[0] - orreryRadius).toBeGreaterThan(tableMinX);
-    expect(orreryPosition[0] + orreryRadius).toBeLessThan(tableMaxX);
-    expect(orreryPosition[2] - orreryRadius).toBeGreaterThan(tableMinZ);
-    expect(orreryPosition[2] + orreryRadius).toBeLessThan(tableMaxZ);
+    // Verify placed to the left of the table and clear of the left wall
+    expect(orreryPosition[0]).toBeLessThan(tableMinX);
+    expect(orreryPosition[0] - outerSaturnRadius).toBeGreaterThan(
+      leftWallBeamX,
+    );
 
-    // Verify top apex stays below minimum camera travel plane (1.4m)
-    const apexY = orreryPosition[1] + orreryHeight;
-    expect(apexY).toBeLessThan(1.4);
+    // Verify positioned further toward the host than table center
+    expect(orreryPosition[2]).toBeLessThan(tableCenterZ);
+    expect(orreryPosition[2]).toBeGreaterThan(hostZ);
+
+    // Verify top apex stays comfortably below minimum camera travel plane (1.4m)
+    expect(totalApexY).toBeLessThan(1.4);
+    expect(totalApexY).toBeGreaterThan(1.0);
   });
 });

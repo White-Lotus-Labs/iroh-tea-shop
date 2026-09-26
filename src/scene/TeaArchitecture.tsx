@@ -268,14 +268,14 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
         <TeaBackdrop />
       </Suspense>
       <Solid
-        position={[0, 0.028, -2.37]}
-        size={[3.58, 0.035, 2.93]}
+        position={[0, 0.028, -2.5]}
+        size={[3.58, 0.035, 3.7]}
         color="#b9a171"
         surface="cloth"
       />
       <Solid
-        position={[0, 0.07, -2.36]}
-        size={[3.07, 0.038, 2.4]}
+        position={[0, 0.07, -2.5]}
+        size={[3.07, 0.038, 3.2]}
         color="#95815e"
         surface="cloth"
       />
@@ -301,7 +301,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
           color="#a36b3e"
         />
       ))}
-      <Cup position={[-0.72, 0.68, -2.15]} color="#828069" />
+      <Cup position={[-0.58, 0.68, -2.18]} color="#828069" />
       <Cup position={[0.58, 0.68, -2.34]} color="#a9a18a" />
       <mesh
         position={[-0.76, 0.13, -0.93]}

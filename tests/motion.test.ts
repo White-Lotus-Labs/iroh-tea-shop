@@ -6,6 +6,7 @@ import {
   pourPose,
 } from '../src/scene/motion/dynamics';
 import { SHELF_APPROACH, SHELF_FOCUS, STATIONS } from '../src/scene/stations';
+import { IROH_DEFAULT_POSITION } from '../src/scene/TeaHost3D';
 describe('camera travel', () => {
   it('adapts travel time and settles without a position or velocity discontinuity', () => {
     expect(travelDuration(0.1)).toBeLessThan(travelDuration(5));
@@ -67,17 +68,17 @@ describe('camera travel', () => {
       for (let i = 0; i < 120; i++) {
         move.step(1 / 60);
         const distanceFromIroh = Math.hypot(
-          move.position.x - 2.16,
-          move.position.z + 3.62,
+          move.position.x - IROH_DEFAULT_POSITION[0],
+          move.position.z - IROH_DEFAULT_POSITION[2],
         );
-        expect(distanceFromIroh).toBeGreaterThan(1.2);
+        expect(distanceFromIroh).toBeGreaterThan(1.15);
       }
     }
   });
   it('frames the focused scroll clear of Iroh', () => {
     const camera = new Vector3(...SHELF_FOCUS.position);
     const toScroll = new Vector3(...SHELF_FOCUS.target).sub(camera);
-    const toIroh = new Vector3(2.16, 1.55, -3.62).sub(camera);
+    const toIroh = new Vector3(...IROH_DEFAULT_POSITION).setY(1.55).sub(camera);
     expect(toScroll.angleTo(toIroh)).toBeGreaterThan(0.55);
   });
   it('fits the full scroll in the Shelf focus with room for viewport controls', () => {

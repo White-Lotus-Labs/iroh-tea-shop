@@ -28,17 +28,17 @@ export const STATIONS: {
     id: 'TeaTable',
     label: 'Tea table',
     purpose: 'Notice',
-    position: [0.05, 1.56, 0.95],
-    target: [0.0, 0.72, -2.45],
+    position: [0.0, 1.56, 0.95],
+    target: [0.0, 1.05, -3.0],
     hotspot: [0.95, 0.88, -2.35],
   },
   {
     id: 'AvatarSeat',
     label: 'Host',
     purpose: 'Reflect',
-    position: [0.5, 1.48, 0.38],
-    target: [3.45, 1.05, -3.52],
-    hotspot: [2.2, 1.95, -3.52],
+    position: [0.35, 1.48, 0.45],
+    target: [1.25, 1.05, -3.55],
+    hotspot: [0.0, 1.95, -3.56],
   },
   {
     id: 'Shelf',
@@ -51,7 +51,7 @@ export const STATIONS: {
 ];
 
 export const SHELF_APPROACH = {
-  position: [0.65, 1.58, -5.1] as Point,
+  position: [1.55, 1.58, -5.1] as Point,
   target: [2.7, 1.43, -4.55] as Point,
 };
 
