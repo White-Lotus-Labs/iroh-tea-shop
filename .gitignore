@@ -13,3 +13,4 @@ prisma/*.sqlite
 prisma/*.sqlite-*
 
 next-env.d.ts
+.idea
