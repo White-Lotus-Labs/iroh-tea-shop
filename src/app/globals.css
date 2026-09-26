@@ -1710,16 +1710,18 @@ body:has(.auth-shell) {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  /* Override the shared panel's centered transform without moving the Shelf vertically. */
+  transform: translateX(-50%) !important;
   animation: shelf-arrive 230ms var(--ease-settle) both;
 }
 @keyframes shelf-arrive {
   from {
     opacity: 0.88;
-    transform: translate(-50%, 6px);
+    translate: 0 6px;
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    translate: 0 0;
   }
 }
 .parchment-hanger {
@@ -2123,7 +2125,7 @@ body:has(.auth-shell) {
     height: auto;
     max-height: none;
     padding: 0;
-    transform: none;
+    transform: none !important;
     animation: none;
   }
   .parchment-hanger {
