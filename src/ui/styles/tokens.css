@@ -1,0 +1,22 @@
+/* Scroll design tokens. Lane A owns the values; every lane uses the names. */
+:root {
+  --scroll-paper: #f1e4c8;
+  --scroll-paper-deep: #e2cfa6;
+  --scroll-ink: #2a2118;
+  --scroll-muted: #6d5d49;
+  --scroll-line: rgba(74, 47, 29, 0.22);
+  --seal: #a3281f;
+  --brocade: #7a2e24;
+  --rod: #4a2f1d;
+  --gold: #b8913f;
+  --jade: #2f7d5b;
+
+  --font-display: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-cjk: 'Noto Serif SC', 'Songti SC', serif;
+
+  --ease-unroll: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-lift: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-unroll: 700ms;
+  --dur-ink: 520ms;
+}

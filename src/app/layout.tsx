@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import '../ui/styles/tokens.css';
 export const metadata: Metadata = {
   title: 'Tea After Pour — A quiet room for a finished thesis',
   description:
