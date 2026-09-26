@@ -61,6 +61,7 @@ export default function TeaRoomShell({
   const [typing, setTyping] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
   const [readingReady, setReadingReady] = useState(true);
   const [sceneAvailable, setSceneAvailable] = useState(false);
   const [sceneFailed, setSceneFailed] = useState(false);
@@ -103,6 +104,7 @@ export default function TeaRoomShell({
     setReadingReady(true);
     setTyping(false);
     setEvidenceOpen(false);
+    setPanelOpen(true);
   }, []);
   const focusShelf = useCallback(() => {
     if (shelfFocused) return;
@@ -112,7 +114,13 @@ export default function TeaRoomShell({
     setReadingReady(true);
     setTyping(false);
     setEvidenceOpen(false);
+    setPanelOpen(true);
   }, [shelfFocused]);
+  const openPanel = useCallback(() => setPanelOpen(true), []);
+  const closePanel = useCallback(() => {
+    setTyping(false);
+    setPanelOpen(false);
+  }, []);
   const onCameraArrive = useCallback((at: Station) => {
     setCameraAt(at);
     if (at === 'TeaTable') setReadingReady(true);
@@ -286,6 +294,8 @@ export default function TeaRoomShell({
             onShelfSelect={focusShelf}
             shelfFocused={shelfFocused}
             shelfRevealed={shelfOpen}
+            menuClosed={!isEntrance && !panelOpen}
+            onMenuOpen={openPanel}
           />
 
           {canApproachShelf && (
@@ -333,7 +343,7 @@ export default function TeaRoomShell({
         ) : (
           <section
             key={station}
-            className={`reading-panel${station === 'TeaTable' && (busy || !readingReady) ? ' is-steeping' : ''}`}
+            className={`reading-panel${station === 'TeaTable' && (busy || !readingReady) ? ' is-steeping' : ''}${panelOpen ? '' : ' is-closed'}`}
             id="main-panel"
             ref={panel}
             tabIndex={-1}
@@ -349,6 +359,15 @@ export default function TeaRoomShell({
               if (!e.currentTarget.contains(e.relatedTarget)) setTyping(false);
             }}
           >
+            <button
+              type="button"
+              className="panel-close"
+              aria-label={`Close ${active.label} menu`}
+              onClick={closePanel}
+            >
+              <span aria-hidden="true">×</span>
+              <span className="sr-only">Close menu</span>
+            </button>
             {station === 'Counter' && (
               <ThesisPanel
                 thesis={thesis}

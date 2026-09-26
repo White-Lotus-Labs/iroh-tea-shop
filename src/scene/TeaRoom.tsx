@@ -3,10 +3,12 @@ import {
   Suspense,
   type ReactNode,
   useEffect,
+  useRef,
   useState,
 } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { ContactShadows, useProgress } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Billboard, ContactShadows, useProgress } from '@react-three/drei';
+import type { Group } from 'three';
 import { CameraRig } from './CameraRig';
 import { TeaRitual, LanternLight } from './TeaRitual';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
@@ -17,6 +19,79 @@ import { Surfaces } from './Surfaces';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 
+function StationMenuHalo({
+  station,
+  reduced,
+  onOpen,
+}: {
+  station: Station;
+  reduced: boolean;
+  onOpen: () => void;
+}) {
+  const halo = useRef<Group>(null);
+  const anchor = STATIONS.find((place) => place.id === station)!;
+  useFrame(({ clock }) => {
+    if (!halo.current) return;
+    const pulse = reduced ? 1 : 1 + Math.sin(clock.elapsedTime * 2.4) * 0.09;
+    halo.current.scale.setScalar(pulse);
+  });
+  return (
+    <group position={anchor.hotspot} name={`${station}-menu-halo`}>
+      <pointLight
+        color="#f3c579"
+        intensity={reduced ? 0.55 : 0.9}
+        distance={2.5}
+      />
+      <Billboard follow>
+        <group
+          ref={halo}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
+          onPointerOver={(event) => {
+            event.stopPropagation();
+            document.body.style.cursor = 'pointer';
+          }}
+          onPointerOut={() => {
+            document.body.style.cursor = '';
+          }}
+        >
+          <mesh>
+            <ringGeometry args={[0.11, 0.15, 32]} />
+            <meshBasicMaterial
+              color="#f3c579"
+              transparent
+              opacity={0.9}
+              depthTest={false}
+              depthWrite={false}
+            />
+          </mesh>
+          <mesh scale={1.48}>
+            <ringGeometry args={[0.11, 0.12, 32]} />
+            <meshBasicMaterial
+              color="#fff0ca"
+              transparent
+              opacity={0.7}
+              depthTest={false}
+              depthWrite={false}
+            />
+          </mesh>
+          <mesh>
+            <circleGeometry args={[0.24, 32]} />
+            <meshBasicMaterial
+              transparent
+              opacity={0}
+              depthTest={false}
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
+      </Billboard>
+    </group>
+  );
+}
+
 function RoomGeometry({
   mood,
   reduced,
@@ -24,6 +99,9 @@ function RoomGeometry({
   irohActivity,
   onShelfSelect,
   shelfRevealed,
+  station,
+  menuClosed,
+  onMenuOpen,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -31,6 +109,9 @@ function RoomGeometry({
   irohActivity: IrohActivity;
   onShelfSelect: () => void;
   shelfRevealed: boolean;
+  station: Station;
+  menuClosed: boolean;
+  onMenuOpen: () => void;
 }) {
   return (
     <>
@@ -79,6 +160,13 @@ function RoomGeometry({
           <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>
         <TeaShelf onSelect={onShelfSelect} revealed={shelfRevealed} />
+        {menuClosed && (
+          <StationMenuHalo
+            station={station}
+            reduced={reduced}
+            onOpen={onMenuOpen}
+          />
+        )}
       </TeaChamber>
     </>
   );
@@ -116,6 +204,8 @@ export default function TeaRoom({
   onShelfSelect,
   shelfFocused,
   shelfRevealed,
+  menuClosed,
+  onMenuOpen,
 }: {
   station: Station;
   reduced: boolean;
@@ -132,6 +222,8 @@ export default function TeaRoom({
   onShelfSelect: () => void;
   shelfFocused: boolean;
   shelfRevealed: boolean;
+  menuClosed: boolean;
+  onMenuOpen: () => void;
 }) {
   const [lost, setLost] = useState(false);
   // Textures load through three's default manager, which useProgress observes.
@@ -189,6 +281,9 @@ export default function TeaRoom({
             irohActivity={irohActivity}
             onShelfSelect={onShelfSelect}
             shelfRevealed={shelfRevealed}
+            station={station}
+            menuClosed={menuClosed}
+            onMenuOpen={onMenuOpen}
           />
         </Surfaces>
         <CameraRig

@@ -22,7 +22,7 @@ export const STATIONS: {
     purpose: 'Pour',
     position: [0.15, 1.67, 7.65],
     target: [-1.43, 1.37, 2.92],
-    hotspot: [-2.3, 1.5, 6.1],
+    hotspot: [-0.95, 1.5, 6.07],
   },
   {
     id: 'TeaTable',
@@ -30,7 +30,7 @@ export const STATIONS: {
     purpose: 'Notice',
     position: [0.1, 1.58, 1.1],
     target: [2.6, 0.9, -3.23],
-    hotspot: [0, 0.84, -2.2],
+    hotspot: [1.1, 0.9, -2.35],
   },
   {
     id: 'AvatarSeat',
