@@ -300,7 +300,7 @@ export default function TeaRoomShell({
                 >
                   {nansen === 'configured'
                     ? 'Live · Nansen Research'
-                    : 'Not configured'}
+                    : 'Offline'}
                 </span>
               </div>
             </div>

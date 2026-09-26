@@ -170,7 +170,7 @@ export function IrohChat({
           <p>
             {nansen === 'configured'
               ? 'Powered by Nansen Research Agent · Fast mode'
-              : 'Nansen Research Agent is not configured'}
+              : 'Nansen research is offline · demo voice only'}
           </p>
         </div>
         <div className="iroh-chat-actions">
@@ -236,15 +236,14 @@ export function IrohChat({
                 茶
               </span>
               <p className="iroh-greeting-title">
-                {nansen === 'configured'
-                  ? 'Let us look at what the evidence shows.'
-                  : 'On-chain research is not available.'}
+                Let us look at what the evidence shows.
               </p>
-              <p>
-                {nansen === 'configured'
-                  ? 'Ask a question about on-chain activity. I’ll consult Nansen Research Agent and bring its answer here.'
-                  : 'The Research Agent is not configured, so there is no live answer to bring here.'}
-              </p>
+              {nansen === 'configured' && (
+                <p>
+                  Ask a question about on-chain activity. I’ll consult Nansen
+                  Research Agent and bring its answer here.
+                </p>
+              )}
             </div>
           )}
           {chat.messages.map((message) => (
@@ -261,7 +260,7 @@ export function IrohChat({
                 <p className="iroh-waiting">
                   {nansen === 'configured'
                     ? 'Waiting for Nansen…'
-                    : 'Research Agent is not configured'}
+                    : 'Nansen research is offline · demo voice only'}
                 </p>
               ) : null}
               {message.status === 'stopped' && (
@@ -272,7 +271,7 @@ export function IrohChat({
           {chat.isStreaming && (
             <p className="iroh-activity" role="status">
               {nansen === 'unavailable'
-                ? 'Research Agent is not configured'
+                ? 'Nansen research is offline · demo voice only'
                 : chat.currentTool
                   ? `Researching with Nansen: ${chat.currentTool}`
                   : 'Iroh is consulting Nansen…'}

@@ -168,10 +168,12 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             <path d="M24 29C12 29 7 23 6 13c10 2 16 8 18 16Zm0 0c12 0 17-6 18-16-10 2-16 8-18 16Z" />
             <path d="M24 29C15 33 7 30 2 24c8-2 16-1 22 5Zm0 0c9 4 17 1 22-5-8-2-16-1-22 5Z" />
           </svg>
-          <h1>
-            {unconfigured ? 'Smart Wallet leaderboard' : 'Top 10 Smart Wallets'}
-          </h1>
-          <p>{unconfigured ? 'Not configured' : 'The White Lotus Order'}</p>
+          {!unconfigured && (
+            <>
+              <h1>Top 10 Smart Wallets</h1>
+              <p>The White Lotus Order</p>
+            </>
+          )}
         </header>
         {snapshot?.stale && (
           <p className="leaderboard-stale" role="status">
@@ -194,14 +196,14 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             )}
           </div>
         ) : unconfigured ? (
-          <div className="leaderboard-message" role="alert">
-            <p>{error ?? 'Nansen API is not configured.'}</p>
+          <div className="leaderboard-message">
+            <p>Nansen research is offline.</p>
             <button
               type="button"
               onClick={() => void load()}
               disabled={loading}
             >
-              Retry leaderboard
+              Retry
             </button>
           </div>
         ) : loading ? (
@@ -220,19 +222,19 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             No Smart Wallets were returned for this period.
           </p>
         )}
-        <footer className="leaderboard-foot">
-          <span>
-            {unconfigured
-              ? 'Not a live refresh'
-              : 'Illustrated ranks · server snapshot refreshes every 30 min'}
-          </span>
-          {snapshot && <span>Updated {age} min ago</span>}
-          {snapshot?.stale && (
-            <button type="button" onClick={() => void load()}>
-              Retry leaderboard
-            </button>
-          )}
-        </footer>
+        {!unconfigured && (
+          <footer className="leaderboard-foot">
+            <span>
+              Illustrated ranks · server snapshot refreshes every 30 min
+            </span>
+            {snapshot && <span>Updated {age} min ago</span>}
+            {snapshot?.stale && (
+              <button type="button" onClick={() => void load()}>
+                Retry leaderboard
+              </button>
+            )}
+          </footer>
+        )}
       </div>
       <div className="parchment-rod parchment-rod-bottom" aria-hidden="true" />
     </div>

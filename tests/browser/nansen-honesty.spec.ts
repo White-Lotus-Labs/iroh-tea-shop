@@ -41,18 +41,21 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   const popup = page.locator('.status-popup');
   await expect(popup).toBeVisible();
   await expect(popup).toContainText('Demo data');
-  await expect(popup).toContainText('Not configured');
+  await expect(popup).toContainText('Iroh');
+  await expect(popup).toContainText('Offline');
   await expect(popup).not.toContainText('Live');
   await expect(popup).not.toContainText('Nansen Research');
 
   await openStation(page, 'Host');
   const chat = page.locator('.iroh-chat');
-  await expect(chat).toContainText('Nansen Research Agent is not configured');
-  await expect(chat).toContainText('there is no live answer to bring here');
+  await expect(chat).toContainText(
+    'Nansen research is offline · demo voice only',
+  );
   await expect(chat).not.toContainText('Powered by Nansen');
   await expect(chat).not.toContainText('Fast mode');
   await expect(chat).not.toContainText('consult Nansen');
   await expect(chat).not.toContainText('I’ll consult');
+  await expect(chat).not.toContainText('Live');
 
   await openStation(page, 'Counter');
   await expect(
@@ -62,9 +65,10 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   await openStation(page, 'Shelf');
   await page.getByRole('button', { name: 'Approach the Shelf' }).click();
   const parchment = page.getByTestId('leaderboard-parchment');
-  await expect(parchment).toContainText('Nansen API is not configured.');
-  await expect(parchment).toContainText('Not configured');
-  await expect(parchment).toContainText('Not a live refresh');
+  await expect(parchment).toContainText('Nansen research is offline.');
+  await expect(
+    page.getByRole('button', { name: 'Retry', exact: true }),
+  ).toBeVisible();
   await expect(parchment).not.toContainText('Top 10 Smart Wallets');
   await expect(parchment).not.toContainText('Illustrated ranks');
   await expect(parchment).not.toContainText('refreshes every 30 min');
@@ -116,7 +120,7 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   const popup = page.locator('.status-popup');
   await expect(popup).toContainText('Demo data');
   await expect(popup).toContainText('Live · Nansen Research');
-  await expect(popup).not.toContainText('Not configured');
+  await expect(popup).not.toContainText('Offline');
 
   await openStation(page, 'Host');
   const chat = page.locator('.iroh-chat');
@@ -139,5 +143,5 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   await expect(parchment).toContainText(
     'Illustrated ranks · server snapshot refreshes every 30 min',
   );
-  await expect(parchment).not.toContainText('Not a live refresh');
+  await expect(parchment).not.toContainText('Nansen research is offline.');
 });
