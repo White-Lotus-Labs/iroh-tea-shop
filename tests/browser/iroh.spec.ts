@@ -3,6 +3,110 @@ import { registerBrowserAccount } from './auth-helper';
 
 test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 
+test('Host restores previous chats after reload and switches between them', async ({
+  page,
+}) => {
+  const chats = [
+    {
+      id: 'eth-chat',
+      title: 'ETH activity',
+      updatedAt: '2026-09-26T08:00:00.000Z',
+    },
+    {
+      id: 'sol-chat',
+      title: 'SOL activity',
+      updatedAt: '2026-09-25T08:00:00.000Z',
+    },
+  ];
+  const saved = {
+    'eth-chat': {
+      id: 'eth-chat',
+      nansenConversationId: 'conv_eth',
+      messages: [
+        {
+          id: 1,
+          role: 'user',
+          content: 'What is ETH doing?',
+          status: 'complete',
+        },
+        {
+          id: 2,
+          role: 'assistant',
+          content: 'ETH has inflows.',
+          status: 'complete',
+        },
+      ],
+    },
+    'sol-chat': {
+      id: 'sol-chat',
+      nansenConversationId: null,
+      messages: [
+        {
+          id: 3,
+          role: 'user',
+          content: 'What is SOL doing?',
+          status: 'complete',
+        },
+        {
+          id: 4,
+          role: 'assistant',
+          content: 'SOL has outflows.',
+          status: 'complete',
+        },
+      ],
+    },
+  };
+  await page.route('**/api/iroh/chats', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ chats }),
+    });
+  });
+  await page.route('**/api/iroh/chats/*', async (route) => {
+    const id = route.request().url().split('/').at(-1) as keyof typeof saved;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ chat: saved[id] }),
+    });
+  });
+  const requests: Record<string, unknown>[] = [];
+  await page.route('**/api/nansen-agent', async (route) => {
+    requests.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: 'data: {"type":"delta","text":"Seven-day ETH answer"}\n\ndata: {"type":"finish","conversation_id":"conv_eth_2"}\n\ndata: [DONE]\n\n',
+    });
+  });
+  await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Host/ })
+    .click();
+  await expect(page.getByText('ETH has inflows.')).toBeVisible();
+  const history = page.getByRole('complementary', { name: 'Chat history' });
+  await history.getByRole('button', { name: 'SOL activity' }).click();
+  await expect(page.getByText('SOL has outflows.')).toBeVisible();
+  await history.getByRole('button', { name: 'ETH activity' }).click();
+  await expect(page.getByText('ETH has inflows.')).toBeVisible();
+  await page.reload();
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Host/ })
+    .click();
+  await expect(page.getByText('ETH has inflows.')).toBeVisible();
+  await page
+    .getByRole('textbox', { name: 'Ask Iroh a research question' })
+    .fill('How about seven days?');
+  await page.getByRole('button', { name: 'Send question' }).click();
+  await expect(page.getByText('Seven-day ETH answer')).toBeVisible();
+  expect(requests).toEqual([
+    { text: 'How about seven days?', chatId: 'eth-chat' },
+  ]);
+});
+
 test('Host immediately shows Iroh chat in the Host panel, keeps history across stations, and resets conversation', async ({
   page,
 }) => {
@@ -49,16 +153,17 @@ test('Host immediately shows Iroh chat in the Host panel, keeps history across s
   await input.fill('What about HYPE?');
   await page.getByRole('button', { name: 'Send question' }).click();
   await expect(page.getByText('Nansen answer 2')).toBeVisible();
-  expect(bodies[0]).toEqual({ text: 'What is ETH doing?\nAnd why?' });
+  expect(bodies[0]).toMatchObject({ text: 'What is ETH doing?\nAnd why?' });
   expect(bodies[1]).toEqual({
     text: 'What about HYPE?',
-    conversation_id: 'conv_1',
+    chatId: bodies[0].chatId,
   });
-  await page.getByRole('button', { name: 'New conversation' }).click();
+  await page.getByRole('button', { name: 'Start new chat' }).click();
   await expect(page.getByText('Nansen answer 1')).not.toBeVisible();
   await input.fill('Fresh question');
   await page.getByRole('button', { name: 'Send question' }).click();
-  expect(bodies[2]).toEqual({ text: 'Fresh question' });
+  expect(bodies[2]).toMatchObject({ text: 'Fresh question' });
+  expect(bodies[2].chatId).not.toBe(bodies[0].chatId);
   await expect(
     page.getByRole('button', { name: 'Close Iroh chat' }),
   ).toHaveCount(0);
@@ -116,7 +221,7 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
   release();
   await expect(page.getByText('Stopped · partial answer')).toBeVisible();
   await expect(input).toBeEnabled();
-  await page.getByRole('button', { name: 'New conversation' }).click();
+  await page.getByRole('button', { name: 'Start new chat' }).click();
   await expect(page.getByText('Is anyone buying ETH?')).not.toBeVisible();
   expect(
     await page.evaluate(
@@ -148,10 +253,14 @@ test('Iroh keeps a completed answer when Nansen returns no conversation ID', asy
   await expect(page.locator('.iroh-error')).toHaveCount(0);
 });
 
-test('Iroh carries the prior ETH exchange into a follow-up without a conversation ID', async ({
+test('Iroh keeps follow-ups in the same saved chat without a conversation ID', async ({
   page,
 }) => {
-  const requests: { text: string; conversation_id?: string }[] = [];
+  const requests: {
+    text: string;
+    chatId?: string;
+    conversation_id?: string;
+  }[] = [];
   await page.route('**/api/nansen-agent', async (route) => {
     requests.push(route.request().postDataJSON());
     const answer =
@@ -184,12 +293,7 @@ test('Iroh carries the prior ETH exchange into a follow-up without a conversatio
   await expect(
     page.getByText('Here is the seven-day ETH comparison.'),
   ).toBeVisible();
-  expect(requests[1].text).toContain('ETH on Ethereum over the last 24 hours');
-  expect(requests[1].text).toContain(
-    'ETH Smart Trader wallets had net outflow',
-  );
-  expect(requests[1].text).toContain(
-    'How does that compare with the last 7 days?',
-  );
+  expect(requests[1].text).toBe('How does that compare with the last 7 days?');
+  expect(requests[1].chatId).toBe(requests[0].chatId);
   expect(requests[1].conversation_id).toBeUndefined();
 });

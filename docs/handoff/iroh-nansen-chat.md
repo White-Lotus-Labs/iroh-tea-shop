@@ -1,40 +1,27 @@
 # Iroh Nansen chat handoff
 
-## Purpose
+The Host panel provides live Nansen Research Agent chat. Signed-in users have persistent chats in the existing local Prisma SQLite database. Guests keep an in-memory conversation.
 
-Add a Host-panel research chat that calls Nansen Research Agent from the server and streams responses into the room.
+## Storage and authorization
 
-## Completed
+- `Chat` belongs to `User` and stores title, timestamps and `nansenConversationId`.
+- `Message` belongs to `Chat` and stores role, content, status and timestamp. Its autoincrementing ID preserves transcript order.
+- Run `npm run db:migrate` after pulling this change. The SQLite file is local and ignored by Git.
+- `/api/iroh/chats` lists and creates only the current session user's chats. `/api/iroh/chats/[chatId]` restores only an owned chat. `/api/nansen-agent` resolves ownership before contacting Nansen and ignores browser-supplied conversation IDs for signed-in chats.
 
-- Server route uses `NANSEN_API_KEY`, validates requests, handles Nansen streaming/SSE events, and returns safe errors.
-- Client supports streaming, stop, retry, and starting a new conversation. Nansen `conversation_id` continues follow-ups during the current in-memory session.
-- Guests and authenticated users can open Iroh. The route/session has no chat persistence.
+## Conversation behavior
 
-## Remaining work
+- New Chat creates a database row with no Nansen ID. Reopening a chat restores its messages and saved ID.
+- The research route saves each user question, streams Nansen deltas, then saves the assistant answer and any returned ID before closing the response. The client waits for stream closure before treating the answer as saved.
+- When Nansen returns a null ID, recent completed exchanges from the saved chat are included in the next research request to resolve follow-up references. This is bounded by Nansen's 6,000-character question limit.
+- Stop and retry remain available. Stopped partial answers are saved when the server receives them. Guests retain the earlier memory-only behavior.
 
-- **Persistent chat history is NOT implemented yet.** Future work should add:
-  - chats linked to authenticated `user.id`;
-  - `Chat` and `Message` persistence;
-  - saved Nansen `conversation_id` per chat;
-  - a chat history UI;
-  - reopening and continuing old chats.
-- Browser messages and the current Nansen conversation ID are lost on reload. Add ownership checks when persistence is introduced.
-- Run a manual live-key check against Nansen; automated route and stream tests use a simulated upstream. Safari and Firefox have not been separately verified.
+## Main files
 
-## Important files / architecture
+- `prisma/schema.prisma`, `prisma/migrations/20260926080000_iroh_chat_history/`: schema and migration.
+- `src/iroh/`: ownership-aware data access and session request parsing.
+- `src/app/api/iroh/chats/`, `src/app/api/nansen-agent/route.ts`: history and research HTTP endpoints.
+- `src/nansen/`: conversation context, SSE parsing, client streaming lifecycle.
+- `src/ui/IrohChat.tsx`, `src/app/globals.css`: Host history interface.
 
-- `src/app/api/nansen-agent/route.ts`: server boundary and request validation.
-- `src/nansen/session.ts`, `src/nansen/sse.ts`: Nansen request lifecycle and stream parsing.
-- `src/ui/IrohChat.tsx`, `src/ui/IrohMessage.tsx`, `src/ui/TeaRoomShell.tsx`: client state and Host panel.
-- `tests/nansen-route.test.ts`, `nansen-session.test.ts`, `nansen-sse.test.ts`, `tests/browser/iroh*.spec.ts`: service and browser coverage.
-- `NANSEN_API_KEY` is configured server-side; do not expose it to the browser.
-
-## Validation performed
-
-On `feature/iroh-nansen-chat`: `npm run typecheck`, `npm test` (9 files, 59 tests), and `npm run build` all passed on 25 September 2026. Project status also records prior Chromium journey verification; a live-key check remains manual.
-
-## Recommended next steps
-
-1. Implement persistent chat records and API with authenticated-user ownership.
-2. Store each chat's Nansen `conversation_id`, then add history, reopen, and continue flows.
-3. Verify streaming with a live Nansen key and test ownership/isolation in browser flows.
+Automated tests use simulated Nansen streams and do not consume live Nansen credits. A live-key check, Safari and Firefox verification are still manual.

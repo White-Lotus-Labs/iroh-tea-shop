@@ -4,6 +4,11 @@ import {
   SseDecoder,
   validConversationId,
 } from '../../../nansen/sse';
+import {
+  ChatNotFoundError,
+  prepareResearchRequest,
+} from '../../../iroh/history';
+import { SESSION_COOKIE } from '../../../auth/cookie';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -79,18 +84,55 @@ export async function POST(request: Request) {
   const value = body as Record<string, unknown>;
   if (
     Object.keys(value).some(
-      (key) => !['text', 'conversation_id'].includes(key),
+      (key) => !['text', 'conversation_id', 'chatId'].includes(key),
     ) ||
     typeof value.text !== 'string' ||
     !value.text.trim() ||
     value.text.trim().length > MAX_TEXT ||
     (value.conversation_id !== undefined &&
-      !validConversationId(value.conversation_id))
+      !validConversationId(value.conversation_id)) ||
+    (value.chatId !== undefined &&
+      (typeof value.chatId !== 'string' ||
+        value.chatId.length > 200 ||
+        !value.chatId))
   )
     return jsonError(400, 'Invalid question or conversation.');
 
   const key = process.env.NANSEN_API_KEY?.trim();
   if (!key) return jsonError(503, 'Nansen Research Agent is not configured.');
+
+  let text = value.text.trim();
+  let conversationId = value.conversation_id as string | undefined;
+  let persisted: { userId: string; chatId: string } | null = null;
+  const hasSessionCookie = request.headers
+    .get('cookie')
+    ?.split(';')
+    .some((part) => part.trim().startsWith(`${SESSION_COOKIE}=`));
+  if (value.chatId !== undefined || hasSessionCookie) {
+    const [{ db }, { userFromRequest }] = await Promise.all([
+      import('../../../auth/db'),
+      import('../../../iroh/request-user'),
+    ]);
+    const user = await userFromRequest(db, request);
+    if (!user) return jsonError(401, 'Sign in to continue this chat.');
+    if (typeof value.chatId !== 'string' || conversationId)
+      return jsonError(400, 'Choose a chat before asking Iroh.');
+    try {
+      const prepared = await prepareResearchRequest(
+        db,
+        user.id,
+        value.chatId,
+        text,
+      );
+      text = prepared.text;
+      conversationId = prepared.conversationId ?? undefined;
+      persisted = { userId: user.id, chatId: value.chatId };
+    } catch (error) {
+      if (error instanceof ChatNotFoundError)
+        return jsonError(404, 'Chat not found.');
+      throw error;
+    }
+  }
 
   const upstreamController = new AbortController();
   const onAbort = () => upstreamController.abort();
@@ -106,10 +148,8 @@ export async function POST(request: Request) {
         accept: 'text/event-stream',
       },
       body: JSON.stringify({
-        text: value.text.trim(),
-        ...(value.conversation_id
-          ? { conversation_id: value.conversation_id }
-          : {}),
+        text,
+        ...(conversationId ? { conversation_id: conversationId } : {}),
       }),
       signal: upstreamController.signal,
       cache: 'no-store',
@@ -149,11 +189,20 @@ export async function POST(request: Request) {
       let finished = false;
       let done = false;
       let upstreamError = false;
+      let answer = '';
+      let returnedConversationId: string | null = null;
       const forward = (parsed: AgentEvent) => {
         if (done || upstreamError) return;
         const event = streamError(parsed);
-        if (event.type === 'finish') finished = true;
-        if (event.type === 'done') done = true;
+        if (event.type === 'delta') answer += event.text;
+        if (event.type === 'finish') {
+          finished = true;
+          returnedConversationId = event.conversation_id;
+        }
+        if (event.type === 'done') {
+          done = true;
+          return;
+        }
         if (event.type === 'error') upstreamError = true;
         controller.enqueue(encodeEvent(event));
       };
@@ -181,6 +230,45 @@ export async function POST(request: Request) {
             }),
           );
       } finally {
+        let saveFailed = false;
+        if (persisted) {
+          try {
+            const { db } = await import('../../../auth/db');
+            const { appendAssistantMessage, setConversationId } = await import(
+              '../../../iroh/history'
+            );
+            if (answer.trim())
+              await appendAssistantMessage(
+                db,
+                persisted.userId,
+                persisted.chatId,
+                answer,
+                finished ? 'complete' : 'stopped',
+              );
+            if (finished)
+              await setConversationId(
+                db,
+                persisted.userId,
+                persisted.chatId,
+                returnedConversationId,
+              );
+          } catch {
+            saveFailed = true;
+          }
+        }
+        try {
+          if (saveFailed && !upstreamError)
+            controller.enqueue(
+              encodeEvent({
+                type: 'error',
+                error: 'The answer could not be saved. You can retry.',
+              }),
+            );
+          else if (done && !upstreamError)
+            controller.enqueue(encodeEvent({ type: 'done' }));
+        } catch {
+          /* The browser already cancelled. */
+        }
         clearTimeout(timer);
         request.signal.removeEventListener('abort', onAbort);
         await reader.cancel().catch(() => {});

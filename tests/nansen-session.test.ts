@@ -15,6 +15,110 @@ function sse(parts: string[]) {
 }
 
 describe('Iroh client session', () => {
+  it('waits for the server stream to close before treating an answer as saved', async () => {
+    let close!: () => void;
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              new TextEncoder().encode(
+                'data: {"type":"delta","text":"Answer"}\n\ndata: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+              ),
+            );
+            close = () => controller.close();
+          },
+        }),
+        { headers: { 'content-type': 'text/event-stream' } },
+      ),
+    );
+    const session = new IrohSession(fetcher);
+    let settled = false;
+    const pending = session.send('Question');
+    if (!pending) throw new Error('send did not start');
+    void pending.then(() => {
+      settled = true;
+    });
+    await vi.waitFor(() =>
+      expect(session.getSnapshot().conversationId).toBe('conv_1'),
+    );
+    expect(settled).toBe(false);
+    close();
+    await pending;
+    expect(settled).toBe(true);
+  });
+  it('restores a saved chat and sends its ID for a follow-up', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        sse([
+          'data: {"type":"delta","text":"Seven-day answer"}\n\ndata: {"type":"finish","conversation_id":"conv_2"}\n\ndata: [DONE]\n\n',
+        ]),
+      );
+    const session = new IrohSession(fetcher);
+    session.restore(
+      'chat_old',
+      [
+        {
+          id: '1',
+          role: 'user',
+          content: 'What is ETH doing?',
+          status: 'complete',
+        },
+        {
+          id: '2',
+          role: 'assistant',
+          content: 'ETH has inflows.',
+          status: 'complete',
+        },
+      ],
+      'conv_1',
+    );
+    expect(session.getSnapshot().messages).toHaveLength(2);
+    await session.send('How about seven days?');
+    expect(
+      JSON.parse((fetcher.mock.calls[0][1] as RequestInit).body as string),
+    ).toEqual({
+      text: 'How about seven days?',
+      chatId: 'chat_old',
+    });
+    expect(session.getSnapshot().conversationId).toBe('conv_2');
+  });
+
+  it('starts a new saved chat without reusing the old chat ID', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        sse([
+          'data: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n',
+        ]),
+      );
+    const session = new IrohSession(fetcher);
+    session.restore('old', [], 'conv_old');
+    session.restore('new', [], null);
+    await session.send('New question');
+    expect(
+      JSON.parse((fetcher.mock.calls[0][1] as RequestInit).body as string),
+    ).toEqual({
+      text: 'New question',
+      chatId: 'new',
+    });
+    expect(session.getSnapshot().conversationId).toBeNull();
+  });
+
+  it('clears a stale ID when Nansen finishes a follow-up without one', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        sse([
+          'data: {"type":"finish","conversation_id":null}\n\ndata: [DONE]\n\n',
+        ]),
+      );
+    const session = new IrohSession(fetcher);
+    session.restore('old', [], 'conv_old');
+    await session.send('Follow-up');
+    expect(session.getSnapshot().conversationId).toBeNull();
+  });
   it('streams the first answer and sends a follow-up with the returned conversation ID', async () => {
     const fetcher = vi
       .fn()

@@ -323,7 +323,9 @@ export default function TeaRoomShell({
                 onCounter={() => navigate('Counter')}
               />
             ))}
-          {station === 'AvatarSeat' && <IrohChat session={irohSession} />}
+          {station === 'AvatarSeat' && (
+            <IrohChat session={irohSession} user={user} />
+          )}
           {station === 'Shelf' &&
             (card && data.result ? (
               <ShareCard card={card} onAgain={() => navigate('Counter')} />

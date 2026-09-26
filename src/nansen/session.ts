@@ -1,4 +1,5 @@
 import { SseDecoder } from './sse';
+import { contextualQuestion } from './context';
 
 export interface ChatMessage {
   id: string;
@@ -9,6 +10,7 @@ export interface ChatMessage {
 
 export interface ChatSnapshot {
   messages: ChatMessage[];
+  chatId: string | null;
   conversationId: string | null;
   isStreaming: boolean;
   currentTool: string | null;
@@ -18,6 +20,7 @@ export interface ChatSnapshot {
 
 const initial = (): ChatSnapshot => ({
   messages: [],
+  chatId: null,
   conversationId: null,
   isStreaming: false,
   currentTool: null,
@@ -28,37 +31,6 @@ const initial = (): ChatSnapshot => ({
 class ChatError extends Error {}
 
 const MAX_TEXT = 6000;
-const MAX_CONTEXT = 3000;
-
-function followUpText(question: string, messages: ChatMessage[]): string {
-  for (let i = messages.length - 1; i > 0; i--) {
-    const answer = messages[i];
-    const previousQuestion = messages[i - 1];
-    if (
-      answer.role !== 'assistant' ||
-      answer.status !== 'complete' ||
-      !answer.content.trim() ||
-      previousQuestion.role !== 'user'
-    )
-      continue;
-    const before = 'Previous user question: ';
-    const between = '\nPrevious Iroh answer: ';
-    const after = `\n\nCurrent user question: ${question}\nAnswer the current question using the previous exchange to resolve references. Retrieve new data where needed.`;
-    const available = Math.min(
-      MAX_CONTEXT,
-      MAX_TEXT - before.length - between.length - after.length,
-    );
-    if (available <= 0) return question;
-    const priorQuestion = previousQuestion.content.slice(0, available);
-    const priorAnswer = answer.content.slice(
-      0,
-      available - priorQuestion.length,
-    );
-    return before + priorQuestion + between + priorAnswer + after;
-  }
-  return question;
-}
-
 export class IrohSession {
   private state = initial();
   private listeners = new Set<() => void>();
@@ -93,9 +65,11 @@ export class IrohSession {
     const text = question.trim();
     if (this.active || !text || text.length > MAX_TEXT) return false;
     const conversationId = this.state.conversationId;
-    const requestText = conversationId
-      ? text
-      : followUpText(text, this.state.messages);
+    const chatId = this.state.chatId;
+    const requestText =
+      conversationId || chatId
+        ? text
+        : contextualQuestion(text, this.state.messages);
     const owner = ++this.generation;
     const abort = new AbortController();
     this.active = abort;
@@ -121,12 +95,20 @@ export class IrohSession {
       error: null,
       lastQuestion: text,
     });
-    return this.run(requestText, conversationId, assistantId, owner, abort);
+    return this.run(
+      requestText,
+      conversationId,
+      chatId,
+      assistantId,
+      owner,
+      abort,
+    );
   }
 
   private async run(
     text: string,
     conversationId: string | null,
+    chatId: string | null,
     assistantId: string,
     owner: number,
     abort: AbortController,
@@ -139,7 +121,11 @@ export class IrohSession {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           text,
-          ...(conversationId ? { conversation_id: conversationId } : {}),
+          ...(chatId
+            ? { chatId }
+            : conversationId
+              ? { conversation_id: conversationId }
+              : {}),
         }),
         signal: abort.signal,
       });
@@ -176,15 +162,14 @@ export class IrohSession {
           this.update({ currentTool: event.name.slice(0, 80) });
         } else if (event.type === 'finish') {
           finished = true;
-          if (event.conversation_id)
-            this.update({ conversationId: event.conversation_id });
+          this.update({ conversationId: event.conversation_id });
         } else if (event.type === 'error') {
           throw new ChatError(event.error);
         } else if (event.type === 'done') {
           done = true;
         }
       };
-      while (current() && !done) {
+      while (current()) {
         const part = await reader.read();
         if (!current()) return;
         if (part.done) break;
@@ -230,5 +215,22 @@ export class IrohSession {
   reset() {
     this.stop();
     this.update(initial());
+  }
+
+  restore(
+    chatId: string,
+    messages: ChatMessage[],
+    conversationId: string | null,
+  ) {
+    this.stop();
+    this.update({
+      ...initial(),
+      chatId,
+      messages,
+      conversationId,
+      lastQuestion:
+        [...messages].reverse().find((message) => message.role === 'user')
+          ?.content ?? null,
+    });
   }
 }
