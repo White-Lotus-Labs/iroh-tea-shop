@@ -1093,11 +1093,11 @@ input {
 }
 .iroh-chat-body {
   display: grid;
-  grid-template-columns: minmax(150px, 205px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
 }
-.iroh-chat-body:not(:has(.iroh-history)) {
-  grid-template-columns: minmax(0, 1fr);
+.iroh-chat-body.has-history {
+  grid-template-columns: minmax(150px, 205px) minmax(0, 1fr);
 }
 .iroh-history {
   min-height: 0;
@@ -1105,6 +1105,9 @@ input {
   padding: 16px 10px;
   border-right: 1px solid var(--line);
   background: #eee3ce;
+}
+.iroh-history[hidden] {
+  display: none;
 }
 .iroh-history-label {
   padding: 0 9px 10px;
@@ -1294,6 +1297,10 @@ input {
     padding: 15px 17px;
   }
   .iroh-chat-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .iroh-chat-body.has-history {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
   }

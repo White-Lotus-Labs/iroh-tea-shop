@@ -86,9 +86,21 @@ test('Host restores previous chats after reload and switches between them', asyn
     .getByRole('button', { name: /Host/ })
     .click();
   await expect(page.getByText('ETH has inflows.')).toBeVisible();
+  const historyToggle = page.getByRole('button', { name: 'Chat history' });
+  await expect(historyToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(
+    page.getByRole('complementary', { name: 'Chat history' }),
+  ).toHaveCount(0);
+  await historyToggle.click();
+  await expect(
+    page.getByRole('button', { name: 'Hide history' }),
+  ).toHaveAttribute('aria-expanded', 'true');
   const history = page.getByRole('complementary', { name: 'Chat history' });
   await history.getByRole('button', { name: 'SOL activity' }).click();
   await expect(page.getByText('SOL has outflows.')).toBeVisible();
+  await page.getByRole('button', { name: 'Hide history' }).click();
+  await expect(history).toHaveCount(0);
+  await page.getByRole('button', { name: 'Chat history' }).click();
   await history.getByRole('button', { name: 'ETH activity' }).click();
   await expect(page.getByText('ETH has inflows.')).toBeVisible();
   await page.reload();
@@ -189,6 +201,14 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Host/ })
     .click();
+  await page.getByRole('button', { name: 'Chat history' }).click();
+  await expect(
+    page.getByRole('complementary', { name: 'Chat history' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Hide history' }).click();
+  await expect(
+    page.getByRole('complementary', { name: 'Chat history' }),
+  ).toBeHidden();
   const input = page.getByRole('textbox', {
     name: 'Ask Iroh a research question',
   });

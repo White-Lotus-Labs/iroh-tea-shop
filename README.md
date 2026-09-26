@@ -52,7 +52,7 @@ The browser suite starts the development server automatically unless one already
 2. Choose **Load sample**, confirm **ETH** and **Recent 24 hours**, then **Pour**. The camera travels through the doorway into the tea room while the review runs. The table, host and shelf stay in this room.
 3. The tea table presents **NOTICED / CUT / ONE BREATH** after the camera arrives. **Inspect evidence** opens the synthetic receipt, including source, timestamps, metrics, coverage, evidence ID and the challenged phrase.
 4. **Take one breath** visits the host. **Keep this reflection** opens the shelf card preview.
-   At the Host, **Ask Iroh** opens a separate live research conversation. Send a question, watch Nansen's answer stream, ask a follow-up, or Stop generation. Signed-in users can start a **New Chat**, reopen prior chats from the history list, and continue them after a reload. Guests can start a new in-memory conversation.
+   At the Host, **Ask Iroh** opens a separate live research conversation. Send a question, watch Nansen's answer stream, ask a follow-up, or Stop generation. Signed-in users can start a **New Chat** or use **Chat history** to show or hide prior chats, reopen one, and continue it after a reload. Guests can start a new in-memory conversation.
 5. **Pour another thesis** returns to your preserved writing. The flow is repeatable.
 
 Use the bottom station buttons with Tab and Enter. Drag gently to adjust the local view. Orbit is constrained; zoom, panning, free walking and WASD are absent. **Reset view** restores the station framing. Form focus suspends local camera movement; the trip to Host finishes if chat opens during travel. **Motion: system** respects your OS preference; **Reduce motion** skips camera travel.

@@ -23,6 +23,7 @@ export function IrohChat({
   );
   const [draft, setDraft] = useState('');
   const [history, setHistory] = useState<ChatSummary[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(Boolean(user));
@@ -90,6 +91,7 @@ export function IrohChat({
       setDraft('');
       input.current?.focus();
     } catch (error) {
+      setHistoryOpen(true);
       setHistoryError(
         error instanceof Error ? error.message : 'Could not create a chat.',
       );
@@ -124,12 +126,14 @@ export function IrohChat({
           setHistory([result.chat]);
         }
       } catch (error) {
-        if (!cancelled)
+        if (!cancelled) {
+          setHistoryOpen(true);
           setHistoryError(
             error instanceof Error
               ? error.message
               : 'Could not load your chats.',
           );
+        }
       } finally {
         if (!cancelled) setHistoryLoading(false);
       }
@@ -163,6 +167,16 @@ export function IrohChat({
           <p>Powered by Nansen Research Agent · Fast mode</p>
         </div>
         <div className="iroh-chat-actions">
+          {user && (
+            <button
+              type="button"
+              aria-controls="iroh-history"
+              aria-expanded={historyOpen}
+              onClick={() => setHistoryOpen((open) => !open)}
+            >
+              {historyOpen ? 'Hide history' : 'Chat history'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => void newChat()}
@@ -173,9 +187,16 @@ export function IrohChat({
           </button>
         </div>
       </header>
-      <div className="iroh-chat-body">
+      <div
+        className={`iroh-chat-body${historyOpen && user ? ' has-history' : ''}`}
+      >
         {user && (
-          <aside className="iroh-history" aria-label="Chat history">
+          <aside
+            id="iroh-history"
+            className="iroh-history"
+            aria-label="Chat history"
+            hidden={!historyOpen}
+          >
             <div className="iroh-history-label">YOUR CHATS</div>
             {historyLoading && <p>Loading chats…</p>}
             {historyError && <p role="alert">{historyError}</p>}
