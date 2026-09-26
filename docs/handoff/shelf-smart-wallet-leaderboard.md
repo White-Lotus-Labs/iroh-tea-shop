@@ -29,7 +29,7 @@ Replace the static tea shelf with a parchment-style Hyperliquid Smart Wallet lea
 
 ## Validation performed
 
-On 26 September 2026: `npm run typecheck`, `npm test` (11 files, 68 tests), `npm run format:check`, `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3187 npm run test:e2e` (22 tests), and `npm run build` passed. The Shelf browser suite covers the broad room view, direct shelf click, camera focus, leaderboard states, and mobile layout.
+On 26 September 2026 after rebasing on persistent Iroh chat history: `npx prisma generate`, `npm run typecheck`, `npm test` (13 files, 81 tests), `npm run format:check`, `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3187 npm run test:e2e` (23 tests), and `npm run build` passed. The Iroh chat-history migration was applied locally before browser tests. The Shelf browser suite covers the broad room view, direct shelf click, camera focus, leaderboard states, and mobile layout.
 
 ## Recommended next steps
 

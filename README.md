@@ -48,7 +48,7 @@ The browser suite starts the development server automatically unless one already
 
 ## Take a seat
 
-1. Enter the room at the counter with the thesis field in a large floating reading card. The room is available to guests; log in or create an account to keep Iroh chats across reloads.
+1. The page opens in the waiting room at the counter, with the thesis field in a large floating reading card.
 2. Choose **Load sample**, confirm **ETH** and **Recent 24 hours**, then **Pour**. The camera travels through the doorway into the tea room while the review runs. The table, host and shelf stay in this room.
 3. The tea table presents **NOTICED / CUT / ONE BREATH** after the camera arrives. **Inspect evidence** opens the synthetic receipt, including source, timestamps, metrics, coverage, evidence ID and the challenged phrase.
 4. **Take one breath** visits the host. **Ask Iroh** opens a separate live research conversation. Signed-in users can open **Chat history**, switch between saved chats, and continue them after a reload. Guests can start an in-memory conversation.
@@ -66,7 +66,7 @@ The fixture is the specification's invented ETH example: twelve synthetic wallet
 
 Only the exact prepared ETH thesis at 24 hours receives that linked example. Other valid writing, symbols or windows receive an explicit **unknown / unassessed** result with no evidence. PASS A does not extract claims or understand arbitrary theses. The symbol is manually confirmed; it is not resolved against a live registry. Theses must contain 80–6,000 trimmed characters.
 
-Thesis review input and results live in memory and are lost on reload. The Shelf leaderboard shows rank, Nansen label or shortened address, PnL, ROI and account value. Accounts, sessions, chats and messages are stored in the local SQLite database; there is no analytics or thesis review storage.
+Thesis review input and results live in memory and are lost on reload. Signed-in Iroh chats persist. The Shelf leaderboard shows rank, Nansen label or shortened address, PnL, ROI and account value; there is no analytics or thesis review storage.
 
 ## Architecture
 
