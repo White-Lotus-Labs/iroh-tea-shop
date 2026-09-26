@@ -63,6 +63,7 @@ export default function TeaRoomShell({
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [readingReady, setReadingReady] = useState(true);
   const [sceneAvailable, setSceneAvailable] = useState(false);
+  const [sceneFailed, setSceneFailed] = useState(false);
   const panel = useRef<HTMLElement>(null);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
@@ -103,6 +104,7 @@ export default function TeaRoomShell({
   }, []);
   const onSceneAvailability = useCallback((available: boolean) => {
     setSceneAvailable(available);
+    setSceneFailed(!available);
     if (!available) setReadingReady(true);
   }, []);
   useEffect(() => {
@@ -149,6 +151,8 @@ export default function TeaRoomShell({
         ? 'pouring'
         : (data.result?.findings[0]?.verdict ?? 'waiting');
   const busy = data.workflowState === 'fetching';
+  const shelfOpen =
+    station === 'Shelf' && (cameraAt === 'Shelf' || sceneFailed);
   return (
     <main
       className="app-shell"
@@ -193,7 +197,7 @@ export default function TeaRoomShell({
             onArrive={onCameraArrive}
             onAvailabilityChange={onSceneAvailability}
             onShelfSelect={() => navigate('Shelf')}
-            shelfExpanded={station === 'Shelf' && cameraAt === 'Shelf'}
+            shelfExpanded={shelfOpen}
           />
           <div className="scene-caption">
             <span className="eyebrow">
@@ -316,7 +320,7 @@ export default function TeaRoomShell({
           {station === 'AvatarSeat' && (
             <IrohChat session={irohSession} user={user} />
           )}
-          {station === 'Shelf' && cameraAt === 'Shelf' && <SmartWalletShelf />}
+          {shelfOpen && <SmartWalletShelf />}
         </section>
       </div>
       <div className="status-line" role="status">

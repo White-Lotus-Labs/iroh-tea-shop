@@ -56,7 +56,7 @@ export function CameraRig({
           : mobile && station === 'AvatarSeat'
             ? ([2.2, 0.35, -3.52] as const)
             : mobile && station === 'Shelf'
-              ? ([2.95, 1.66, -3.72] as const)
+              ? ([3.08, 1.66, -3.72] as const)
               : mobile && station === 'TeaTable'
                 ? ([1.33, 0.77, -3.45] as const)
                 : anchor.target;

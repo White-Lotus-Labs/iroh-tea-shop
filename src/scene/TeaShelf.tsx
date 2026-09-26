@@ -159,20 +159,14 @@ function LeaderboardScroll({
   expanded: boolean;
 }) {
   return (
-    <group position={[-0.69, 1.66, 0]}>
+    <group position={[-0.69, 1.66, 0]} rotation={[0, -Math.PI / 4, 0]}>
       <Solid
-        position={[0.1, 0, 0]}
-        size={[0.075, 2.12, 1.75]}
+        position={[0, 0, -0.08]}
+        size={[1.75, 2.12, 0.075]}
         color="#382619"
       />
       {!expanded && (
-        <Html
-          transform
-          center
-          distanceFactor={1.75}
-          rotation={[0, -Math.PI / 2, 0]}
-          position={[-0.015, 0, 0]}
-        >
+        <Html transform center distanceFactor={1.75} position={[0, 0, 0]}>
           <button
             type="button"
             className="shelf-scroll-preview"
@@ -208,7 +202,7 @@ export function TeaShelf({
   expanded: boolean;
 }) {
   return (
-    <group position={[3.65, 0, -3.72]} name="right-wall-tea-shelf">
+    <group position={[3.77, 0, -3.72]} name="right-wall-tea-shelf">
       {[-1.99, -0.91, 0.91, 1.99].map((z) => (
         <group key={z}>
           <Solid

@@ -10,6 +10,8 @@ Replace the static tea shelf with a parchment-style Hyperliquid Smart Wallet lea
 - In-process snapshot cache coalesces concurrent refreshes, caches for 30 minutes, and serves stale data after refresh failure when available.
 - Parchment leaderboard presents rank, wallet, PnL, ROI, and account value with loading, empty, error, retry, and stale states.
 - Shelf scene/layout and browser coverage were updated while retaining the Iroh Host panel.
+- The paper scroll sits in the center bay of the right-wall shelf. Clicking it moves the camera to the shelf and opens the full leaderboard after arrival.
+- The readable leaderboard opens immediately when WebGL is unavailable, and the shelf scroll stays behind other stations' reading panels.
 
 ## Remaining work
 
@@ -27,7 +29,7 @@ Replace the static tea shelf with a parchment-style Hyperliquid Smart Wallet lea
 
 ## Validation performed
 
-On restacked Shelf commit `ba0ef78`: `npm run typecheck`, `npm test` (11 files, 66 tests), and `npm run build` passed on 25 September 2026.
+On 26 September 2026: `npm run typecheck`, `npm test` (11 files, 66 tests), `npm run format:check`, `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3187 npm run test:e2e` (21 tests), and `npm run build` passed.
 
 ## Recommended next steps
 

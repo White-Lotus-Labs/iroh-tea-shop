@@ -40,6 +40,8 @@ test('the scroll on the right shelf opens a camera close-up of the ranked wallet
   await expect(shelfScroll).toBeVisible();
   const scrollPosition = await shelfScroll.boundingBox();
   expect(scrollPosition!.x).toBeGreaterThan(1000);
+  expect(scrollPosition!.width).toBeGreaterThan(140);
+  expect(scrollPosition!.x + scrollPosition!.width).toBeLessThan(1440);
   await shelfScroll.click();
 
   await expect(page.locator('.app-shell')).toHaveAttribute(
