@@ -17,14 +17,14 @@ function RoomGeometry({
   requestKey,
   irohActivity,
   onShelfSelect,
-  shelfExpanded,
+  shelfRevealed,
 }: {
   mood: SceneMood;
   reduced: boolean;
   requestKey: string | null;
   irohActivity: IrohActivity;
   onShelfSelect: () => void;
-  shelfExpanded: boolean;
+  shelfRevealed: boolean;
 }) {
   return (
     <>
@@ -72,7 +72,7 @@ function RoomGeometry({
         <Suspense fallback={null}>
           <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>
-        <TeaShelf onSelect={onShelfSelect} expanded={shelfExpanded} />
+        <TeaShelf onSelect={onShelfSelect} revealed={shelfRevealed} />
       </TeaChamber>
     </>
   );
@@ -107,7 +107,8 @@ export default function TeaRoom({
   onArrive,
   onAvailabilityChange,
   onShelfSelect,
-  shelfExpanded,
+  shelfFocused,
+  shelfRevealed,
 }: {
   station: Station;
   reduced: boolean;
@@ -121,7 +122,8 @@ export default function TeaRoom({
   onArrive: (station: Station) => void;
   onAvailabilityChange: (available: boolean) => void;
   onShelfSelect: () => void;
-  shelfExpanded: boolean;
+  shelfFocused: boolean;
+  shelfRevealed: boolean;
 }) {
   const [lost, setLost] = useState(false);
   const initialMobile =
@@ -173,11 +175,12 @@ export default function TeaRoom({
             requestKey={requestKey}
             irohActivity={irohActivity}
             onShelfSelect={onShelfSelect}
-            shelfExpanded={shelfExpanded}
+            shelfRevealed={shelfRevealed}
           />
         </Surfaces>
         <CameraRig
           station={station}
+          shelfFocused={shelfFocused}
           reduced={reduced}
           resetKey={resetKey}
           typing={typing}

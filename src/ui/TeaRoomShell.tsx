@@ -53,6 +53,7 @@ export default function TeaRoomShell({
   );
   const [station, setStation] = useState<Station>('Counter');
   const [cameraAt, setCameraAt] = useState<Station | null>(null);
+  const [shelfFocused, setShelfFocused] = useState(false);
   const [thesis, setThesis] = useState('');
   const [symbol, setSymbol] = useState('ETH');
   const [hours, setHours] = useState<6 | 24 | 168>(24);
@@ -92,12 +93,22 @@ export default function TeaRoomShell({
     [irohSession],
   );
   const navigate = useCallback((next: Station) => {
-    setCameraAt((current) => (current === next ? current : null));
+    setCameraAt(null);
+    setShelfFocused(false);
     setStation(next);
     setReadingReady(true);
     setTyping(false);
     setEvidenceOpen(false);
   }, []);
+  const focusShelf = useCallback(() => {
+    if (shelfFocused) return;
+    setCameraAt(null);
+    setShelfFocused(true);
+    setStation('Shelf');
+    setReadingReady(true);
+    setTyping(false);
+    setEvidenceOpen(false);
+  }, [shelfFocused]);
   const onCameraArrive = useCallback((at: Station) => {
     setCameraAt(at);
     if (at === 'TeaTable') setReadingReady(true);
@@ -152,7 +163,21 @@ export default function TeaRoomShell({
         : (data.result?.findings[0]?.verdict ?? 'waiting');
   const busy = data.workflowState === 'fetching';
   const shelfOpen =
-    station === 'Shelf' && (cameraAt === 'Shelf' || sceneFailed);
+    station === 'Shelf' &&
+    shelfFocused &&
+    (cameraAt === 'Shelf' || sceneFailed);
+  const shelfView =
+    station === 'Shelf'
+      ? shelfOpen
+        ? 'open'
+        : shelfFocused
+          ? 'focusing'
+          : 'browse'
+      : undefined;
+  const canApproachShelf =
+    station === 'Shelf' &&
+    !shelfFocused &&
+    (cameraAt === 'Shelf' || sceneFailed);
   return (
     <main
       className="app-shell"
@@ -161,6 +186,7 @@ export default function TeaRoomShell({
       data-mood={mood}
       data-iroh-activity={irohActivity}
       data-camera-at={cameraAt ?? undefined}
+      data-shelf-view={shelfView}
     >
       <header className="topbar">
         <a href="#main-panel" className="brand">
@@ -196,9 +222,21 @@ export default function TeaRoomShell({
             irohActivity={irohActivity}
             onArrive={onCameraArrive}
             onAvailabilityChange={onSceneAvailability}
-            onShelfSelect={() => navigate('Shelf')}
-            shelfExpanded={shelfOpen}
+            onShelfSelect={focusShelf}
+            shelfFocused={shelfFocused}
+            shelfRevealed={shelfOpen}
           />
+          {canApproachShelf && (
+            <button
+              type="button"
+              className="shelf-approach"
+              aria-label="Approach the Shelf"
+              onClick={focusShelf}
+            >
+              <span>THE SHELF</span>
+              Approach the Shelf <span aria-hidden="true">↗</span>
+            </button>
+          )}
           <div className="scene-caption">
             <span className="eyebrow">
               {station === 'Counter' || station === 'Entrance'

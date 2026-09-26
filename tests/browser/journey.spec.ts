@@ -58,6 +58,7 @@ test('complete ritual twice, evidence, input preservation and Shelf navigation',
       .getByRole('navigation', { name: 'Tea room stations' })
       .getByRole('button', { name: /Shelf/ })
       .click();
+    await page.getByRole('button', { name: 'Approach the Shelf' }).click();
     await expect(
       page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
     ).toBeVisible();
@@ -163,6 +164,7 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   await page
     .getByRole('button', { name: 'Visit the Shelf', exact: true })
     .click();
+  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
   await expect(
     page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
   ).toBeVisible();

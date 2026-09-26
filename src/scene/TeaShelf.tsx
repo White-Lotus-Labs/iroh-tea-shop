@@ -1,5 +1,4 @@
 import { CatmullRomCurve3, Vector3 } from 'three';
-import { Html } from '@react-three/drei';
 import { Solid, SurfaceMaterial } from './Surfaces';
 
 function TeaJar({
@@ -150,44 +149,40 @@ function Branch({ position }: { position: [number, number, number] }) {
   );
 }
 
-/** The scroll occupies the open middle bay and remains a keyboard-accessible room object. */
-function LeaderboardScroll({
-  onSelect,
-  expanded,
-}: {
-  onSelect: () => void;
-  expanded: boolean;
-}) {
+/** The paper rests rolled in the middle bay until the Shelf is approached. */
+function LeaderboardScroll({ revealed }: { revealed: boolean }) {
   return (
-    <group position={[-0.69, 1.66, 0]} rotation={[0, -Math.PI / 4, 0]}>
+    <group position={[-0.69, 1.66, 0]}>
       <Solid
-        position={[0, 0, -0.08]}
-        size={[1.75, 2.12, 0.075]}
+        position={[0.44, 0, 0]}
+        size={[0.075, 2.12, 1.75]}
         color="#382619"
       />
-      {!expanded && (
-        <Html transform center distanceFactor={1.75} position={[0, 0, 0]}>
-          <button
-            type="button"
-            className="shelf-scroll-preview"
-            aria-label="Open Smart Wallet leaderboard scroll"
-            onClick={onSelect}
-          >
-            <span className="shelf-scroll-seal" aria-hidden="true">
-              ◈
-            </span>
-            <span className="shelf-scroll-kicker">THE SHELF · HYPERLIQUID</span>
-            <strong>
-              Top 10
-              <br />
-              Smart Wallets
-            </strong>
-            <span className="shelf-scroll-rule" aria-hidden="true" />
-            <span className="shelf-scroll-hint">
-              OPEN THE LEADERBOARD&nbsp; ↗
-            </span>
-          </button>
-        </Html>
+      {revealed ? (
+        <>
+          <Solid
+            position={[-0.02, 0, 0]}
+            size={[0.025, 1.88, 1.55]}
+            color="#eedfba"
+            surface="paper"
+          />
+          {[-0.98, 0.98].map((y) => (
+            <mesh
+              key={y}
+              position={[-0.075, y, 0]}
+              rotation={[Math.PI / 2, 0, 0]}
+              castShadow
+            >
+              <cylinderGeometry args={[0.075, 0.075, 1.7, 18]} />
+              <meshStandardMaterial color="#80562e" roughness={0.65} />
+            </mesh>
+          ))}
+        </>
+      ) : (
+        <mesh position={[0.02, 0, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.11, 0.11, 1.45, 20]} />
+          <SurfaceMaterial surface="paper" color="#dcc899" />
+        </mesh>
       )}
     </group>
   );
@@ -196,13 +191,21 @@ function LeaderboardScroll({
 /** Joinery and tea objects mounted to the chamber's actual right wall. */
 export function TeaShelf({
   onSelect,
-  expanded,
+  revealed,
 }: {
   onSelect: () => void;
-  expanded: boolean;
+  revealed: boolean;
 }) {
   return (
-    <group position={[3.77, 0, -3.72]} name="right-wall-tea-shelf">
+    <group
+      position={[3.82, 0, -4.55]}
+      scale={[0.82, 0.86, 0.76]}
+      name="right-wall-tea-shelf"
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
+    >
       {[-1.99, -0.91, 0.91, 1.99].map((z) => (
         <group key={z}>
           <Solid
@@ -279,7 +282,7 @@ export function TeaShelf({
         size={[0.27, 0.025, 0.27]}
         color="#48311f"
       />
-      <LeaderboardScroll onSelect={onSelect} expanded={expanded} />
+      <LeaderboardScroll revealed={revealed} />
     </group>
   );
 }

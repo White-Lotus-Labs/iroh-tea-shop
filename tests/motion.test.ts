@@ -5,7 +5,7 @@ import {
   travelDuration,
   pourPose,
 } from '../src/scene/motion/dynamics';
-import { STATIONS } from '../src/scene/stations';
+import { SHELF_APPROACH, SHELF_FOCUS, STATIONS } from '../src/scene/stations';
 describe('camera travel', () => {
   it('adapts travel time and settles without a position or velocity discontinuity', () => {
     expect(travelDuration(0.1)).toBeLessThan(travelDuration(5));
@@ -55,6 +55,30 @@ describe('camera travel', () => {
     expect(move.position.toArray()).toEqual([1, 2, 3]);
     expect(move.active).toBe(false);
     expect(move.velocity.length()).toBe(0);
+  });
+  it('approaches the Shelf without passing through Iroh', () => {
+    const shelf = STATIONS.find((station) => station.id === 'Shelf')!;
+    const move = new CameraTravel(
+      new Vector3(...shelf.position),
+      new Vector3(...shelf.target),
+    );
+    for (const pose of [SHELF_APPROACH, SHELF_FOCUS]) {
+      move.retarget(new Vector3(...pose.position), new Vector3(...pose.target));
+      for (let i = 0; i < 120; i++) {
+        move.step(1 / 60);
+        const distanceFromIroh = Math.hypot(
+          move.position.x - 2.16,
+          move.position.z + 3.62,
+        );
+        expect(distanceFromIroh).toBeGreaterThan(1.2);
+      }
+    }
+  });
+  it('frames the focused scroll clear of Iroh', () => {
+    const camera = new Vector3(...SHELF_FOCUS.position);
+    const toScroll = new Vector3(...SHELF_FOCUS.target).sub(camera);
+    const toIroh = new Vector3(2.16, 1.55, -3.62).sub(camera);
+    expect(toScroll.angleTo(toIroh)).toBeGreaterThan(0.8);
   });
 });
 describe('restrained procedural gestures', () => {

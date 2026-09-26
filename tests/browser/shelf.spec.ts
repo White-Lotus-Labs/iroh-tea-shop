@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { registerBrowserAccount } from './auth-helper';
 
 test.beforeEach(async ({ page }) => registerBrowserAccount(page));
@@ -20,11 +20,20 @@ const snapshot = {
   stale: false,
 };
 
-test('the scroll on the right shelf opens a camera close-up of the ranked wallets', async ({
+async function focusShelf(page: Page) {
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Shelf/ })
+    .click();
+  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
+}
+
+test('the Shelf stays in the room until approached, then opens ranked wallets after camera travel', async ({
   page,
 }) => {
+  test.setTimeout(45_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 200,
@@ -33,31 +42,88 @@ test('the scroll on the right shelf opens a camera close-up of the ranked wallet
     }),
   );
   await page.goto('/');
-
-  const shelfScroll = page.getByRole('button', {
-    name: 'Open Smart Wallet leaderboard scroll',
-  });
-  await expect(shelfScroll).toBeVisible();
-  const scrollPosition = await shelfScroll.boundingBox();
-  expect(scrollPosition!.x).toBeGreaterThan(1000);
-  expect(scrollPosition!.width).toBeGreaterThan(140);
-  expect(scrollPosition!.x + scrollPosition!.width).toBeLessThan(1440);
-  await shelfScroll.click();
-
+  await expect(page.locator('.app-shell')).toHaveAttribute(
+    'data-motion',
+    'full',
+  );
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Shelf/ })
+    .click();
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-station',
     'Shelf',
   );
   await expect(page.locator('.app-shell')).toHaveAttribute(
+    'data-shelf-view',
+    'browse',
+  );
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  const approach = page.getByRole('button', { name: 'Approach the Shelf' });
+  await expect(approach).toBeVisible();
+  await page.evaluate(() => {
+    const shell = document.querySelector('.app-shell')!;
+    const transitions: { view: string | null; parchment: boolean }[] = [];
+    (
+      window as typeof window & { shelfTransitions: typeof transitions }
+    ).shelfTransitions = transitions;
+    new MutationObserver(() => {
+      transitions.push({
+        view: shell.getAttribute('data-shelf-view'),
+        parchment: Boolean(
+          document.querySelector('[data-testid="leaderboard-parchment"]'),
+        ),
+      });
+    }).observe(shell, {
+      attributes: true,
+      attributeFilter: ['data-shelf-view'],
+    });
+  });
+  await approach.click();
+  await expect(page.locator('.app-shell')).toHaveAttribute(
+    'data-shelf-view',
+    'open',
+  );
+  const transitions = await page.evaluate(
+    () =>
+      (
+        window as typeof window & {
+          shelfTransitions: { view: string | null; parchment: boolean }[];
+        }
+      ).shelfTransitions,
+  );
+  expect(transitions).toContainEqual({ view: 'focusing', parchment: false });
+  await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-camera-at',
     'Shelf',
   );
   await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
-  await expect(shelfScroll).toBeHidden();
   await expect(page.getByTestId('top-wallet')).toContainText('Alpha Trader');
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
   ).toHaveCount(9);
+});
+
+test('clicking the Shelf in the room starts the focus journey', async ({
+  page,
+}) => {
+  test.setTimeout(45_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Shelf/ })
+    .click();
+  await expect(
+    page.getByRole('button', { name: 'Approach the Shelf' }),
+  ).toBeVisible();
+  await page.mouse.click(1000, 450);
+  await expect(page.locator('.app-shell')).toHaveAttribute(
+    'data-shelf-view',
+    'open',
+  );
 });
 
 test('Shelf presents one leader above an exact 3 by 3 grid without clipping', async ({
@@ -76,10 +142,7 @@ test('Shelf presents one leader above an exact 3 by 3 grid without clipping', as
     }),
   );
   await page.goto('/');
-  await page
-    .getByRole('navigation', { name: 'Tea room stations' })
-    .getByRole('button', { name: /Shelf/ })
-    .click();
+  await focusShelf(page);
   await expect(
     page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
   ).toBeVisible();
@@ -121,10 +184,7 @@ test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', 
     }),
   );
   await page.goto('/');
-  await page
-    .getByRole('navigation', { name: 'Tea room stations' })
-    .getByRole('button', { name: /Shelf/ })
-    .click();
+  await focusShelf(page);
   await expect(page.getByTestId('leaderboard-parchment')).toContainText(
     'Nansen API is not configured.',
   );
@@ -144,10 +204,7 @@ test('an invalid server response shows a safe parchment error', async ({
     }),
   );
   await page.goto('/');
-  await page
-    .getByRole('navigation', { name: 'Tea room stations' })
-    .getByRole('button', { name: /Shelf/ })
-    .click();
+  await focusShelf(page);
   await expect(page.getByTestId('leaderboard-parchment')).toContainText(
     'Smart Wallet leaderboard is temporarily unavailable.',
   );
@@ -167,10 +224,7 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
     }),
   );
   await page.goto('/');
-  await page
-    .getByRole('navigation', { name: 'Tea room stations' })
-    .getByRole('button', { name: /Shelf/ })
-    .click();
+  await focusShelf(page);
   await expect(page.locator('[data-rank="10"]')).toBeVisible();
   const paper = await page.locator('.leaderboard-parchment').boundingBox();
   const rank = await page.locator('[data-rank="10"]').boundingBox();
@@ -196,10 +250,7 @@ test('a stale real snapshot is labelled and small screens keep values readable',
     }),
   );
   await page.goto('/');
-  await page
-    .getByRole('navigation', { name: 'Tea room stations' })
-    .getByRole('button', { name: /Shelf/ })
-    .click();
+  await focusShelf(page);
   await expect(
     page.getByText(/live refresh temporarily unavailable/),
   ).toBeVisible();
