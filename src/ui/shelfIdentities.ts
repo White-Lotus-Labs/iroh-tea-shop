@@ -1,11 +1,10 @@
 export interface ShelfIdentity {
   name: string;
-  nickname?: string;
   portraitIndex: number;
 }
 
 const identities: readonly ShelfIdentity[] = [
-  { name: 'Iroh', nickname: 'santochan', portraitIndex: 0 },
+  { name: 'Iroh', portraitIndex: 0 },
   { name: 'Bumi', portraitIndex: 1 },
   { name: 'Pakku', portraitIndex: 2 },
   { name: 'Piandao', portraitIndex: 3 },

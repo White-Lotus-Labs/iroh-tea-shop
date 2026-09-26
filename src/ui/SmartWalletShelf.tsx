@@ -7,6 +7,7 @@ import {
   type SmartWalletLeaderboardSnapshot,
 } from '../leaderboard/model';
 import { shelfIdentityForRank } from './shelfIdentities';
+import { shelfLabel } from './shelfLabels';
 
 let lastSnapshot: SmartWalletLeaderboardSnapshot | null = null;
 
@@ -36,12 +37,13 @@ function Wallet({
 }) {
   const identity = shelfIdentityForRank(entry.rank);
   const portraitIndex = identity?.portraitIndex ?? 9;
+  const label = shelfLabel(entry.displayName, entry.address);
   return (
     <article
       className={`wallet-rank${featured ? ' wallet-rank-featured' : ''}`}
       data-rank={entry.rank}
       data-testid={featured ? 'top-wallet' : undefined}
-      aria-label={`Rank ${entry.rank}, ${identity?.name ?? 'White Lotus guest'}, wallet ${entry.address}`}
+      aria-label={`Rank ${entry.rank}, ${identity?.name ?? 'White Lotus guest'}${label ? `, ${label}` : ''}, wallet ${entry.address}`}
     >
       <div className="wallet-portrait-frame">
         <div
@@ -49,7 +51,7 @@ function Wallet({
           role="img"
           aria-label={identity?.name ?? 'White Lotus guest'}
           style={{
-            backgroundPosition: `${(portraitIndex % 5) * 25}% ${portraitIndex < 5 ? 15 : 85}%`,
+            backgroundPosition: `${(portraitIndex % 5) * 25}% ${portraitIndex < 5 ? 0 : 100}%`,
           }}
         />
         <span className="wallet-place" aria-hidden="true">
@@ -59,9 +61,7 @@ function Wallet({
       <div className="wallet-card-details">
         <div className="wallet-identity">
           <h2>{identity?.name ?? 'White Lotus guest'}</h2>
-          {identity?.nickname && (
-            <p className="wallet-nickname">{identity.nickname}</p>
-          )}
+          {label && <p className="wallet-label">{label}</p>}
         </div>
         <dl className="wallet-metrics">
           <div>

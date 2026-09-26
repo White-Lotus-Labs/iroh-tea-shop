@@ -20,7 +20,7 @@ describe('White Lotus Shelf identities', () => {
       'Xian',
       'The White Lotus Tile',
     ]);
-    expect(shelfIdentityForRank(1)?.nickname).toBe('santochan');
+    expect(shelfIdentityForRank(1)?.portraitIndex).toBe(0);
     expect(shelfIdentityForRank(10)?.portraitIndex).toBe(9);
     expect(shelfIdentityForRank(11)).toBeNull();
   });

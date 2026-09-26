@@ -11,9 +11,11 @@ const snapshot = {
     displayName:
       i === 0
         ? 'Uses "SANTOCHAN" HL Referral Code'
-        : i === 9
+        : i === 1
           ? 'HL Perps Whale'
-          : `Trader ${i + 1}`,
+          : i === 9
+            ? 'Uses "WHITELOTUS" HL Referral Code'
+            : `Trader ${i + 1}`,
     pnl: i === 1 ? -482_000 : 1_820_000 - i * 10_000,
     roi: i === 1 ? -0.082 : 0.274,
     accountValue: i === 9 ? null : 4_600_000,
@@ -105,6 +107,13 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
   await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
   await expect(page.getByTestId('top-wallet')).toContainText('Iroh');
   await expect(page.getByTestId('top-wallet')).toContainText('santochan');
+  await expect(page.locator('[data-rank="2"] .wallet-label')).toHaveText(
+    'Whale',
+  );
+  await expect(page.locator('[data-rank="10"] .wallet-label')).toHaveText(
+    'whitelotus',
+  );
+  await expect(page.locator('.wallet-label')).toHaveCount(10);
   await expect(page.getByTestId('top-wallet')).toContainText('+$1.82M');
   await expect(page.locator('[data-rank="2"]')).toContainText('-$482K');
   await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
