@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import { CameraRig } from './CameraRig';
 import { TeaRitual, LanternLight, ShelfPlacement } from './TeaRitual';
-import { TeaHost3D } from './TeaHost3D';
+import { TeaHost3D, type IrohActivity } from './TeaHost3D';
 import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
 import { STATIONS } from './stations';
@@ -15,10 +15,12 @@ function RoomGeometry({
   mood,
   reduced,
   requestKey,
+  irohActivity,
 }: {
   mood: SceneMood;
   reduced: boolean;
   requestKey: string | null;
+  irohActivity: IrohActivity;
 }) {
   return (
     <>
@@ -64,7 +66,7 @@ function RoomGeometry({
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
         <Suspense fallback={null}>
-          <TeaHost3D reduced={reduced} />
+          <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>
         <TeaShelf />
         <ShelfPlacement active={mood === 'card'} reduced={reduced}>
@@ -112,8 +114,10 @@ export default function TeaRoom({
   resetKey,
   typing,
   reading,
+  allowTravelWhileTyping,
   mood,
   requestKey,
+  irohActivity,
   onArrive,
   onAvailabilityChange,
 }: {
@@ -122,8 +126,10 @@ export default function TeaRoom({
   resetKey: number;
   typing: boolean;
   reading: boolean;
+  allowTravelWhileTyping: boolean;
   mood: SceneMood;
   requestKey: string | null;
+  irohActivity: IrohActivity;
   onArrive: (station: Station) => void;
   onAvailabilityChange: (available: boolean) => void;
 }) {
@@ -171,7 +177,12 @@ export default function TeaRoom({
         }}
       >
         <Surfaces>
-          <RoomGeometry mood={mood} reduced={reduced} requestKey={requestKey} />
+          <RoomGeometry
+            mood={mood}
+            reduced={reduced}
+            requestKey={requestKey}
+            irohActivity={irohActivity}
+          />
         </Surfaces>
         <CameraRig
           station={station}
@@ -179,6 +190,7 @@ export default function TeaRoom({
           resetKey={resetKey}
           typing={typing}
           reading={reading}
+          allowTravelWhileTyping={allowTravelWhileTyping}
           onArrive={onArrive}
         />
       </Canvas>

@@ -43,6 +43,7 @@ test('motion override stops HTML animation and pours remain interruptible', asyn
 }) => {
   await page.clock.install();
   await page.goto('/');
+  await page.locator('canvas').waitFor();
   await page
     .getByRole('combobox', { name: 'Motion preference' })
     .selectOption('reduce');
@@ -53,7 +54,7 @@ test('motion override stops HTML animation and pours remain interruptible', asyn
       .click();
     if (round === 0) {
       const now = await page.evaluate(() => Date.now());
-      await page.clock.pauseAt(now + 1);
+      await page.clock.pauseAt(now + 10_000);
     }
     await page.getByRole('button', { name: 'Pour', exact: true }).click();
     if (round === 0) {

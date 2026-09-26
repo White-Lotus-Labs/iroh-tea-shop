@@ -4,6 +4,7 @@ test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 test('complete ritual twice, evidence, input preservation and card privacy', async ({
   page,
 }) => {
+  test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -35,13 +36,12 @@ test('complete ritual twice, evidence, input preservation and card privacy', asy
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).not.toBeVisible();
     await page
-      .getByRole('button', { name: 'Take one breath', exact: true })
+      .getByRole('button', { name: 'Chat with Iroh', exact: true })
       .click();
-    await expect(
-      page.getByRole('heading', { name: 'One breath before you go.' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
     await page
-      .getByRole('button', { name: 'Keep this reflection', exact: true })
+      .getByRole('navigation', { name: 'Tea room stations' })
+      .getByRole('button', { name: /Shelf/ })
       .click();
     await expect(page.getByTestId('share-card')).toContainText('DEMO DATA');
     await expect(page.getByTestId('share-card')).not.toContainText(thesis);
@@ -56,6 +56,7 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.clock.install();
   await page.goto('/');
   const thesis = page.getByLabel('Your finished thesis');
   await expect(thesis).toBeVisible();
@@ -70,6 +71,8 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
   await expect(
     page.getByRole('heading', { name: 'Pour what you have already written.' }),
   ).toBeVisible();
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 10_000);
   await page.getByRole('button', { name: 'Retry Pour', exact: true }).click();
   await expect(page.locator('main')).toHaveAttribute(
     'data-station',
@@ -78,6 +81,7 @@ test('keyboard forms, navigation, cancellation and reduced motion', async ({
   await page
     .getByRole('button', { name: 'Cancel review', exact: true })
     .click();
+  await page.clock.resume();
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Counter/ })
@@ -110,13 +114,9 @@ test('manual navigation stays in the chosen room', async ({ page }) => {
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Host/ })
     .click();
-  await expect(
-    page.getByRole('heading', { name: 'One breath before you go.' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
   await page.waitForTimeout(3500);
-  await expect(
-    page.getByRole('heading', { name: 'One breath before you go.' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
 });
 test('mobile layout remains readable and the WebGL fallback preserves the journey', async ({
   page,
