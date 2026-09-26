@@ -23,10 +23,10 @@ function faceGeometry() {
     const radius = ring / rings;
     for (let side = 0; side < sides; side++) {
       const angle = (side / sides) * Math.PI * 2;
-      const x = Math.cos(angle) * radius * 0.226;
-      const y = Math.sin(angle) * radius * 0.264;
+      const x = Math.cos(angle) * radius * 0.248;
+      const y = Math.sin(angle) * radius * 0.288;
       const skull = Math.sqrt(
-        Math.max(0.03, 1 - (x / 0.265) ** 2 - (y / 0.31) ** 2),
+        Math.max(0.03, 1 - (x / 0.276) ** 2 - (y / 0.324) ** 2),
       );
       const nose =
         0.059 * Math.exp(-((x / 0.052) ** 2 + ((y + 0.035) / 0.086) ** 2));
@@ -41,7 +41,7 @@ function faceGeometry() {
           -(((Math.abs(x) - 0.112) / 0.058) ** 2 + ((y - 0.06) / 0.037) ** 2),
         );
       positions.push(x, y, 0.25 * skull + nose + cheeks + brow + 0.004);
-      uv.push(0.5 + x / 0.452, 0.5 + y / 0.528);
+      uv.push(0.5 + x / 0.496, 0.5 + y / 0.576);
     }
   }
   for (let ring = 0; ring < rings; ring++) {
@@ -69,7 +69,7 @@ function featherMask() {
       const dx = (x + 0.5 - size / 2) / (size / 2);
       const dy = (y + 0.5 - size / 2) / (size / 2);
       const radius = Math.sqrt(dx * dx + dy * dy);
-      const t = Math.max(0, Math.min(1, (radius - 0.76) / 0.24));
+      const t = Math.max(0, Math.min(1, (radius - 0.88) / 0.12));
       const shade = Math.round((1 - t * t * (3 - 2 * t)) * 255);
       const offset = (y * size + x) * 4;
       data[offset] = shade;
@@ -102,10 +102,11 @@ export function HostFace() {
         map={face}
         alphaMap={mask}
         bumpMap={face}
-        bumpScale={0.001}
+        bumpScale={0.0022}
         transparent
-        depthWrite={false}
-        roughness={0.91}
+        alphaTest={0.025}
+        depthWrite
+        roughness={0.84}
         metalness={0}
         side={DoubleSide}
       />

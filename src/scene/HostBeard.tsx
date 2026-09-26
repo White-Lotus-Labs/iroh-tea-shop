@@ -33,7 +33,7 @@ export function HostBeard() {
           map={beard}
           transparent
           alphaTest={0.08}
-          depthWrite={false}
+          depthWrite
           roughness={0.96}
           metalness={0}
           side={DoubleSide}
