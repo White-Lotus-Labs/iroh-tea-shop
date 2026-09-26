@@ -362,32 +362,6 @@ export default function TeaRoomShell({
           {shelfOpen && <SmartWalletShelf />}
         </section>
       </div>
-      <div className="status-line" role="status">
-        <span>
-          {busy
-            ? 'Steeping the synthetic sample…'
-            : station === 'TeaTable' && !readingReady
-              ? 'Arriving at the tea table…'
-              : data.workflowState === 'error'
-                ? 'The pour needs another try. Your thesis is preserved.'
-                : data.result
-                  ? 'Demo review ready · no provider contacted'
-                  : 'A private pause · your writing stays in memory'}
-        </span>
-        {busy && (
-          <button
-            onClick={() => {
-              session.cancel();
-              navigate('Counter');
-            }}
-          >
-            Cancel review
-          </button>
-        )}
-        <span className="status-tail">
-          ONLY THE EVIDENCE IS MOCKED. THE PAUSE IS YOURS.
-        </span>
-      </div>
       <nav className="station-nav" aria-label="Tea room stations">
         {STATIONS.map((s, i) => (
           <button
