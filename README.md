@@ -2,7 +2,7 @@
 
 A quiet room for a finished thesis. Write at the counter in a Japanese tea shop, then move through the doorway to a tea table, host and reflection shelf. The room fills the browser window; the review appears over the scene when it is ready.
 
-**PASS A is a mock experience. Every result is labeled DEMO DATA. No Nansen, Hyperliquid or LLM service is called. No credentials are required.**
+**PASS A is a mock review experience. Every result is labeled DEMO DATA. No Nansen, Hyperliquid or LLM service is called. You can use the room without an account.**
 
 For a concise account of what is finished, what is verified, and what remains before a live release, see the [current project status](docs/project-status.md).
 
@@ -21,10 +21,13 @@ Prerequisites: Node.js 22.12 or newer (tested with 24.10.0), npm, and a modern b
 ```sh
 npm ci
 cp .env.example .env.local
+npm run db:migrate
 npm run dev
 ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Copying the environment template is optional; it contains comments only. Initial installation requires access to the npm registry. Once installed, the app has no remote runtime asset or data dependencies; its scene images are stored in `public/images/`.
+
+The room opens for guests. Use **Log in / Create account** in the top-right corner only if you want a persistent identity. Accounts use a 3–24 character nickname and a password of at least 8 characters. Nicknames are unique and matched without regard to case; your chosen casing is displayed in the top-right account menu. Logging out invalidates the server session and returns to the guest room. Guest activity stays in browser memory and is not associated with a User ID. Accounts and sessions are stored in the ignored local SQLite file `prisma/dev.db`; run `npm run db:migrate` after pulling database schema changes. The committed Prisma migration defines the database. The database file and its journal files are not committed. SQLite is intended for local development and a single persistent server filesystem.
 
 ```sh
 npm run typecheck
@@ -62,11 +65,12 @@ The fixture is the specification's invented ETH example: twelve synthetic wallet
 
 Only the exact prepared ETH thesis at 24 hours receives that linked example. Other valid writing, symbols or windows receive an explicit **unknown / unassessed** result with no evidence. PASS A does not extract claims or understand arbitrary theses. The symbol is manually confirmed; it is not resolved against a live registry. Theses must contain 80–6,000 trimmed characters.
 
-The card shows only application-owned reflection text, symbol, window, demo status and provenance. It never copies the full thesis, wallet information, transaction references or position sizes. The card is a **preview**; image export, clipboard export, posting and public sharing are not implemented. Input and results live in memory and are lost on reload. No database, accounts, analytics or storage are used.
+The card shows only application-owned reflection text, symbol, window, demo status and provenance. It never copies the full thesis, wallet information, transaction references or position sizes. The card is a **preview**; image export, clipboard export, posting and public sharing are not implemented. Review input and results live in memory and are lost on reload. Accounts and sessions are the only persistent records; there is no analytics or review storage.
 
 ## Architecture
 
 - `src/app/`: Next.js App Router entry, metadata and responsive visual styles. The HTML shell loads before the dynamically imported scene.
+- `src/auth/` and `prisma/`: nickname/password accounts, bcrypt password hashes, opaque database-backed sessions, the server-side `getCurrentUser()` helper, and the SQLite schema/migration. Browser cookies are HttpOnly, SameSite Lax, and Secure in production. Future records should use the server-resolved `user.id`.
 - `src/scene/`: one R3F canvas, two connected rooms with physical floor, counter, tea table, a seated photo-textured 3D host and a right-wall tea display, image-backed wall scenery, authored camera anchors and a constrained drei camera rig. DPR is capped at 1.5. Images are bundled locally.
 - `src/ui/`: `TeaRoomShell` coordinates station and form state; `ThesisPanel`, `ResultScroll`, `EvidenceDrawer` and `ShareCard` provide accessible HTML interfaces.
 - `src/shared/contracts.ts`: `ReviewInput`, `EvidenceItem`, `Finding`, `InterrogationResult`, `ReviewCard`, `ReviewAdapter` and input validation.

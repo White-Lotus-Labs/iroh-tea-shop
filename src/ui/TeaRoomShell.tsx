@@ -23,6 +23,8 @@ import { SAMPLE_THESIS } from '../fixtures/eth-demo';
 import { ThesisPanel } from './ThesisPanel';
 import { ResultScroll } from './ResultScroll';
 import { ShareCard } from './ShareCard';
+import { AccountMenu } from './AccountMenu';
+import type { PublicUser } from '../auth/service';
 import { EvidenceDrawer } from './EvidenceDrawer';
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
   ssr: false,
@@ -35,8 +37,10 @@ const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
 const defaultAdapter = new MockReviewAdapter();
 export default function TeaRoomShell({
   adapter = defaultAdapter,
+  user,
 }: {
   adapter?: ReviewAdapter;
+  user: PublicUser | null;
 }) {
   const [session] = useState(() => new ReviewSession(adapter));
   const data = useSyncExternalStore(
@@ -150,10 +154,13 @@ export default function TeaRoomShell({
             Tea After Pour<small>A QUIET ROOM FOR A FINISHED THESIS</small>
           </span>
         </a>
-        <span className="demo-label">
-          <span aria-hidden="true">●</span> DEMO DATA{' '}
-          <small>NO LIVE CONNECTION</small>
-        </span>
+        <div className="topbar-right">
+          <span className="demo-label">
+            <span aria-hidden="true">●</span> DEMO DATA{' '}
+            <small>NO LIVE CONNECTION</small>
+          </span>
+          <AccountMenu user={user} />
+        </div>
       </header>
       <div className="room-layout">
         <section
