@@ -162,29 +162,28 @@ const ASH = {
   clay: '#8c4c30',
   speckle: 1.4,
 };
-const POT_GLAZE: Record<'body' | 'lid' | 'knob' | 'spout' | 'handle', Glaze> =
-  {
-    body: {
-      ...ASH,
-      foot: BODY.marks[7] + 0.04,
-      edges: [BODY.marks[18], BODY.marks[22]],
-      inner: BODY.marks[21],
-      innerGlaze: '#2c3322',
-      drips: 11,
-      seed: 31,
-      size: [512, 256],
-    },
-    lid: {
-      ...ASH,
-      foot: LID.marks[5] + 0.02,
-      edges: [LID.marks[8]],
-      pools: [1],
-      seed: 57,
-    },
-    knob: { ...ASH, foot: -1, edges: [KNOB.marks[6]], seed: 83 },
-    spout: { ...ASH, foot: -1, edges: [SPOUT.marks[8]], seed: 97 },
-    handle: { ...ASH, foot: -1, edges: [HANDLE.marks[7]], seed: 113 },
-  };
+const POT_GLAZE: Record<'body' | 'lid' | 'knob' | 'spout' | 'handle', Glaze> = {
+  body: {
+    ...ASH,
+    foot: BODY.marks[7] + 0.04,
+    edges: [BODY.marks[18], BODY.marks[22]],
+    inner: BODY.marks[21],
+    innerGlaze: '#2c3322',
+    drips: 11,
+    seed: 31,
+    size: [512, 256],
+  },
+  lid: {
+    ...ASH,
+    foot: LID.marks[5] + 0.02,
+    edges: [LID.marks[8]],
+    pools: [1],
+    seed: 57,
+  },
+  knob: { ...ASH, foot: -1, edges: [KNOB.marks[6]], seed: 83 },
+  spout: { ...ASH, foot: -1, edges: [SPOUT.marks[8]], seed: 97 },
+  handle: { ...ASH, foot: -1, edges: [HANDLE.marks[7]], seed: 113 },
+};
 /** A short ceremonial tip rotates about the teapot's foot rim, keeping its
  * support point on the table. Completion/cancellation never delays the result. */
 export function TeaRitual({

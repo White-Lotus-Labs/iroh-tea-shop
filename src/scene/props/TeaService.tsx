@@ -154,16 +154,19 @@ export function TeaService({ lacquer }: { lacquer: Material }) {
     scoop = useMemo(scoopGeometry, []);
   useEffect(
     () => () => {
-      [tray.rim, tray.base, scoop].forEach((g: BufferGeometry) =>
-        g.dispose(),
-      );
+      [tray.rim, tray.base, scoop].forEach((g: BufferGeometry) => g.dispose());
     },
     [tray, scoop],
   );
   return (
     <group>
       <group position={[-0.92, 0.61, -2.02]} rotation={[0, 0.1, 0]}>
-        <mesh geometry={tray.base} material={lacquer} castShadow receiveShadow />
+        <mesh
+          geometry={tray.base}
+          material={lacquer}
+          castShadow
+          receiveShadow
+        />
         <mesh geometry={tray.rim} material={lacquer} castShadow receiveShadow />
         <group position={[-0.075, 0.009, 0.005]}>
           <mesh castShadow receiveShadow>

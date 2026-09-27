@@ -42,6 +42,8 @@ Score from the real-GPU run (`--gpu=metal`, ANGLE Metal on Apple M5 Max). A real
 
 Launch mode (from round 3 on): every run is headless, so no window opens on the screen. The Metal run uses Chrome's new headless mode (Playwright channel `chromium`) with `--use-angle=metal --enable-gpu --ignore-gpu-blocklist`. The renderer string still reads `ANGLE Metal Renderer: Apple M5 Max`, and the `room-wide` shot matches the earlier headed reference. Rounds 0 to 3 used a headed window.
 
+Headed fallback (`--headed`): use it only if headless GPU output is clearly wrong. The script then puts the window off-screen and unfocused (`--window-position=-32000,-32000 --window-size=1440,900`). It never calls `bringToFront` and closes the browser as soon as the shots are done. Every other browser launch for this project follows the same rule.
+
 Round 0 check: the same `room-wide` shot at 1600×900, 1x, from headless SwiftShader and from headed Metal, has a mean absolute pixel difference of 0.14/255 (0.1% of pixels differ by more than 16). The unlit backdrops and the simple lighting render the same on both. SwiftShader runs at about 2 fps, so it cannot measure frame time. Recheck after post effects change; results are in `docs/visual-scores.md`.
 
 Frame-time budget: the Metal run must stay at or above 50 fps. The M5 Max is much faster than a typical laptop GPU, so watch the trend between rounds, not only the gate.
