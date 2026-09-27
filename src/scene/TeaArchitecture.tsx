@@ -820,10 +820,11 @@ export function ChamberDetail({ reduced }: { reduced: boolean }) {
       <WallShelf position={[-3.895, 1.42, -2.25]} />
       <Hengaku position={[-3.99, 2.84, -2.15]} />
       <ChamberDressing reduced={reduced} />
+      {/* Kept inside the tatami: past its edge the plane floats over the boards and cuts the kensui. */}
       <ContactShadows
-        position={[0, 0.054, -2.5]}
+        position={[0, 0.054, -2.35]}
         opacity={0.55}
-        scale={4.2}
+        scale={[3.58, 3.9]}
         blur={2.2}
         far={1.2}
         resolution={512}
