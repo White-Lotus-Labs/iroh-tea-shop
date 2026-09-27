@@ -25,7 +25,7 @@ export const THESES: Thesis[] = [
       },
       {
         symbol: 'SHROOM',
-        name: 'Shroom',
+        name: 'Mushroom',
         assetClass: 'crypto',
         token: {
           chain: 'robinhood',
