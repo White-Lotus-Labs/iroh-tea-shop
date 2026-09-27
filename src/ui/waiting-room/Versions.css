@@ -53,3 +53,12 @@
     display: none;
   }
 }
+/* Landscape phones: the switcher rides in the slim header row. */
+@media (max-height: 500px) {
+  .waiting-versions {
+    top: 9px;
+  }
+  .waiting-stage:has(> .waiting-versions) {
+    margin-top: 0;
+  }
+}
