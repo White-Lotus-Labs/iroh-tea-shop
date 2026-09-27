@@ -31,6 +31,8 @@ NANSEN_API_KEY=your-key
 
 The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env`.
 
+`scripts/tripo.mjs` reads `TRIPO_API_KEY` from `.env.local`, not `.env`.
+
 ```sh
 npm run db:migrate
 npm run dev
