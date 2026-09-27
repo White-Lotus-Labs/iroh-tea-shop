@@ -741,6 +741,26 @@
   font-size: 15px;
 }
 
+.thesis-deck[data-budget='light'] .book-shadow,
+.thesis-deck[data-budget='light'] .book-contact {
+  filter: none;
+}
+
+.thesis-deck[data-budget='light'] .book-pose,
+.thesis-deck[data-budget='light'] .book-contact {
+  transition-duration: 240ms;
+}
+
+.thesis-deck[data-budget='light'] .book-tilt {
+  transition: none;
+}
+
+.thesis-deck[data-budget='light'] .thesis-reading .ink {
+  animation-name: scroll-ink-flat;
+  animation-duration: 200ms;
+  animation-delay: calc(40ms + var(--i, 0) * 28ms);
+}
+
 .thesis-deck[data-reduced='true'] * {
   animation: none !important;
   transition: none !important;
@@ -938,6 +958,11 @@
 .thesis-deck[data-layout='reading'] .book-shadow {
   filter: blur(6px);
   transform: translate3d(4px, 6px, -20px);
+}
+
+.thesis-deck[data-budget='light'] .book-shadow,
+.thesis-deck[data-budget='light'][data-layout='reading'] .book-shadow {
+  filter: none;
 }
 
 .book-tab {
@@ -1644,6 +1669,13 @@ html.thesis-vt::view-transition-group(root) {
     opacity: 0;
     filter: blur(2px);
     transform: translateY(6px);
+  }
+}
+
+@keyframes scroll-ink-flat {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
 }
 

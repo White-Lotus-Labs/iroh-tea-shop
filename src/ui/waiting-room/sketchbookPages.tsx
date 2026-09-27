@@ -4,6 +4,9 @@ import { LotusMark } from './LotusMark';
 
 export type SketchPage = {
   key: string;
+  /** Short line for the light-budget curl, which does not clone the whole page. */
+  label: string;
+  picture?: string;
   render: (live: boolean) => ReactNode;
 };
 
@@ -153,6 +156,8 @@ function Annotations({ notes }: { notes: Note[] }) {
 function memberPage(member: Member, n: number, folio: number): SketchPage {
   return {
     key: member.handle,
+    label: member.handle,
+    picture: member.portrait,
     render: (live) => (
       <div className="sb-page-inner sb-member">
         <span className="sb-figure">
@@ -198,6 +203,8 @@ export const SKETCH_IMAGES = [
 export const SKETCH_PAGES: SketchPage[] = [
   {
     key: 'cover',
+    label: 'The tea shop',
+    picture: SHOP_SKETCH,
     render: (live) => (
       <div className="sb-page-inner sb-cover-art">
         <Sketch
@@ -215,6 +222,7 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'title',
+    label: "Iroh's Tea Shop",
     render: () => (
       <div className="sb-page-inner sb-title">
         <span className="sb-mark" aria-hidden="true">
@@ -240,6 +248,8 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'room',
+    label: 'The room',
+    picture: ROOM_SKETCH,
     render: (live) => (
       <div className="sb-page-inner sb-room">
         <Sketch
@@ -260,6 +270,7 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'stations',
+    label: 'Four stops',
     render: () => (
       <div className="sb-page-inner sb-stations">
         <p className="sb-kicker">How the room works</p>
@@ -289,6 +300,7 @@ export const SKETCH_PAGES: SketchPage[] = [
   ...TEAM.map((member, i) => memberPage(member, i + 1, i + 5)),
   {
     key: 'hello',
+    label: 'The team',
     render: (live) => (
       <div className="sb-page-inner sb-hello">
         <p className="sb-kicker">The team</p>

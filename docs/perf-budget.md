@@ -95,3 +95,31 @@ Measured 2026-09-27T12:41:32Z the same way, after WebP waiting-room art, deferri
 - Desktop images stay over 1.2 MB: diorama, back wall, thesis covers on the counter, and the sketchbook riffle. Mobile images pass.
 - Entrance time on this headless Linux host is about 9.5 s unthrottled and 10.3 s on Fast 4G (down from 15.0 s). The 2.4 s figure was a Metal GPU. Step inside still waits for the 3D room.
 - AO, bloom, and the environment chunk stay off the entrance download. They load after Step inside. Shelf poster textures do too.
+
+## Low-end motion path
+
+The waiting-room sketchbook and the Counter thesis deck share one motion budget per visit (`src/ui/motionBudget.ts`). `prefers-reduced-motion: reduce` is unchanged: the book stays open and a page turn settles on the next frame.
+
+The light path is used when any of these is true:
+
+- `navigator.hardwareConcurrency` is 1–4
+- `navigator.deviceMemory` is present and at most 4 GB
+- after an idle callback, a short `requestAnimationFrame` sample has a median frame slower than 22 ms (about 45 fps). A single long stall is ignored
+- a page curl stays under about 30 fps (median of recent frames, ignoring a single long stall). The budget then stays light for the rest of the visit
+
+On the light path the sketchbook still riffles and still turns by drag, keys, and the index:
+
+- the curl uses 8 strips instead of 18, and each bending face is the page's picture or its title, not a second copy of the whole page
+- the riffle is shorter, and a drag or button turn uses a short wall-clock tween (about 220 ms) so a missed frame does not leave the spring running in slow motion
+- the pages under the leaf are not blurred
+- the cast shadow and the petals in front of the book drop their blur
+- sakura counts fall to about a quarter (48 → 12 in the room, 9 → 3 in front of the book). Both canvases pause while a leaf is riffling and while the tab is hidden
+- the sketchbook frame loop runs only while a page is turning or the cover tilt is settling, and it stops while the tab is hidden
+
+On the light path the thesis deck still opens, switches, and closes:
+
+- `document.startViewTransition` is skipped, so the books are not FLIP-captured with the WebGL room
+- book shadows are not blurred, and the open scroll fades with opacity and transform only
+- the 3D counter cards write their spring once when they are already at rest, instead of every frame
+
+A capable machine keeps the 18-strip curl, the riffle blur, the view transitions, and the full petal counts.

@@ -1,6 +1,7 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { petalCountFor, useMotionBudget } from '../motionBudget';
 import { PROJECT, REPO_URL } from './content';
 import { TeaPourButton } from './TeaPourButton';
 import { usePetalCanvas } from './usePetalCanvas';
@@ -38,6 +39,7 @@ export function WaitingRoom({
   children?: ReactNode;
 }) {
   const [mounted, setMounted] = useState(open);
+  const budget = useMotionBudget();
   const petals = usePetalCanvas();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -87,9 +89,10 @@ export function WaitingRoom({
       {petals && (
         <PetalCanvas
           className="waiting-petals"
-          count={48}
+          count={petalCountFor(48, budget)}
           size={2.1}
           reduced={reduced}
+          light={budget === 'light'}
         />
       )}
       <header className="waiting-brand">
