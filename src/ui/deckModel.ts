@@ -112,6 +112,12 @@ export function buildUncleDraft(
   return lines.join('\n');
 }
 
+/** Trades and wallet moves under $10 are dust; unknown values are hidden too. */
+export const DUST_USD = 10;
+export function isDust(valueUsd: number | null): boolean {
+  return valueUsd === null || Math.abs(valueUsd) < DUST_USD;
+}
+
 export function thesisLink(origin: string, id: ThesisId): string {
   return `${origin}/?thesis=${id}`;
 }
