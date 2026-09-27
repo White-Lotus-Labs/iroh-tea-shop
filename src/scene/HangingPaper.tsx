@@ -33,9 +33,9 @@ const HOVER_DEPTH = 0.25;
 const HANGING_X = -0.61;
 
 const ART = [
-  '/images/shelf/spirit-1.webp',
-  '/images/shelf/spirit-2.webp',
-  '/images/shelf/spirit-3.webp',
+  '/images/shelf/spirit-1.d17cfc.webp',
+  '/images/shelf/spirit-2.db8327.webp',
+  '/images/shelf/spirit-3.bd8816.webp',
 ];
 
 // Podium order, left to right from the room: rank 2, rank 1, rank 3.

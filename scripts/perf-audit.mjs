@@ -10,7 +10,9 @@
 // Bytes are wire bytes from CDP `Network.loadingFinished.encodedDataLength`
 // (compressed body plus headers), so a gzip chunk counts at its gzip size.
 // "Ready" is the first moment `.app-shell` drops aria-busy with Step inside
-// enabled. "First-load JS" is every script the server HTML asks for, minus
+// enabled. "Sketchbook" is the first moment the first spread is baked
+// (`data-bake` >= 2) with Next page enabled; the audit then turns six pages,
+// 2 s apart, and records each turn's longest frame gap. "First-load JS" is every script the server HTML asks for, minus
 // `noModule` polyfills. With --step=1 the audit then clicks Step inside and
 // records what loads after it and the longest frame gap while the room opens.
 //
@@ -122,6 +124,8 @@ const median = (values) => {
 function probe() {
   const audit = (window.__audit = {
     ready: null,
+    sketch: null,
+    reading: null,
     fcp: null,
     lcp: null,
     longTasks: [],
@@ -147,6 +151,26 @@ function probe() {
     audit.longTasks.push([entry.startTime, entry.duration]);
   });
   const check = () => {
+    if (audit.sketch === null) {
+      // First spread baked (pages 0 and 1 snapshotted for the curl) and turnable.
+      const bake = document
+        .querySelector('[data-bake]')
+        ?.getAttribute('data-bake');
+      const next = document.querySelector('button[aria-label="Next page"]');
+      if (Number(bake) >= 2 && next && !next.disabled) {
+        audit.sketch = performance.now();
+        // Every frame from here to ready: long gaps are frozen reading.
+        const gaps = (audit.reading = []);
+        let last = audit.sketch;
+        const tick = (now) => {
+          if (now - last > 100)
+            gaps.push([Math.round(last), Math.round(now - last)]);
+          last = now;
+          if (audit.ready === null) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+    }
     if (audit.ready !== null) return;
     const shell = document.querySelector('.app-shell');
     if (shell?.getAttribute('aria-busy') !== 'false') return;
@@ -158,7 +182,7 @@ function probe() {
   new MutationObserver(check).observe(document, {
     subtree: true,
     attributes: true,
-    attributeFilter: ['aria-busy', 'disabled'],
+    attributeFilter: ['aria-busy', 'disabled', 'data-bake'],
   });
   // Frame gaps after Step inside: a long gap is a visible hitch.
   audit.watchFrames = (ms) => {
@@ -219,6 +243,50 @@ async function measure(browser, preset) {
   });
 
   await page.goto(base, { waitUntil: 'commit', timeout: 120000 });
+  const sketchMs = await page
+    .waitForFunction(() => window.__audit.sketch, null, {
+      timeout: 120000,
+      polling: 100,
+    })
+    .then((handle) => handle.jsonValue())
+    .catch(() => null);
+  // Read like a guest while the room loads: turn a page every 2 s, six times.
+  // Each turn records its longest frame gap; a gap over 100 ms is a visible stutter.
+  const turns = [];
+  if (sketchMs !== null) {
+    const next = page.getByRole('button', { name: 'Next page' });
+    for (let i = 0; i < 6; i++) {
+      const from = await page.evaluate(() => {
+        window.__audit.watchFrames(1200);
+        return performance.now();
+      });
+      await next.click({ timeout: 3000 }).catch(() => null);
+      await page.waitForTimeout(1400);
+      turns.push(
+        await page.evaluate((from) => {
+          const gaps = window.__audit.frames?.gaps.slice(1) ?? [];
+          const tasks = window.__audit.longTasks.filter(
+            ([start]) => start >= from && start < from + 1200,
+          );
+          return {
+            atMs: Math.round(from),
+            maxGapMs: gaps.length ? Math.round(Math.max(...gaps)) : null,
+            longTaskMaxMs: tasks.length
+              ? Math.round(Math.max(...tasks.map(([, d]) => d)))
+              : 0,
+          };
+        }, from),
+      );
+      await page.waitForTimeout(600);
+    }
+  }
+  const turn = turns.length
+    ? {
+        maxGapMs: Math.max(...turns.map((t) => t.maxGapMs ?? 0)),
+        stutters: turns.filter((t) => t.maxGapMs > 100).length,
+        turns,
+      }
+    : null;
   const readyMs = await page
     .waitForFunction(() => window.__audit.ready, null, {
       timeout: 120000,
@@ -259,6 +327,9 @@ async function measure(browser, preset) {
       }));
 
   const settledList = finished();
+  const beforeSketch = settledList.filter(
+    (r) => sketchMs !== null && r.endMs <= sketchMs,
+  );
   const beforeReady = settledList.filter(
     (r) => readyMs !== null && r.endMs <= readyMs,
   );
@@ -283,6 +354,7 @@ async function measure(browser, preset) {
   }
 
   const audit = await page.evaluate(() => ({
+    reading: window.__audit.reading,
     fcp: window.__audit.fcp,
     lcp: window.__audit.lcp,
     longTasks: window.__audit.longTasks,
@@ -331,6 +403,15 @@ async function measure(browser, preset) {
     deviceScaleFactor: preset.deviceScaleFactor,
     throttle: preset.throttle ? 'fast4g' : 'none',
     cpuRate: preset.cpuRate,
+    sketchMs: sketchMs === null ? null : Math.round(sketchMs),
+    atSketch: sumByType(beforeSketch),
+    turn,
+    frozen: audit.reading && {
+      over100: audit.reading.length,
+      totalMs: audit.reading.reduce((sum, [, gap]) => sum + gap, 0),
+      maxMs: Math.max(0, ...audit.reading.map(([, gap]) => gap)),
+      gaps: audit.reading,
+    },
     readyMs: readyMs === null ? null : Math.round(readyMs),
     fcpMs: audit.fcp === null ? null : Math.round(audit.fcp),
     lcpMs: audit.lcp === null ? null : Math.round(audit.lcp),
@@ -402,6 +483,13 @@ const summary = profiles.map((name) => {
   return {
     profile: label,
     runs: mine.length,
+    sketchMs: pick((r) => r.sketchMs),
+    sketchRuns: mine.map((r) => r.sketchMs),
+    atSketch: pick((r) => r.atSketch.total),
+    turnMaxGapMs: pick((r) => r.turn?.maxGapMs),
+    turnStutters: pick((r) => r.turn?.stutters),
+    frozenTotalMs: pick((r) => r.frozen?.totalMs),
+    frozenMaxMs: pick((r) => r.frozen?.maxMs),
     readyMs: pick((r) => r.readyMs),
     readyRuns: mine.map((r) => r.readyMs),
     fcpMs: pick((r) => r.fcpMs),
@@ -439,6 +527,10 @@ for (const s of summary) {
     '',
     '| Metric | Value |',
     '| --- | ---: |',
+    `| Sketchbook first spread turnable | ${s.sketchMs ?? 'timeout'} ms (${s.sketchRuns.join(', ')}) |`,
+    `| Wire before first spread | ${kb(s.atSketch ?? 0)} |`,
+    `| Six page turns while the room loads: longest frame gap | ${s.turnMaxGapMs} ms (${s.turnStutters} turns over 100 ms) |`,
+    `| Frozen frames, first spread to ready (gaps over 100 ms) | ${s.frozenTotalMs} ms total, longest ${s.frozenMaxMs} ms |`,
     `| Ready (Step inside enabled) | ${s.readyMs ?? 'timeout'} ms (${s.readyRuns.join(', ')}) |`,
     `| FCP / LCP | ${s.fcpMs} / ${s.lcpMs} ms |`,
     `| First-load JS | ${kb(s.firstLoadJs ?? 0)} |`,
