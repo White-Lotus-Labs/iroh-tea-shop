@@ -11,6 +11,7 @@ import {
   loadTickerDetail,
   mapPool,
   preferExistingDeck,
+  preferExistingDetail,
 } from '../thesis/nansen';
 import type { ThesisId } from '../thesis/types';
 import {
@@ -29,7 +30,8 @@ export type RefreshReport = {
 type Job = {
   key: string;
   load: () => Promise<object>;
-  preferExisting?: typeof preferExistingDeck;
+  /** Returns a reason to keep the saved row instead of the fresh load. */
+  preferExisting?: (fresh: any, existing: any) => string | null;
 };
 
 function errorMessage(error: unknown): string {
@@ -47,10 +49,7 @@ async function refreshOne(
   try {
     const fresh = await job.load();
     if (existing && job.preferExisting) {
-      const reason = job.preferExisting(
-        fresh as unknown as Parameters<typeof preferExistingDeck>[0],
-        existing as unknown as Parameters<typeof preferExistingDeck>[1],
-      );
+      const reason = job.preferExisting(fresh, existing);
       if (reason) {
         await markNansenSnapshotStale(database, job.key, reason, now);
         return 'kept';
@@ -103,6 +102,7 @@ function jobsFor(
         if (!detail) throw new NansenError('Unknown thesis or symbol.', 404);
         return detail;
       },
+      preferExisting: preferExistingDetail,
     })),
   );
   return { first: [deck, ...leaderboards], details };

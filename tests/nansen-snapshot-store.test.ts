@@ -194,6 +194,40 @@ describe('saved Nansen readings', () => {
     }
   });
 
+  test('keeps a good ticker page when a later refresh gets only errors', async () => {
+    const temp = openTempDb();
+    let fail = false;
+    mockNansen((path) => {
+      if (fail) throw new Error('HTTP:402');
+      if (path === 'tgm/position-intelligence') return positionOk;
+      if (path === 'tgm/flow-intelligence') return flowOk;
+      return { data: [] };
+    });
+    try {
+      const { refreshSavedNansenData } = await import('../src/nansen/refresh');
+      const { readNansenSnapshot } = await import(
+        '../src/nansen/snapshot-store'
+      );
+      const { detailCacheKey } = await import('../src/thesis/nansen');
+      const now = Date.parse('2026-09-27T12:00:00Z');
+      await refreshSavedNansenData(temp.db, 'key', now);
+      fail = true;
+      const later = now + NANSEN_REFRESH_MS;
+      const again = await refreshSavedNansenData(temp.db, 'key', later);
+      const key = detailCacheKey('robinhood', 'UNI');
+      expect(again.kept).toContain(key);
+      const detail = await readNansenSnapshot<{ perps: { status: string } }>(
+        temp.db,
+        key,
+        later,
+      );
+      expect(detail?.perps.status).toBe('ok');
+      expect(detail?.stale).toBe(true);
+    } finally {
+      await temp.close();
+    }
+  });
+
   test('a reading stays fresh while the next hourly refresh runs', async () => {
     const temp = openTempDb();
     try {
