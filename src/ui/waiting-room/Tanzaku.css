@@ -566,13 +566,12 @@
 }
 
 @media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
-  /* A short phone scrolls a little rather than shrinking the slips. */
+  /* The slips take the rest of the screen: a short row ties them higher and
+     then shrinks them a little. Past that floor, the page scrolls. */
   .tz {
     --tz-pad: 16px;
     grid-template-columns: minmax(0, 1fr);
-    /* 78vw keeps the row near the rig's own aspect, so a narrow phone has no
-       empty band above the branch. */
-    grid-template-rows: auto minmax(min(320px, 78vw), 1fr);
+    grid-template-rows: auto minmax(min(200px, 55vw), 1fr);
     gap: 2px;
     padding: 0 var(--tz-pad) 4px;
     overflow-x: hidden;
@@ -707,15 +706,20 @@
     padding-top: 4px;
   }
 }
-/* Short stacked screens: the noren tightens so the slips peek above the fold. */
+/* Short stacked screens: the noren tightens so the slips hang above the fold. */
 @media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
   @media (max-height: 700px) {
     .tz-band {
       padding: 12px 16px 10px;
     }
+    /* The header right above already names the room; readers keep the title. */
     .tz-band h1 {
-      margin-bottom: 2px;
-      font-size: 23px;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
     .tz-tagline {
       margin-bottom: 5px;
@@ -747,7 +751,7 @@
     }
   }
   /* Every station fits two lines from here, so reserve two, not three. */
-  @media (min-width: 600px) {
+  @media (min-width: 360px) {
     .tz-step {
       min-height: calc(2 * 1.45em);
     }
@@ -769,15 +773,6 @@
     }
     .tz-step {
       min-height: calc(3 * 1.4em);
-    }
-    /* The header right above already names the room; readers keep the title. */
-    .tz-band h1 {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
     }
     /* The card fits the short stage; the arrows keep their names for readers. */
     .tz-card {

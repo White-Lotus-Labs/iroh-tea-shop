@@ -161,6 +161,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   const [turned, setTurned] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const book = useRef<HTMLDivElement>(null);
+  const index = useRef<HTMLElement>(null);
   const strips = useRef<(HTMLDivElement | null)[]>([]);
   const progress = useRef(0);
   const spring = useRef<Spring | null>(null);
@@ -385,6 +386,14 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     return () => window.removeEventListener('keydown', key);
   }, [step]);
 
+  // Arrow keys turn pages from anywhere; a focus ring left on an old chip
+  // would mark a spread that is no longer shown.
+  useEffect(() => {
+    const nav = index.current;
+    if (nav?.contains(document.activeElement))
+      nav.querySelector<HTMLElement>('[aria-current]')?.focus();
+  }, [view]);
+
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     if ((event.target as HTMLElement).closest('a, button')) return;
@@ -462,8 +471,8 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
           disabled={view === 0 && !turn}
           onClick={() => step('prev')}
         >
-          <svg viewBox="0 0 14 44" aria-hidden="true">
-            <polyline points="11,3 3,22 11,41" />
+          <svg viewBox="0 0 10 20" aria-hidden="true">
+            <polyline points="8,2 2,10 8,18" />
           </svg>
         </button>
         <div
@@ -534,12 +543,12 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
           disabled={view === count - 1 && !turn}
           onClick={() => step('next')}
         >
-          <svg viewBox="0 0 14 44" aria-hidden="true">
-            <polyline points="3,3 11,22 3,41" />
+          <svg viewBox="0 0 10 20" aria-hidden="true">
+            <polyline points="2,2 8,10 2,18" />
           </svg>
         </button>
       </div>
-      <nav className="sb-index" aria-label="Sketchbook pages">
+      <nav ref={index} className="sb-index" aria-label="Sketchbook pages">
         {SPREAD_TITLES.map((title, i) => {
           const target = mode === 'spread' ? i : i * 2;
           const current =

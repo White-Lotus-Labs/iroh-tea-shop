@@ -66,14 +66,18 @@ test('on short phones the slips hang in view, sideways or upright', async ({
     await page.setViewportSize({ width, height });
     await page.goto('/?waiting=tanzaku');
     const dock = (await page.locator('.waiting-entry').boundingBox())!;
-    const slip = page.getByRole('button', { name: /^@0x_iroh, / });
-    // The hit buttons wait off-screen until the rig first draws. The top
-    // quarter of a slip holds the portrait.
+    const slips = page.locator('.tz-hit');
+    // The hit buttons wait off-screen until the rig first draws; then every
+    // slip hangs whole above the dock.
     await expect
       .poll(
         async () => {
-          const b = await slip.boundingBox();
-          return b && b.height > 0 ? b.y + b.height / 4 : Infinity;
+          const boxes = await slips.evaluateAll((els) =>
+            els.map((el) => el.getBoundingClientRect()),
+          );
+          return boxes.every((b) => b.height > 0)
+            ? Math.max(...boxes.map((b) => b.bottom))
+            : Infinity;
         },
         { timeout: 30_000 },
       )

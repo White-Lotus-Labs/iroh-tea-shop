@@ -51,6 +51,7 @@ const HOLE = (HOLE_Y / FH) * SH;
 const GAP = 0.76;
 const PIVOT_X = TEAM.map((_, i) => (i - (N - 1) / 2) * GAP);
 const CORD = [0.46, 0.8, 0.3, 0.66, 0.5];
+const CORD_MAX = Math.max(...CORD);
 const REST_TWIST = [0.22, -0.36, 0.12, -0.2, 0.3];
 const culmY = (x: number) => 0.07 * x - 0.006 * x * x;
 const CULM_X0 = -2.08;
@@ -65,6 +66,15 @@ const CAM_Z = 10;
 const TAU = Math.PI * 2;
 const NUMERALS = ['一', '二', '三', '四'];
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
+// A short slips area ties the slips higher on their cords before it shrinks
+// them: the scale that makes the rig as tall as the area allows at full width.
+const cordScale = (a: Rect) =>
+  clamp(
+    1 -
+      (RIG.top - RIG.bottom - ((RIG.right - RIG.left) * a.h) / a.w) / CORD_MAX,
+    0.5,
+    1,
+  );
 // A soft hyphen for long names on narrow flaps; not every browser hyphenates.
 const soft = (word: string) => word.replace(/^(\w{7})(\w{4,})$/, '$1\u00ad$2');
 
@@ -485,16 +495,17 @@ function Scene({
     const visH = 2 * CAM_Z * Math.tan((FOV * Math.PI) / 360);
     const unit = visH / size.height;
     const a = area.current;
+    const k = cordScale(a);
+    const bottom = RIG.bottom + CORD_MAX * (1 - k);
     const sc = Math.min(
       (a.w * unit) / (RIG.right - RIG.left),
-      (a.h * unit) / (RIG.top - RIG.bottom),
+      (a.h * unit) / (RIG.top - bottom),
     );
     g.scale.setScalar(sc);
     g.position.set(
       (a.x + a.w / 2 - size.width / 2) * unit -
         (sc * (RIG.left + RIG.right)) / 2,
-      (size.height / 2 - a.y - a.h / 2) * unit -
-        (sc * (RIG.top + RIG.bottom)) / 2,
+      (size.height / 2 - a.y - a.h / 2) * unit - (sc * (RIG.top + bottom)) / 2,
       0,
     );
 
@@ -567,7 +578,7 @@ function Scene({
           rTw = Math.round(s.tw / TAU) * TAU;
         } else if (b.has && s.show >= 1) {
           // A pointer brushing through pushes the slip and twirls it.
-          const len = CORD[i] - HOLE + SH / 2;
+          const len = CORD[i] * k - HOLE + SH / 2;
           const dx = b.x - (PIVOT_X[i] + Math.sin(s.sw) * len);
           const dy = b.y - (py - Math.cos(s.sw) * len);
           if (Math.abs(dx) < SW * 0.8 && Math.abs(dy) < SH * 0.56) {
@@ -591,7 +602,7 @@ function Scene({
       if (!sg || !tg || !hg || !cord) continue;
       sg.rotation.set(s.fa, 0, s.sw);
       tg.rotation.y = s.tw;
-      const L = CORD[i] * drop;
+      const L = CORD[i] * k * drop;
       cord.scale.y = Math.max(L, 1e-3);
       cord.position.y = -L / 2;
       hg.position.y = -L;
