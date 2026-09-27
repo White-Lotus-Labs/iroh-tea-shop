@@ -3,6 +3,7 @@ import {
   canvasFont,
   getPageShot,
   pageShotKey,
+  paintRefs,
   rememberPageShot,
 } from '../src/ui/waiting-room/pageSnapshot';
 
@@ -33,5 +34,15 @@ describe('pageSnapshot cache', () => {
         fontFamily: 'Arial',
       }),
     ).toBe('700 9.5px / 11.4px Arial');
+  });
+
+  it('finds each outside paint an svg needs, once', () => {
+    expect(
+      paintRefs(
+        '<rect fill="url(#dock-gold)"/><path stroke="url(#dock-bronze)"/>' +
+          '<circle fill="url(#dock-gold)"/>',
+      ),
+    ).toEqual(['dock-gold', 'dock-bronze']);
+    expect(paintRefs('<path fill="#3a2a1d"/>')).toEqual([]);
   });
 });
