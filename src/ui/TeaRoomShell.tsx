@@ -15,14 +15,15 @@ import {
 } from '../nansen/availability';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
-import { SceneLoader } from './SceneLoader';
 import { StationDock } from './StationDock';
 import { ThesisDeck } from './ThesisDeck';
 import type { ConvictionLevel, ThesisId } from '../thesis/types';
 import { convictionToMood } from './convictionMood';
 import { InkLine, STATION_TEASERS } from './stationTeasers';
+import { WaitingRoom } from './waiting-room/WaitingRoom';
+import { WaitingVersions } from './waiting-room/Versions';
 
-// SceneLoader covers the stage while the scene chunk downloads.
+// The waiting room covers the stage while the scene chunk downloads.
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
   ssr: false,
   loading: () => <div className="scene-fallback" />,
@@ -78,7 +79,7 @@ export default function TeaRoomShell({
     const timer = window.setTimeout(prefetch, 1);
     return () => window.clearTimeout(timer);
   }, [revealed]);
-  const panel = useRef<HTMLElement>(null)
+  const panel = useRef<HTMLElement>(null);
   const openHint = useRef<HTMLButtonElement>(null);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
@@ -283,14 +284,20 @@ export default function TeaRoomShell({
       data-iroh-activity={irohActivity}
       data-camera-at={cameraAt ?? undefined}
       data-shelf-view={shelfView}
-      aria-busy={!revealed}
+      aria-busy={!sceneReady}
     >
-      <SceneLoader
+      <WaitingRoom
+        open={isEntrance}
         ready={sceneReady}
         progress={loaderProgress}
         reduced={reduced}
-        onReveal={onReveal}
-      />
+        onEnter={() => {
+          onReveal();
+          navigate('Counter');
+        }}
+      >
+        <WaitingVersions reduced={reduced} />
+      </WaitingRoom>
       <header className="topbar">
         <a href="#main-panel" className="brand">
           <span className="brand-mark" aria-hidden="true">

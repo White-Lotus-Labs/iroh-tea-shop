@@ -1,0 +1,375 @@
+.waiting-room {
+  --wr-cream: #f6ecd8;
+  --wr-cream-dim: rgba(246, 236, 216, 0.72);
+  --wr-gold: #d7aa69;
+  --wr-gold-hi: #e6bd84;
+  --wr-night: rgba(20, 14, 10, 0.78);
+  --wr-glass: rgba(24, 17, 12, 0.66);
+  --wr-rule: rgba(212, 175, 120, 0.24);
+  --wr-serif:
+    Iowan Old Style, Baskerville, Palatino Linotype, Book Antiqua, Palatino,
+    Georgia, serif;
+  --wr-ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --wr-ease-in: cubic-bezier(0.55, 0, 0.8, 0.3);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--wr-cream);
+  background: #140e0a;
+}
+
+.waiting-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+}
+.waiting-backdrop img {
+  position: absolute;
+  inset: -3%;
+  width: 106%;
+  height: 106%;
+  object-fit: cover;
+  object-position: 50% 42%;
+  transform-origin: 50% 60%;
+  transform: translate3d(
+    calc(var(--px, 0) * -16px),
+    calc(var(--py, 0) * -10px),
+    0
+  );
+  filter: blur(var(--wr-backdrop-blur, 0px));
+  transition: transform 1.2s var(--wr-ease-out);
+  animation: waiting-arrive 1.8s var(--wr-ease-out) both;
+}
+/* Legibility: night settles at the top and bottom edges, the doorway stays lit. */
+.waiting-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14, 10, 12, 0.62) 0%,
+      rgba(14, 10, 12, 0) 22%,
+      rgba(14, 10, 12, 0) 62%,
+      rgba(14, 10, 8, 0.82) 100%
+    ),
+    radial-gradient(
+      120% 90% at 50% 48%,
+      transparent 46%,
+      rgba(10, 7, 6, 0.55) 100%
+    );
+}
+.waiting-petals {
+  z-index: -1;
+}
+
+.waiting-brand {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px clamp(18px, 3vw, 40px);
+  /* The empty strip lets drags and clicks reach the stage underneath. */
+  pointer-events: none;
+}
+.waiting-brand > * {
+  pointer-events: auto;
+}
+.waiting-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(215, 170, 105, 0.4);
+  border-radius: 50%;
+  color: var(--wr-gold);
+  font-size: 20px;
+  line-height: 1;
+  background: radial-gradient(rgba(215, 170, 105, 0.16), transparent 70%);
+}
+.waiting-brand-text {
+  display: grid;
+  gap: 3px;
+  white-space: nowrap;
+  font-family: var(--wr-serif);
+  font-size: 20px;
+  line-height: 1.1;
+  text-shadow: 0 1px 14px rgba(10, 7, 5, 0.6);
+}
+.waiting-brand-text small {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: var(--wr-gold-hi);
+}
+.waiting-repo {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--wr-cream-dim);
+  transition: color 0.2s ease;
+}
+.waiting-repo:hover {
+  color: var(--wr-gold-hi);
+}
+
+.waiting-stage {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+}
+
+.waiting-entry {
+  position: relative;
+  z-index: 2;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: min(560px, calc(100vw - 32px));
+  margin: 0 0 max(22px, env(safe-area-inset-bottom));
+  padding: 10px 10px 10px 22px;
+  border: 1px solid var(--wr-rule);
+  border-radius: 18px;
+  background: var(--wr-glass);
+  box-shadow:
+    0 18px 40px rgba(8, 5, 3, 0.45),
+    inset 0 1px rgba(255, 235, 200, 0.07);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+  animation: waiting-rise 0.9s var(--wr-ease-out) 0.35s both;
+}
+.waiting-status {
+  flex: 1;
+  min-width: 0;
+}
+.waiting-status p {
+  margin: 0 0 9px;
+  font-family: var(--wr-serif);
+  font-size: 16px;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.waiting-progress {
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(246, 236, 216, 0.14);
+}
+.waiting-progress > span {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #a1583f, var(--wr-gold-hi));
+  box-shadow: 0 0 12px rgba(230, 189, 132, 0.6);
+  transition: transform 0.6s var(--wr-ease-out);
+}
+.waiting-room[data-ready] .waiting-progress {
+  opacity: 0.35;
+}
+
+.waiting-enter {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 24px 0 26px;
+  border: 1px solid var(--wr-gold);
+  border-radius: 12px;
+  background: var(--wr-gold);
+  color: #1f160f;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  box-shadow: 0 10px 26px rgba(10, 7, 5, 0.4);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.waiting-enter span {
+  transition: transform 0.2s ease;
+}
+.waiting-enter:hover:not(:disabled) {
+  background: var(--wr-gold-hi);
+  border-color: var(--wr-gold-hi);
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 30px rgba(10, 7, 5, 0.5),
+    0 0 0 6px rgba(215, 170, 105, 0.16);
+}
+.waiting-enter:hover:not(:disabled) span {
+  transform: translateX(3px);
+}
+.waiting-enter:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.waiting-enter:focus-visible {
+  outline: 3px solid var(--wr-gold-hi);
+  outline-offset: 3px;
+}
+.waiting-enter:disabled {
+  opacity: 1;
+  background: transparent;
+  color: var(--wr-cream-dim);
+  border-color: var(--wr-rule);
+  box-shadow: none;
+}
+.waiting-room[data-ready] .waiting-enter {
+  animation: waiting-ready 1.6s var(--wr-ease-out) both;
+}
+
+/* Stepping in: the view pushes through the open doors, then the room shows. */
+.waiting-room.is-leaving {
+  pointer-events: none;
+  animation: waiting-fade 0.6s ease 0.5s both;
+}
+.waiting-room.is-leaving .waiting-backdrop img {
+  animation: none;
+  transform: scale(1.55);
+  transition: transform 1.1s var(--wr-ease-in);
+}
+.waiting-room.is-leaving .waiting-stage,
+.waiting-room.is-leaving .waiting-brand,
+.waiting-room.is-leaving .waiting-entry {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+@keyframes waiting-arrive {
+  from {
+    transform: scale(1.14);
+    filter: blur(var(--wr-backdrop-blur, 0px)) brightness(0.55);
+  }
+}
+@keyframes waiting-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes waiting-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes waiting-ready {
+  0% {
+    box-shadow: 0 0 0 0 rgba(230, 189, 132, 0.55);
+  }
+  100% {
+    box-shadow:
+      0 10px 26px rgba(10, 7, 5, 0.4),
+      0 0 0 14px rgba(230, 189, 132, 0);
+  }
+}
+
+@media (max-width: 760px) {
+  .waiting-brand {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .waiting-brand-mark {
+    width: 34px;
+    height: 34px;
+    font-size: 17px;
+  }
+  .waiting-brand-text {
+    font-size: 17px;
+  }
+  .waiting-repo {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+  }
+  .waiting-entry {
+    gap: 14px;
+    margin-bottom: max(14px, env(safe-area-inset-bottom));
+    padding: 8px 8px 8px 16px;
+  }
+  .waiting-status p {
+    font-size: 14px;
+  }
+  .waiting-enter {
+    padding: 0 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .waiting-repo-lead {
+    display: none;
+  }
+  .waiting-entry {
+    gap: 10px;
+    padding-left: 14px;
+  }
+  .waiting-status p {
+    font-size: 13px;
+  }
+  .waiting-enter {
+    gap: 8px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+}
+
+/* Landscape phones: the header and the dock give their height to the stage. */
+@media (max-height: 500px) {
+  .waiting-brand {
+    padding-block: 6px;
+  }
+  .waiting-brand-mark {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+  .waiting-brand-text {
+    font-size: 16px;
+  }
+  .waiting-entry {
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-block: 5px;
+  }
+  .waiting-status p {
+    margin-bottom: 6px;
+  }
+  .waiting-enter {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiting-backdrop img,
+  .waiting-entry,
+  .waiting-room[data-ready] .waiting-enter {
+    animation: none;
+    transition: none;
+  }
+  .waiting-room.is-leaving {
+    animation: waiting-fade 0.2s ease both;
+  }
+  .waiting-room.is-leaving .waiting-backdrop img {
+    transform: none;
+    transition: none;
+  }
+}
