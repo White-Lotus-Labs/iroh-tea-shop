@@ -40,3 +40,21 @@ test('invitation lists the signers and turns over to the team and back', async (
     page.getByRole('heading', { name: 'Tea After Pour', level: 1 }),
   ).toBeAttached();
 });
+
+test('on a phone held sideways the controls stand beside the sheet', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/?waiting=invitation');
+  const turn = await page
+    .getByRole('button', { name: 'Turn it over' })
+    .boundingBox();
+  const chips = await page
+    .getByRole('complementary', { name: 'The team on X' })
+    .boundingBox();
+  const dock = await page.locator('.waiting-entry').boundingBox();
+  // Beside the sheet, not under it, and clear of the dock.
+  expect(turn!.x).toBeGreaterThan(844 / 2);
+  expect(chips!.y + chips!.height).toBeLessThanOrEqual(dock!.y);
+});
