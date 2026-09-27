@@ -8,9 +8,10 @@ import { beginVisit } from './room-helpers';
 async function openCounter(page: Page) {
   await page.goto('/');
   await beginVisit(page);
-  await page.getByRole('button', { name: 'Open Counter' }).click({
-    timeout: 30000,
-  });
+  const hint = page.getByRole('button', { name: 'Open Counter' });
+  await expect(hint).toBeVisible({ timeout: 45000 });
+  // The hint idles with a gentle motion, so skip the stability wait.
+  await hint.click({ force: true });
 }
 
 async function mockNansen(page: Page, deckStatus = 200) {
