@@ -1,12 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createSnapshotService } from '../src/leaderboard/snapshot';
-import { NansenError } from '../src/nansen/client';
 import {
   countErroredTickers,
   loadDeckSnapshot,
   mapPool,
   preferExistingDeck,
-  withNansenRetry,
 } from '../src/thesis/nansen';
 import type { ThesisSummary } from '../src/thesis/types';
 
@@ -18,71 +16,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.useRealTimers();
-});
-
-describe('withNansenRetry', () => {
-  test('retries once after a short backoff on 429', async () => {
-    const waits: number[] = [];
-    let attempts = 0;
-    const result = await withNansenRetry(
-      async () => {
-        attempts += 1;
-        if (attempts === 1)
-          throw new NansenError('Too many requests.', 429, 1_200);
-        return 'ok';
-      },
-      async (ms) => {
-        waits.push(ms);
-      },
-    );
-    expect(result).toBe('ok');
-    expect(attempts).toBe(2);
-    expect(waits).toEqual([1_200]);
-  });
-
-  test('caps Retry-After at 3 seconds and retries on 5xx', async () => {
-    const waits: number[] = [];
-    let attempts = 0;
-    await withNansenRetry(
-      async () => {
-        attempts += 1;
-        if (attempts === 1) throw new NansenError('upstream', 503, 10_000);
-        return true;
-      },
-      async (ms) => {
-        waits.push(ms);
-      },
-    );
-    expect(attempts).toBe(2);
-    expect(waits).toEqual([3_000]);
-  });
-
-  test('uses 600ms backoff when Retry-After is absent', async () => {
-    const waits: number[] = [];
-    let attempts = 0;
-    await withNansenRetry(
-      async () => {
-        attempts += 1;
-        if (attempts === 1) throw new NansenError('timeout', 502);
-        return true;
-      },
-      async (ms) => {
-        waits.push(ms);
-      },
-    );
-    expect(waits).toEqual([600]);
-  });
-
-  test('does not retry auth failures', async () => {
-    let attempts = 0;
-    await expect(
-      withNansenRetry(async () => {
-        attempts += 1;
-        throw new NansenError('Nansen authentication failed.', 401);
-      }),
-    ).rejects.toMatchObject({ status: 401 });
-    expect(attempts).toBe(1);
-  });
 });
 
 describe('mapPool concurrency', () => {
@@ -257,7 +190,6 @@ describe('loadDeckSnapshot resilience', () => {
 
     const deck = await loadDeckSnapshot('test-key', {
       concurrency: 4,
-      wait: async () => undefined,
     });
     expect(peak).toBeLessThanOrEqual(4);
     expect(deck.theses).toHaveLength(3);

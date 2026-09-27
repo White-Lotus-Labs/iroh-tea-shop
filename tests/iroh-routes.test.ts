@@ -162,4 +162,146 @@ describe('Iroh chat HTTP routes', () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(await db.message.count({ where: { chatId: chat.id } })).toBe(0);
   });
+
+  it('Stop while queued makes no upstream call and persists no message', async () => {
+    const owner = await createAccount(db, 'Owner', 'correct horse');
+    const { createChat } = await import('../src/iroh/history');
+    const chat = await createChat(db, owner.user.id);
+    const { POST } = await import('../src/app/api/nansen-agent/route');
+    const { nansenRequestManager } = await import(
+      '../src/nansen/request-manager'
+    );
+    const first = await nansenRequestManager.acquireIroh();
+    const second = await nansenRequestManager.acquireIroh();
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const controller = new AbortController();
+    const pending = POST(
+      new Request('http://localhost/api/nansen-agent', {
+        method: 'POST',
+        headers: {
+          cookie: `tea_session=${owner.token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ chatId: chat.id, text: 'Queued question' }),
+        signal: controller.signal,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    controller.abort();
+    expect((await pending).status).toBe(499);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(await db.message.count({ where: { chatId: chat.id } })).toBe(0);
+    first.release();
+    second.release();
+  });
+
+  it('rejects a second active turn for one saved chat', async () => {
+    const owner = await createAccount(db, 'Owner', 'correct horse');
+    const { createChat } = await import('../src/iroh/history');
+    const chat = await createChat(db, owner.user.id);
+    const { POST } = await import('../src/app/api/nansen-agent/route');
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(new ReadableStream({ start() {} }), {
+            headers: { 'content-type': 'text/event-stream' },
+          }),
+      ),
+    );
+    const first = await POST(
+      request('/api/nansen-agent', owner.token, {
+        chatId: chat.id,
+        text: 'First',
+      }),
+    );
+    expect(first.status).toBe(200);
+    const second = await POST(
+      request('/api/nansen-agent', owner.token, {
+        chatId: chat.id,
+        text: 'Second',
+      }),
+    );
+    expect(second.status).toBe(409);
+    expect(await db.message.count({ where: { chatId: chat.id } })).toBe(1);
+    await first.body!.cancel();
+  });
+
+  it('reads the latest conversation ID after Iroh admission', async () => {
+    const owner = await createAccount(db, 'Owner', 'correct horse');
+    const { createChat, setConversationId } = await import(
+      '../src/iroh/history'
+    );
+    const chat = await createChat(db, owner.user.id);
+    const { POST } = await import('../src/app/api/nansen-agent/route');
+    const { nansenRequestManager } = await import(
+      '../src/nansen/request-manager'
+    );
+    const first = await nansenRequestManager.acquireIroh();
+    const second = await nansenRequestManager.acquireIroh();
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    const bodies: Record<string, unknown>[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        bodies.push(JSON.parse(init.body as string));
+        return new Response(
+          'data: {"type":"finish","conversation_id":"conv_new"}\n\ndata: [DONE]\n\n',
+          {
+            headers: { 'content-type': 'text/event-stream' },
+          },
+        );
+      }),
+    );
+    const pending = POST(
+      request('/api/nansen-agent', owner.token, {
+        chatId: chat.id,
+        text: 'Follow up',
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await setConversationId(db, owner.user.id, chat.id, 'conv_latest');
+    first.release();
+    const response = await pending;
+    await response.text();
+    expect(bodies).toEqual([
+      { text: 'Follow up', conversation_id: 'conv_latest' },
+    ]);
+    second.release();
+  });
+
+  it('rolls back the user write when Stop lands just before Agent fetch', async () => {
+    const owner = await createAccount(db, 'Owner', 'correct horse');
+    const { createChat, getChat } = await import('../src/iroh/history');
+    const chat = await createChat(db, owner.user.id);
+    const { POST } = await import('../src/app/api/nansen-agent/route');
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const controller = new AbortController();
+    const originalUpdate = db.chat.update.bind(db.chat);
+    vi.spyOn(db.chat, 'update').mockImplementation((args) => {
+      controller.abort();
+      return originalUpdate(args);
+    });
+    const response = await POST(
+      new Request('http://localhost/api/nansen-agent', {
+        method: 'POST',
+        headers: {
+          cookie: `tea_session=${owner.token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ chatId: chat.id, text: 'Do not persist' }),
+        signal: controller.signal,
+      }),
+    );
+    expect(response.status).toBe(499);
+    expect(fetch).not.toHaveBeenCalled();
+    const restored = await getChat(db, owner.user.id, chat.id);
+    expect(restored?.messages).toEqual([]);
+    expect(restored?.title).toBe('New chat');
+  });
 });

@@ -5,8 +5,22 @@ export class NansenError extends Error {
     message: string,
     public status: number,
     public retryAfterMs = 0,
+    public kind:
+      | 'http'
+      | 'network'
+      | 'timeout'
+      | 'parse'
+      | 'configuration' = 'http',
   ) {
     super(message);
+  }
+
+  get retryable() {
+    return (
+      this.kind === 'network' ||
+      this.kind === 'timeout' ||
+      (this.kind === 'http' && [500, 502, 503, 504].includes(this.status))
+    );
   }
 }
 
@@ -33,13 +47,15 @@ function safeError(status: number, retryAfterMs: number): NansenError {
     );
   return new NansenError(
     'Nansen is temporarily unavailable.',
-    502,
+    status,
     retryAfterMs,
   );
 }
 
-function retryAfter(response: Response, now: number): number {
-  const value = response.headers.get('retry-after');
+export function parseRetryAfter(
+  value: string | null,
+  now = Date.now(),
+): number {
   if (!value) return 0;
   if (/^\d{1,6}$/.test(value)) return Number(value) * 1000;
   const date = Date.parse(value);
@@ -51,26 +67,63 @@ export async function nansenPost<T = unknown>(
   body: unknown,
   apiKey: string,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<T> {
   if (!apiKey.trim())
-    throw new NansenError('Nansen API is not configured.', 503);
+    throw new NansenError(
+      'Nansen API is not configured.',
+      503,
+      0,
+      'configuration',
+    );
+  if (signal?.aborted)
+    throw new DOMException('The request was cancelled.', 'AbortError');
   let response: Response;
+  const timeout = AbortSignal.timeout(15_000);
   try {
     response = await fetcher(`${BASE}/${path}`, {
       method: 'POST',
       headers: { apikey: apiKey, 'content-type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15_000),
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       cache: 'no-store',
     });
   } catch {
-    throw new NansenError('Nansen is temporarily unavailable.', 502);
+    if (signal?.aborted)
+      throw new DOMException('The request was cancelled.', 'AbortError');
+    if (timeout.aborted)
+      throw new NansenError('Nansen request timed out.', 504, 0, 'timeout');
+    throw new NansenError(
+      'Nansen is temporarily unavailable.',
+      502,
+      0,
+      'network',
+    );
   }
   if (!response.ok)
-    throw safeError(response.status, retryAfter(response, Date.now()));
+    throw safeError(
+      response.status,
+      parseRetryAfter(response.headers.get('retry-after')),
+    );
   try {
     return (await response.json()) as T;
-  } catch {
-    throw new NansenError('Nansen returned an invalid response.', 502);
+  } catch (error) {
+    if (signal?.aborted)
+      throw new DOMException('The request was cancelled.', 'AbortError');
+    if (timeout.aborted)
+      throw new NansenError('Nansen request timed out.', 504, 0, 'timeout');
+    if (!(error instanceof SyntaxError))
+      throw new NansenError(
+        'Nansen is temporarily unavailable.',
+        502,
+        0,
+        'network',
+      );
+    throw new NansenError(
+      'Nansen returned an invalid response.',
+      502,
+      0,
+      'parse',
+    );
   }
 }

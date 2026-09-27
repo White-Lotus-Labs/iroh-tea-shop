@@ -11,7 +11,9 @@ import {
   createChat,
   getChat,
   listChats,
+  prepareAdmittedResearchRequest,
   prepareResearchRequest,
+  rollbackUnstartedResearchRequest,
   setConversationId,
 } from '../src/iroh/history';
 
@@ -151,5 +153,27 @@ describe('persistent Iroh chats', () => {
     expect(request.text).toContain('SOL has outflows.');
     expect(request.text).toContain('Compare them over seven days.');
     expect(request.text.length).toBeLessThanOrEqual(6000);
+  });
+
+  it('rolls back an admitted user write and title if Stop precedes upstream start', async () => {
+    const { user } = await createAccount(db, 'Mark', 'correct horse');
+    const chat = await createChat(db, user.id);
+    const prepared = await prepareAdmittedResearchRequest(
+      db,
+      user.id,
+      chat.id,
+      'Never sent',
+      new AbortController().signal,
+    );
+    await rollbackUnstartedResearchRequest(
+      db,
+      user.id,
+      chat.id,
+      prepared.userMessageId,
+      prepared.previousTitle,
+    );
+    const restored = await getChat(db, user.id, chat.id);
+    expect(restored?.messages).toEqual([]);
+    expect(restored?.title).toBe('New chat');
   });
 });
