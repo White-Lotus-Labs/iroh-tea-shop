@@ -267,3 +267,25 @@ export function paper(
     );
   }
 }
+
+export type TimberBox = [position: Point, size: Point, color?: string];
+/** Static timber boxes merged into one wood mesh; `offset` shifts a group of boxes. */
+export function Timber({
+  items,
+  cast = true,
+}: {
+  items: TimberBox[];
+  cast?: boolean;
+}) {
+  const geometry = useBuilt(() =>
+    merge(items.map(([p, s, c]) => block(s, p, c ?? '#3a2419'))),
+  );
+  return (
+    <mesh geometry={geometry} castShadow={cast} receiveShadow>
+      <WoodMaterial />
+    </mesh>
+  );
+}
+
+export const offset = (items: TimberBox[], [dx, dy, dz]: Point): TimberBox[] =>
+  items.map(([[x, y, z], s, c]) => [[x + dx, y + dy, z + dz], s, c]);

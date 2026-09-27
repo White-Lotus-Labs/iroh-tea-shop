@@ -16,27 +16,16 @@ import {
   boxUv,
   brushText,
   merge,
+  offset,
   place,
+  Timber,
+  type TimberBox,
   useBuilt,
   WoodMaterial,
 } from './props/craft';
 
 const timber = '#3a2419';
 const plaster = '#8a7862';
-
-function Beam({
-  position,
-  size,
-  color = timber,
-  cast = true,
-}: {
-  position: Point;
-  size: Point;
-  color?: string;
-  cast?: boolean;
-}) {
-  return <Solid position={position} size={size} color={color} cast={cast} />;
-}
 
 function drawLanternPaper(ctx: CanvasRenderingContext2D) {
   const random = createRandom(91);
@@ -287,34 +276,25 @@ function Andon({ position }: { position: Point }) {
         <boxGeometry args={[w - 0.02, h, w - 0.02]} />
         <SurfaceMaterial surface="shoji" color="#f2dcb2" glow={1.7} />
       </mesh>
-      {[-1, 1].flatMap((sx) =>
-        [-1, 1].map((sz) => (
-          <Beam
-            key={`${sx}${sz}`}
-            position={[(sx * w) / 2, (0.12 + h + 0.03) / 2, (sz * w) / 2]}
-            size={[0.024, 0.12 + h + 0.03, 0.024]}
-            color="#24170f"
-          />
-        )),
-      )}
-      {[0.12, 0.12 + h / 2, 0.12 + h].map((y) => (
-        <group key={y}>
-          {[-1, 1].map((side) => (
-            <group key={side}>
-              <Beam
-                position={[0, y, (side * w) / 2]}
-                size={[w + 0.02, 0.018, 0.018]}
-                color="#24170f"
-              />
-              <Beam
-                position={[(side * w) / 2, y, 0]}
-                size={[0.018, 0.018, w + 0.02]}
-                color="#24170f"
-              />
-            </group>
-          ))}
-        </group>
-      ))}
+      <Timber
+        items={[
+          ...[-1, 1].flatMap((sx) =>
+            [-1, 1].map(
+              (sz): TimberBox => [
+                [(sx * w) / 2, (0.12 + h + 0.03) / 2, (sz * w) / 2],
+                [0.024, 0.12 + h + 0.03, 0.024],
+                '#24170f',
+              ],
+            ),
+          ),
+          ...[0.12, 0.12 + h / 2, 0.12 + h].flatMap((y) =>
+            [-1, 1].flatMap((side): TimberBox[] => [
+              [[0, y, (side * w) / 2], [w + 0.02, 0.018, 0.018], '#24170f'],
+              [[(side * w) / 2, y, 0], [0.018, 0.018, w + 0.02], '#24170f'],
+            ]),
+          ),
+        ]}
+      />
       <pointLight
         position={[0, 0.12 + h * 0.55, 0]}
         color="#ffb061"
@@ -342,27 +322,29 @@ function Shoji({
         color="#e0bd8e"
         surface="shoji"
       />
-      {[-1, 1].map((side) => (
-        <Beam
-          key={side}
-          position={[x + (width / 2 - 0.035) * side, 1.79, z + 0.04]}
-          size={[0.075, 2.88, 0.085]}
-        />
-      ))}
-      {Array.from({ length: 5 }, (_, index) => (
-        <Beam
-          key={index}
-          position={[x, 0.42 + index * 0.68, z + 0.045]}
-          size={[width, 0.037, 0.065]}
-        />
-      ))}
-      {[-0.25, 0.25].map((fraction) => (
-        <Beam
-          key={fraction}
-          position={[x + width * fraction, 1.79, z + 0.045]}
-          size={[0.035, 2.8, 0.065]}
-        />
-      ))}
+      <Timber
+        items={[
+          ...[-1, 1].map(
+            (side): TimberBox => [
+              [x + (width / 2 - 0.035) * side, 1.79, z + 0.04],
+              [0.075, 2.88, 0.085],
+            ],
+          ),
+          ...Array.from(
+            { length: 5 },
+            (_, index): TimberBox => [
+              [x, 0.42 + index * 0.68, z + 0.045],
+              [width, 0.037, 0.065],
+            ],
+          ),
+          ...[-0.25, 0.25].map(
+            (fraction): TimberBox => [
+              [x + width * fraction, 1.79, z + 0.045],
+              [0.035, 2.8, 0.065],
+            ],
+          ),
+        ]}
+      />
     </group>
   );
 }
@@ -508,18 +490,124 @@ function Tatami({ center }: { center: Point }) {
     </group>
   );
 }
-function TeaHouseDoorway() {
-  const doorWidth = 2.6;
-  const postThickness = 0.22;
-  const postDepth = 0.26;
-  const leftPostX = -(doorWidth / 2 + postThickness / 2);
-  const rightPostX = doorWidth / 2 + postThickness / 2;
-  const z = 3.32;
-
-  const transomSlatPositions = [
-    -1.12, -0.9, -0.68, -0.45, -0.23, 0, 0.23, 0.45, 0.68, 0.9, 1.12,
+const DOOR = { width: 2.6, post: 0.22, depth: 0.26, z: 3.32 };
+const doorShoji: TimberBox[] = [
+  [
+    [-0.135, 0, 0.01],
+    [0.03, 2.38, 0.04],
+  ],
+  [
+    [0.135, 0, 0.01],
+    [0.03, 2.38, 0.04],
+  ],
+  ...[-0.8, -0.4, 0, 0.4, 0.8].map(
+    (y): TimberBox => [
+      [0, y, 0.012],
+      [0.3, 0.024, 0.038],
+    ],
+  ),
+];
+const doorTimber: TimberBox[] = (() => {
+  const { width, post, depth, z } = DOOR,
+    posts = [-(width / 2 + post / 2), width / 2 + post / 2];
+  return [
+    ...[-2.785, 2.785].flatMap((x): TimberBox[] => [
+      [
+        [x, 0.06, z],
+        [2.53, 0.12, 0.22],
+      ],
+      [
+        [x, 0.95, z],
+        [2.53, 0.07, 0.21],
+      ],
+      [
+        [x, 2.48, z],
+        [2.53, 0.12, 0.22],
+      ],
+      [
+        [x, 1.85, z],
+        [0.12, 3.7, 0.22],
+      ],
+    ]),
+    [
+      [-3.98, 1.85, z],
+      [0.14, 3.7, 0.22],
+    ],
+    [
+      [3.98, 1.85, z],
+      [0.14, 3.7, 0.22],
+    ],
+    [
+      [0, 3.64, z],
+      [8.2, 0.14, 0.26],
+    ],
+    ...posts.flatMap((x): TimberBox[] => [
+      [
+        [x, 1.85, z],
+        [post, 3.7, depth],
+      ],
+      [[x, 0.045, z], [post + 0.04, 0.09, depth + 0.04], '#25150e'],
+    ]),
+    [[0, 0.02, z], [width + 0.02, 0.04, 0.28], '#352116'],
+    [[0, 0.041, z - 0.04], [width, 0.004, 0.02], '#1f140d'],
+    [[0, 0.041, z + 0.04], [width, 0.004, 0.02], '#1f140d'],
+    [
+      [0, 2.48, z],
+      [width + post * 2 + 0.16, 0.14, 0.28],
+    ],
+    [
+      [-1.61, 2.48, z],
+      [0.04, 0.16, 0.3],
+    ],
+    [
+      [1.61, 2.48, z],
+      [0.04, 0.16, 0.3],
+    ],
+    [
+      [0, 3.38, z],
+      [width + 0.02, 0.08, 0.24],
+    ],
+    ...[-1.12, -0.9, -0.68, -0.45, -0.23, 0, 0.23, 0.45, 0.68, 0.9, 1.12].map(
+      (x): TimberBox => [
+        [x, 2.93, z],
+        [0.028, 0.78, 0.06],
+      ],
+    ),
+    [
+      [0, 2.93, z],
+      [width, 0.03, 0.065],
+    ],
+    ...offset(doorShoji, [-1.46, 1.25, z - 0.04]),
+    ...offset(doorShoji, [1.46, 1.25, z + 0.04]),
+    [
+      [-1.3, 2.38, z + 0.06],
+      [0.03, 0.04, 0.06],
+    ],
+    [
+      [1.3, 2.38, z + 0.06],
+      [0.03, 0.04, 0.06],
+    ],
+    ...offset(
+      [
+        [
+          [-0.08, 0.12, -0.07],
+          [0.04, 0.04, 0.14],
+        ],
+        [[0, 0.13, 0], [0.18, 0.025, 0.18], '#25150e'],
+        [[0, -0.12, 0], [0.16, 0.025, 0.16], '#25150e'],
+        ...[-0.07, 0.07].flatMap((x) =>
+          [-0.07, 0.07].map(
+            (dz): TimberBox => [[x, 0, dz], [0.014, 0.22, 0.014], '#25150e'],
+          ),
+        ),
+      ],
+      [1.32, 1.94, z + 0.2],
+    ),
   ];
+})();
 
+function TeaHouseDoorway() {
+  const { width: doorWidth, z } = DOOR;
   return (
     <group name="teahouse-doorway">
       {/* Continuous solid partition walls meeting outer walls with no gaps */}
@@ -541,104 +629,23 @@ function TeaHouseDoorway() {
         color={plaster}
         surface="plaster"
       />
-
-      {/* Wall flank timber framing */}
-      <Beam position={[-2.785, 0.06, z]} size={[2.53, 0.12, 0.22]} />
-      <Beam position={[2.785, 0.06, z]} size={[2.53, 0.12, 0.22]} />
-      <Beam position={[-2.785, 0.95, z]} size={[2.53, 0.07, 0.21]} />
-      <Beam position={[2.785, 0.95, z]} size={[2.53, 0.07, 0.21]} />
-      <Beam position={[-2.785, 2.48, z]} size={[2.53, 0.12, 0.22]} />
-      <Beam position={[2.785, 2.48, z]} size={[2.53, 0.12, 0.22]} />
-      <Beam position={[-2.785, 1.85, z]} size={[0.12, 3.7, 0.22]} />
-      <Beam position={[2.785, 1.85, z]} size={[0.12, 3.7, 0.22]} />
-      <Beam position={[-3.98, 1.85, z]} size={[0.14, 3.7, 0.22]} />
-      <Beam position={[3.98, 1.85, z]} size={[0.14, 3.7, 0.22]} />
-      <Beam position={[0, 3.64, z]} size={[8.2, 0.14, 0.26]} />
-
-      {/* Main doorway jamb posts and base plinths */}
-      {[leftPostX, rightPostX].map((x) => (
-        <group key={x}>
-          <Beam
-            position={[x, 1.85, z]}
-            size={[postThickness, 3.7, postDepth]}
-          />
-          <Solid
-            position={[x, 0.045, z]}
-            size={[postThickness + 0.04, 0.09, postDepth + 0.04]}
-            color="#25150e"
-          />
-        </group>
-      ))}
-
-      {/* Doorway threshold with sliding runner tracks */}
-      <Solid
-        position={[0, 0.02, z]}
-        size={[doorWidth + 0.02, 0.04, 0.28]}
-        color="#352116"
-      />
-      <Solid
-        position={[0, 0.041, z - 0.04]}
-        size={[doorWidth, 0.004, 0.02]}
-        color="#1f140d"
-      />
-      <Solid
-        position={[0, 0.041, z + 0.04]}
-        size={[doorWidth, 0.004, 0.02]}
-        color="#1f140d"
-      />
-
-      {/* Main doorway lintel spanning across posts */}
-      <Beam
-        position={[0, 2.48, z]}
-        size={[doorWidth + postThickness * 2 + 0.16, 0.14, 0.28]}
-      />
-      <Beam position={[-1.61, 2.48, z]} size={[0.04, 0.16, 0.3]} />
-      <Beam position={[1.61, 2.48, z]} size={[0.04, 0.16, 0.3]} />
-
-      {/* Transom (Ranma) with wooden lattice and washi paper */}
-      <Beam position={[0, 3.38, z]} size={[doorWidth + 0.02, 0.08, 0.24]} />
+      {/* Framing, jambs, threshold, lintel, transom lattice, shoji frames and lantern frame */}
+      <Timber items={doorTimber} />
       <Solid
         position={[0, 2.93, z]}
         size={[doorWidth, 0.78, 0.02]}
         color="#e8d1a7"
         surface="paper"
       />
-      {transomSlatPositions.map((slatX) => (
-        <Beam
-          key={slatX}
-          position={[slatX, 2.93, z]}
-          size={[0.028, 0.78, 0.06]}
+      {[-1.46, 1.46].map((x) => (
+        <Solid
+          key={x}
+          position={[x, 1.25, z + Math.sign(x) * 0.04]}
+          size={[0.3, 2.38, 0.028]}
+          color="#dfbe90"
+          surface="paper"
         />
       ))}
-      <Beam position={[0, 2.93, z]} size={[doorWidth, 0.03, 0.065]} />
-
-      {/* Open sliding shoji screen panels flanking the jambs */}
-      <group position={[-1.46, 1.25, z - 0.04]}>
-        <Solid
-          position={[0, 0, 0]}
-          size={[0.3, 2.38, 0.028]}
-          color="#dfbe90"
-          surface="paper"
-        />
-        <Beam position={[-0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
-        <Beam position={[0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
-        {[-0.8, -0.4, 0, 0.4, 0.8].map((sy) => (
-          <Beam key={sy} position={[0, sy, 0.012]} size={[0.3, 0.024, 0.038]} />
-        ))}
-      </group>
-      <group position={[1.46, 1.25, z + 0.04]}>
-        <Solid
-          position={[0, 0, 0]}
-          size={[0.3, 2.38, 0.028]}
-          color="#dfbe90"
-          surface="paper"
-        />
-        <Beam position={[-0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
-        <Beam position={[0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
-        {[-0.8, -0.4, 0, 0.4, 0.8].map((sy) => (
-          <Beam key={sy} position={[0, sy, 0.012]} size={[0.3, 0.024, 0.038]} />
-        ))}
-      </group>
 
       {/* Traditional Jasmine Dragon split noren curtain */}
       <group position={[0, 0, 0]}>
@@ -646,9 +653,6 @@ function TeaHouseDoorway() {
           <cylinderGeometry args={[0.014, 0.014, doorWidth + 0.02, 12]} />
           <meshStandardMaterial color="#2d1c12" roughness={0.7} />
         </mesh>
-        <Beam position={[-1.3, 2.38, z + 0.06]} size={[0.03, 0.04, 0.06]} />
-        <Beam position={[1.3, 2.38, z + 0.06]} size={[0.03, 0.04, 0.06]} />
-
         {[-0.82, 0, 0.82].map((nx, idx) => (
           <group key={idx}>
             <Solid
@@ -679,12 +683,6 @@ function TeaHouseDoorway() {
 
       {/* Warm doorway lantern on jamb */}
       <group position={[1.32, 1.94, z + 0.2]}>
-        <Beam position={[-0.08, 0.12, -0.07]} size={[0.04, 0.04, 0.14]} />
-        <Solid
-          position={[0, 0.13, 0]}
-          size={[0.18, 0.025, 0.18]}
-          color="#25150e"
-        />
         <mesh position={[0, 0, 0]} castShadow>
           <boxGeometry args={[0.14, 0.22, 0.14]} />
           <meshStandardMaterial
@@ -694,21 +692,6 @@ function TeaHouseDoorway() {
             roughness={0.9}
           />
         </mesh>
-        {[-0.07, 0.07].map((lx) =>
-          [-0.07, 0.07].map((lz) => (
-            <Beam
-              key={`${lx}${lz}`}
-              position={[lx, 0, lz]}
-              size={[0.014, 0.22, 0.014]}
-              color="#25150e"
-            />
-          )),
-        )}
-        <Solid
-          position={[0, -0.12, 0]}
-          size={[0.16, 0.025, 0.16]}
-          color="#25150e"
-        />
         <pointLight
           position={[0, 0, 0.04]}
           color="#ffcf8e"
@@ -765,14 +748,13 @@ export function WaitingRoom() {
         posts={[7.94, 10.74]}
         cast={false}
       />
-      {[4.1, 7.45, 10.7].map((z) => (
-        <Beam
-          key={z}
-          position={[0, 3.48, z]}
-          size={[8.2, 0.22, 0.25]}
-          cast={false}
-        />
-      ))}
+      <Timber
+        cast={false}
+        items={[4.1, 7.45, 10.7].map((z) => [
+          [0, 3.48, z],
+          [8.2, 0.22, 0.25],
+        ])}
+      />
       <Shoji x={3.95} z={6.8} width={2.15} />
       <Counter />
       <WaitingDressing />
@@ -816,17 +798,19 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
       <Andon position={[-3.5, 0, -1.95]} />
       <WallShelf position={[-3.865, 1.42, -2.25]} />
       <RightWall />
-      {[-5.94, -1.53, 3.17].map((z) => (
-        <Beam key={z} position={[3.91, 1.85, z]} size={[0.17, 3.7, 0.17]} />
-      ))}
-      {[-5.7, -3.4, -0.9, 1.7].map((z) => (
-        <Beam
-          key={z}
-          position={[0, 3.47, z]}
-          size={[8.1, 0.2, 0.29]}
-          cast={false}
-        />
-      ))}
+      <Timber
+        items={[-5.94, -1.53, 3.17].map((z) => [
+          [3.91, 1.85, z],
+          [0.17, 3.7, 0.17],
+        ])}
+      />
+      <Timber
+        cast={false}
+        items={[-5.7, -3.4, -0.9, 1.7].map((z) => [
+          [0, 3.47, z],
+          [8.1, 0.2, 0.29],
+        ])}
+      />
       <BackWall />
       <Tatami center={[0, 0, -2.5]} />
       <ContactShadows
