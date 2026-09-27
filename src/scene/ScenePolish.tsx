@@ -141,10 +141,7 @@ function Composer({
   const skipped = useRef(false);
   useFrame((_, delta) => {
     if (!reduced) pipeline.grade.uniforms.time.value += delta;
-    skipped.current =
-      covered &&
-      !(window as unknown as { __noCover?: boolean }).__noCover &&
-      !skipped.current;
+    skipped.current = covered && !skipped.current;
     if (!skipped.current) pipeline.composer.render(delta);
   }, 1);
   return null;
