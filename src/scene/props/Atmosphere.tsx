@@ -79,7 +79,8 @@ function shaftGeometry() {
       [c[0], c[2]],
       [c[1], c[3]],
     ];
-    for (const [p, q] of sheets) {
+    // Boundary sheets (k < 4) face the camera beside the jambs, so only the diagonals carry the core.
+    sheets.forEach(([p, q], k) => {
       const base = positions.length / 3;
       for (const [corner, s, t] of [
         [p, 0, 0],
@@ -89,10 +90,10 @@ function shaftGeometry() {
       ] as [Vector3, number, number][]) {
         positions.push(corner.x, corner.y, corner.z);
         uvs.push(s, t);
-        gains.push(shaft.gain);
+        gains.push(shaft.gain * (k < 4 ? 0.45 : 1.15));
       }
       index.push(base, base + 1, base + 2, base, base + 2, base + 3);
-    }
+    });
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute(
