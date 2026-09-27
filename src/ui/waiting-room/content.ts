@@ -17,7 +17,7 @@ export const TEAM: Member[] = [
   {
     handle: '0x_Takezo',
     roles: 'Video · texts · marketing',
-    bio: 'NFT and meme connoisseur, and an upcoming marketing star. Builds study-for-A and runs YouTube channels.',
+    bio: 'NFT and meme connoisseur, and an upcoming marketing star. Builds study\u2011for\u2011A and runs YouTube channels.',
     portrait: art('team-takezo'),
   },
   {
