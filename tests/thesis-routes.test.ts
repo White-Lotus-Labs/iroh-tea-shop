@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { PrismaClient } from '@prisma/client';
 import { createSnapshotService } from '../src/leaderboard/snapshot';
+import { NANSEN_WARMING_MESSAGE } from '../src/nansen/snapshot-store';
 import { THESES } from '../src/thesis/deck';
+import { openTempDb } from './temp-sqlite';
 
 const flowOk = {
   data: [
@@ -42,23 +45,51 @@ function mockNansen(handler: (path: string, body: unknown) => unknown) {
   );
 }
 
+let temp: ReturnType<typeof openTempDb>;
+
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv('NANSEN_API_KEY', 'server-only-secret');
+  vi.stubEnv('NANSEN_REQUEST_STARTS_PER_SECOND', '1000');
+  vi.stubEnv('NANSEN_REQUEST_START_BURST', '1000');
+  vi.stubEnv('NANSEN_GLOBAL_MAX_CONCURRENT', '32');
+  vi.stubEnv('NANSEN_NORMAL_MAX_QUEUE', '200');
+  vi.stubEnv('NANSEN_JSON_MAX_RETRIES', '0');
+  temp = openTempDb();
+  const db: PrismaClient = temp.db;
+  vi.doMock('../src/auth/db', () => ({ db }));
 });
 
-afterEach(() => {
+afterEach(async () => {
+  vi.doUnmock('../src/auth/db');
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  await temp.close();
 });
 
 describe('GET /api/theses', () => {
-  test('returns a deck snapshot and keeps the key server-side', async () => {
-    mockNansen((path, body) => {
+  test('returns a saved deck and does not call Nansen while reading', async () => {
+    mockNansen((path) => {
       if (path === 'tgm/position-intelligence') return positionOk;
       if (path === 'tgm/flow-intelligence') return flowOk;
-      throw new Error(`unexpected ${path} ${JSON.stringify(body)}`);
+      if (path === 'tgm/token-information') return { data: {} };
+      if (path === 'perp-leaderboard')
+        return {
+          data: [
+            {
+              trader_address: `0x${'c'.repeat(40)}`,
+              total_pnl: 1,
+              roi: 0.1,
+              account_value: 2,
+            },
+          ],
+        };
+      return { data: [] };
     });
+    const { refreshSavedNansenData } = await import('../src/nansen/refresh');
+    await refreshSavedNansenData(temp.db, 'server-only-secret');
+    const upstream = vi.mocked(fetch);
+    const callsBeforeRead = upstream.mock.calls.length;
     const { GET } = await import('../src/app/api/theses/route');
     const response = await GET();
     expect(response.status).toBe(200);
@@ -75,6 +106,7 @@ describe('GET /api/theses', () => {
     );
     expect(symbols).toContain('BTC');
     expect(symbols).toContain('SHROOM');
+    expect(upstream.mock.calls).toHaveLength(callsBeforeRead);
   });
 
   test('keeps the deck when one ticker upstream fails', async () => {
@@ -87,8 +119,12 @@ describe('GET /api/theses', () => {
         throw new Error('HTTP:502');
       if (path === 'tgm/position-intelligence') return positionOk;
       if (path === 'tgm/flow-intelligence') return flowOk;
-      throw new Error(`unexpected ${path}`);
+      if (path === 'tgm/token-information') return { data: {} };
+      if (path === 'perp-leaderboard') return { data: [] };
+      return { data: [] };
     });
+    const { refreshSavedNansenData } = await import('../src/nansen/refresh');
+    await refreshSavedNansenData(temp.db, 'server-only-secret');
     const { GET } = await import('../src/app/api/theses/route');
     const body = await (await GET()).json();
     const net = body.theses
@@ -100,7 +136,7 @@ describe('GET /api/theses', () => {
     ).toBe(true);
   });
 
-  test('returns 503 when Nansen is not configured', async () => {
+  test('returns 503 when Nansen is not configured and nothing is saved', async () => {
     vi.stubEnv('NANSEN_API_KEY', '');
     const upstream = vi.fn();
     vi.stubGlobal('fetch', upstream);
@@ -110,6 +146,16 @@ describe('GET /api/theses', () => {
     expect(await response.json()).toEqual({
       error: 'Nansen is not configured.',
     });
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  test('says the shop is still saving readings when the key exists and the database is empty', async () => {
+    const upstream = vi.fn();
+    vi.stubGlobal('fetch', upstream);
+    const { GET } = await import('../src/app/api/theses/route');
+    const response = await GET();
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: NANSEN_WARMING_MESSAGE });
     expect(upstream).not.toHaveBeenCalled();
   });
 
@@ -161,7 +207,7 @@ describe('GET /api/theses/[thesisId]/[symbol]', () => {
     expect(upstream).not.toHaveBeenCalled();
   });
 
-  test('returns ticker detail with section statuses for a crypto ticker', async () => {
+  test('returns a saved ticker detail and does not call Nansen while reading', async () => {
     mockNansen((path) => {
       if (path === 'tgm/who-bought-sold')
         return {
@@ -196,6 +242,7 @@ describe('GET /api/theses/[thesisId]/[symbol]', () => {
               value_usd: 100,
               ownership_percentage: 0.01,
               balance_change_7d: 1,
+              token_amount: 2,
             },
           ],
         };
@@ -211,8 +258,13 @@ describe('GET /api/theses/[thesisId]/[symbol]', () => {
         };
       if (path === 'tgm/position-intelligence') return positionOk;
       if (path === 'smart-money/perp-trades') return { data: [] };
-      throw new Error(`unexpected ${path}`);
+      if (path === 'tgm/flow-intelligence') return flowOk;
+      if (path === 'perp-leaderboard') return { data: [] };
+      return { data: [] };
     });
+    const { refreshSavedNansenData } = await import('../src/nansen/refresh');
+    await refreshSavedNansenData(temp.db, 'server-only-secret');
+    const callsBeforeRead = vi.mocked(fetch).mock.calls.length;
     const { GET } = await import(
       '../src/app/api/theses/[thesisId]/[symbol]/route'
     );
@@ -227,6 +279,7 @@ describe('GET /api/theses/[thesisId]/[symbol]', () => {
     expect(body.holders.status).toBe('ok');
     expect(body.supply.status).toBe('ok');
     expect(body.perps.status).toBe('ok');
+    expect(vi.mocked(fetch).mock.calls).toHaveLength(callsBeforeRead);
   });
 
   test('marks solana spot sections not-applicable without calling them', async () => {
@@ -237,18 +290,16 @@ describe('GET /api/theses/[thesisId]/[symbol]', () => {
       if (path === 'smart-money/perp-trades') return { data: [] };
       throw new Error(`unexpected ${path}`);
     });
-    const { GET } = await import(
-      '../src/app/api/theses/[thesisId]/[symbol]/route'
+    const { loadTickerDetail } = await import('../src/thesis/nansen');
+    const detail = await loadTickerDetail(
+      'bullrun',
+      'SOL',
+      'server-only-secret',
     );
-    const response = await GET(new Request('http://localhost'), {
-      params: Promise.resolve({ thesisId: 'bullrun', symbol: 'SOL' }),
-    });
-    expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body.movements.status).toBe('not-applicable');
-    expect(body.holders.status).toBe('not-applicable');
-    expect(body.supply.status).toBe('not-applicable');
-    expect(body.perps.status).toBe('ok');
+    expect(detail?.movements.status).toBe('not-applicable');
+    expect(detail?.holders.status).toBe('not-applicable');
+    expect(detail?.supply.status).toBe('not-applicable');
+    expect(detail?.perps.status).toBe('ok');
     expect(called.every((path) => !path.includes('who-bought-sold'))).toBe(
       true,
     );

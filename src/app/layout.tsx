@@ -29,7 +29,7 @@ const cjk = Noto_Serif_SC({
 export const metadata: Metadata = {
   title: "Iroh's Tea Shop — Explore Crypto Theses with Nansen",
   description:
-    "A 3D tea shop built on live Nansen data. Check three crypto theses against smart-money activity, see the top Hyperliquid traders, and ask Uncle, a host backed by Nansen's Research Agent.",
+    "A 3D tea shop. Saved Nansen readings for three crypto theses and the top Hyperliquid traders, plus a live chat with Uncle through Nansen's Research Agent.",
 };
 export default function RootLayout({
   children,

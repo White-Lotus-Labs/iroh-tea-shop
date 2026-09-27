@@ -18,8 +18,6 @@ import type {
 } from './types';
 
 export const DECK_CACHE_KEY = 'thesis-deck:v1';
-export const DECK_TTL_MS = 10 * 60 * 1000;
-export const DETAIL_TTL_MS = 15 * 60 * 1000;
 
 const SMART_MONEY_LABELS = [
   'Smart Trader',

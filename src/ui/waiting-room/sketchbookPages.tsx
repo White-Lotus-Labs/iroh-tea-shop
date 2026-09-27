@@ -264,8 +264,9 @@ export const SKETCH_PAGES: SketchPage[] = [
         <p className="sb-kicker">Inside</p>
         <h2 className="sb-heading">Four stops, one pot of tea.</h2>
         <p className="sb-body">
-          Move through the room at your own pace. Three stops read live Nansen
-          data. The fourth is a brass orrery to wind.
+          Move through the room at your own pace. The counter and the shelf read
+          Nansen numbers the shop saved. Uncle asks Nansen when you talk to him.
+          The orrery is just brass to wind.
         </p>
         <Folio n={3} />
       </div>

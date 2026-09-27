@@ -52,7 +52,9 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
       name: /Open The Crypto Bull Market.*Strong conviction, 4 of 4 accumulating/,
     }),
   ).toBeVisible();
-  await expect(page.locator('.deck-status')).toContainText('Live Nansen data');
+  await expect(page.locator('.deck-status')).toContainText(
+    'Saved Nansen readings',
+  );
 
   const aiBook = page.getByRole('button', {
     name: /Open AI Taking Over the World/,

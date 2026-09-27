@@ -1,3 +1,5 @@
+// Page routes read SQLite (src/nansen/refresh.ts). This helper is the
+// in-process coalescing cache its unit tests still pin down.
 import { NansenError } from '../nansen/client';
 import { LeaderboardError } from './provider';
 

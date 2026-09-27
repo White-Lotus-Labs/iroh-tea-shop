@@ -1,5 +1,7 @@
 # Iroh Nansen chat handoff
 
+> Historical note from an earlier pass. Uncle chat is still a live Nansen call. The rest of the market numbers are saved in SQLite. For how the app works today, read the [README](../../README.md) and [How the tea shop works](../project-status.md).
+
 ## Completed
 
 - The Host panel streams live Nansen Research Agent responses with stop, retry and New Chat controls. Signed-in users can show or hide Chat history, open an old chat and continue it after a page reload. Guests can still chat without signing in.

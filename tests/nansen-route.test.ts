@@ -24,6 +24,7 @@ afterEach(() => {
 
 describe('Nansen agent route', () => {
   it('requires a configured key without making an upstream call', async () => {
+    delete process.env.NANSEN_API_KEY;
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const response = await POST(request({ text: 'hello' }));

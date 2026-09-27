@@ -10,8 +10,8 @@ import type {
 } from '../thesis/types';
 import { formatRelative, isDust } from './deckModel';
 
-// ponytail: per-page-session cache; a reload refetches. The route has its own
-// server TTL, so this only saves repeat round trips while the scroll is open.
+// While this scroll stays open, reuse the detail we already loaded.
+// A reload reads the saved copy from the shop database again.
 const detailCache = new Map<string, Promise<TickerDetail>>();
 
 function loadDetail(thesisId: ThesisId, symbol: string) {
@@ -26,9 +26,10 @@ function loadDetail(thesisId: ThesisId, symbol: string) {
         error?: string;
       } | null;
       throw new Error(
-        response.status === 503
-          ? 'Nansen is not configured.'
-          : (body?.error ?? 'Nansen is unavailable right now.'),
+        body?.error ??
+          (response.status === 503
+            ? 'Nansen is not configured.'
+            : 'Nansen is unavailable right now.'),
       );
     });
     detailCache.set(key, pending);
@@ -141,7 +142,7 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
     <>
       <p className="leaf-live">
         <span className="leaf-live-dot" aria-hidden="true" />
-        Live Nansen data · updated {formatRelative(detail.fetchedAt, now)}
+        Saved Nansen readings · updated {formatRelative(detail.fetchedAt, now)}
         {detail.stale && <span className="deck-stale">Stale</span>}
       </p>
       <div className="leaf-sections">

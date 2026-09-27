@@ -139,9 +139,10 @@ export function ThesisDeck({
         setDeck({
           status: 'offline',
           reason:
-            response.status === 503
+            body?.error ??
+            (response.status === 503
               ? 'Nansen is not configured.'
-              : (body?.error ?? 'Nansen is unavailable right now.'),
+              : 'Nansen is unavailable right now.'),
         });
       })
       .catch(() => {
@@ -336,7 +337,8 @@ function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
   return (
     <p className="deck-status" data-state="live">
       <span className="deck-status-dot" aria-hidden="true" />
-      Live Nansen data · updated {formatRelative(deck.snapshot.fetchedAt, now)}
+      Saved Nansen readings · updated{' '}
+      {formatRelative(deck.snapshot.fetchedAt, now)}
       {deck.snapshot.stale && <span className="deck-stale">Stale</span>}
     </p>
   );

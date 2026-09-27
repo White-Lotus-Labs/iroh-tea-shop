@@ -125,7 +125,7 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   await page.getByRole('button', { name: 'Data source status' }).hover();
   const popup = page.locator('.status-popup');
   await expect(popup).toContainText('Thesis');
-  await expect(popup).toContainText('Live Nansen');
+  await expect(popup).toContainText('Saved hourly');
   await expect(popup).toContainText('Uncle');
   await expect(popup).toContainText('Live · Nansen Research');
   await expect(popup).not.toContainText('Demo data');

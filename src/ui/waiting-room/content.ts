@@ -73,5 +73,5 @@ export const PROJECT = {
     },
   ],
   honesty:
-    'The team wrote the three theses. The conviction signals, asset evidence, trader leaderboard, and Uncle’s answers use live Nansen data.',
+    'The team wrote the three theses. Conviction, asset evidence, and the trader list are Nansen readings saved in the shop and refreshed about once an hour. Uncle still asks Nansen when you talk to him.',
 };

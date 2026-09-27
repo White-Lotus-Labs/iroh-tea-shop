@@ -170,7 +170,7 @@ test('the Shelf stays in the room until opened, then reveals ranked wallets with
     /Iroh|Bumi|Pakku|Roku|Avatar/,
   );
   await expect(page.getByTestId('leaderboard-parchment')).toContainText(
-    '30-day performance · Live Nansen data',
+    '30-day performance · Saved Nansen readings',
   );
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
@@ -426,9 +426,7 @@ test('a stale real snapshot is labelled and small screens keep values readable',
   );
   await page.goto('/');
   await focusShelf(page);
-  await expect(
-    page.getByText(/live refresh temporarily unavailable/),
-  ).toBeVisible();
+  await expect(page.getByText(/showing the last saved copy/)).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Retry leaderboard' }),
   ).toBeVisible();

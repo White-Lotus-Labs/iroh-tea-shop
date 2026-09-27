@@ -102,7 +102,7 @@ describe('Nansen leaderboard provider', () => {
   });
 });
 
-describe('30-minute server snapshot', () => {
+describe('in-process snapshot helper', () => {
   let now: number;
   beforeEach(() => {
     now = Date.parse('2026-09-25T12:00:00Z');
