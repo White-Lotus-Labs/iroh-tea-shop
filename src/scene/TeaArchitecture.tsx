@@ -721,22 +721,24 @@ export function WaitingRoom() {
         ])}
       />
       <Shoji x={3.95} z={6.8} width={2.15} />
-      <Counter />
-      <WaitingDressing />
-      <Scroll hook={[-3.99, 2.255, 9.05]} paint={drawBamboo} />
       <PaperLantern position={[-2.3, 2.5, 5.6]} light={7} />
       <PaperLantern position={[-2.5, 2.55, 8.3]} light={5} />
     </group>
   );
 }
 
-export function TeaChamber({
-  children,
-  reduced,
-}: {
-  children: React.ReactNode;
-  reduced: boolean;
-}) {
+/** Waiting-room furniture and wall pieces; mounts after the shell and holds no lights. */
+export function WaitingDetail() {
+  return (
+    <>
+      <Counter />
+      <WaitingDressing />
+      <Scroll hook={[-3.99, 2.255, 9.05]} paint={drawBamboo} />
+    </>
+  );
+}
+
+export function TeaChamber({ children }: { children: React.ReactNode }) {
   return (
     <group name="tea-chamber">
       <Floor center={-1.5} length={9.7} />
@@ -759,16 +761,7 @@ export function TeaChamber({
         to={3.25}
         posts={[-6.1, -3.4, -0.9, 1.7]}
       />
-      <Scroll hook={[-3.99, 2.255, -4.62]} />
-      <Scroll hook={[-3.99, 2.255, 0.4]} paint={drawBamboo} />
-      <Scroll
-        hook={[3.99, 2.255, -2.45]}
-        paint={drawIchigo}
-        turn={-Math.PI / 2}
-      />
       <Andon position={[-3.5, 0, -1.95]} />
-      <WallShelf position={[-3.895, 1.42, -2.25]} />
-      <Hengaku position={[-3.99, 2.84, -2.15]} />
       <RightWall />
       <Timber
         items={[-5.94, -1.53, 3.17].map((z) => [
@@ -785,6 +778,36 @@ export function TeaChamber({
       />
       <BackWall />
       <Tatami center={[0, 0, -2.5]} />
+      <TeaTable />
+      <PaperLantern position={[-1.05, 2.45, -2.6]} light={3.6} />
+      <pointLight
+        position={[-2.3, 2.45, -5.25]}
+        intensity={7}
+        color="#ffd5a0"
+        distance={7}
+      />
+      {children}
+    </group>
+  );
+}
+
+/**
+ * Chamber dressing and wall pieces; mounts after the shell and holds no lights. Its
+ * one-shot contact shadow renders here so it sees the cushions and dressing.
+ */
+export function ChamberDetail({ reduced }: { reduced: boolean }) {
+  return (
+    <>
+      <Scroll hook={[-3.99, 2.255, -4.62]} />
+      <Scroll hook={[-3.99, 2.255, 0.4]} paint={drawBamboo} />
+      <Scroll
+        hook={[3.99, 2.255, -2.45]}
+        paint={drawIchigo}
+        turn={-Math.PI / 2}
+      />
+      <WallShelf position={[-3.895, 1.42, -2.25]} />
+      <Hengaku position={[-3.99, 2.84, -2.15]} />
+      <ChamberDressing reduced={reduced} />
       <ContactShadows
         position={[0, 0.054, -2.5]}
         opacity={0.55}
@@ -795,16 +818,6 @@ export function TeaChamber({
         frames={1}
         color="#1c110a"
       />
-      <TeaTable />
-      <ChamberDressing reduced={reduced} />
-      <PaperLantern position={[-1.05, 2.45, -2.6]} light={3.6} />
-      <pointLight
-        position={[-2.3, 2.45, -5.25]}
-        intensity={7}
-        color="#ffd5a0"
-        distance={7}
-      />
-      {children}
-    </group>
+    </>
   );
 }

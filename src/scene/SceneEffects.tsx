@@ -1,5 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import {
+  startTransition,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { useFrame, useThree, type RootState } from '@react-three/fiber';
 import {
   Environment,
   Lightformer,
@@ -9,8 +19,11 @@ import {
   HalfFloatType,
   Vector2,
   WebGLRenderTarget,
+  type Group,
   type Material,
+  type Mesh,
   type Object3D,
+  type ShaderMaterial,
 } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -72,7 +85,15 @@ class SceneAOPass extends GTAOPass {
   }
 }
 
-function Composer({ reduced, ao }: { reduced: boolean; ao: boolean }) {
+function Composer({
+  reduced,
+  ao,
+  msaa,
+}: {
+  reduced: boolean;
+  ao: boolean;
+  msaa: number;
+}) {
   const gl = useThree((state) => state.gl);
   const scene = useThree((state) => state.scene);
   const camera = useThree((state) => state.camera);
@@ -118,6 +139,13 @@ function Composer({ reduced, ao }: { reduced: boolean; ao: boolean }) {
   useEffect(() => {
     pipeline.occlusion.enabled = ao;
   }, [pipeline, ao]);
+  useEffect(() => {
+    const { composer } = pipeline;
+    if (composer.renderTarget1.samples === msaa) return;
+    const target = composer.renderTarget1.clone();
+    target.samples = msaa;
+    composer.reset(target);
+  }, [pipeline, msaa]);
   useFrame((_, delta) => {
     if (!reduced) pipeline.grade.uniforms.time.value += delta;
     pipeline.composer.render(delta);
@@ -199,26 +227,172 @@ function RoomEnvironment() {
   );
 }
 
+/** Fog, reflections and light shafts belong to the lit shell: adding them later recompiles every program. */
+export function SceneLighting({ reduced }: { reduced: boolean }) {
+  return (
+    <>
+      <fogExp2 attach="fog" args={['#5c3c26', 0.045]} />
+      <RoomEnvironment />
+      <Atmosphere reduced={reduced} />
+    </>
+  );
+}
+
+/** Quality rungs, cheapest first. Sustained low fps steps down: AO, then MSAA, then DPR toward 1. */
+const LADDER = [
+  { ao: false, msaa: 0, dpr: 1 },
+  { ao: false, msaa: 0, dpr: 1.25 },
+  { ao: false, msaa: 0, dpr: 1.5 },
+  { ao: false, msaa: 4, dpr: 1.5 },
+  { ao: true, msaa: 4, dpr: 1.5 },
+];
+
 export function SceneEffects({ reduced }: { reduced: boolean }) {
   const setDpr = useThree((state) => state.setDpr);
-  // 2: AO + full dpr, 1: no AO, 0: no AO at 1x.
-  const [tier, setTier] = useState(2);
+  const [tier, setTier] = useState(LADDER.length - 1);
+  const rung = LADDER[tier];
   useEffect(() => {
-    const device = window.devicePixelRatio || 1;
-    setDpr(tier === 0 ? 1 : Math.min(device, tier === 1 ? 1.25 : 1.5));
-  }, [tier, setDpr]);
+    setDpr(Math.min(window.devicePixelRatio || 1, rung.dpr));
+  }, [rung, setDpr]);
   return (
     <>
       <PerformanceMonitor
         flipflops={3}
         onDecline={() => setTier((current) => Math.max(0, current - 1))}
-        onIncline={() => setTier((current) => Math.min(2, current + 1))}
+        onIncline={() =>
+          setTier((current) => Math.min(LADDER.length - 1, current + 1))
+        }
         onFallback={() => setTier(0)}
       />
-      <fogExp2 attach="fog" args={['#5c3c26', 0.045]} />
-      <RoomEnvironment />
-      <Atmosphere reduced={reduced} />
-      <Composer reduced={reduced} ao={tier === 2} />
+      <Composer reduced={reduced} ao={rung.ao} msaa={rung.msaa} />
     </>
   );
+}
+
+type Fade = {
+  material: Material;
+  opacity: number;
+  transparent: boolean;
+  forceSinglePass: boolean;
+};
+const FADE_SECONDS = 0.6;
+
+function collectFades(root: Object3D) {
+  const fades = new Map<Material, Fade>();
+  root.traverse((object) => {
+    const material = (object as Mesh).material;
+    for (const m of Array.isArray(material) ? material : [material]) {
+      if (!m || (m as ShaderMaterial).isShaderMaterial) continue;
+      fades.set(m, {
+        material: m,
+        opacity: m.opacity,
+        transparent: m.transparent,
+        forceSinglePass: m.forceSinglePass,
+      });
+    }
+  });
+  return [...fades.values()];
+}
+
+// `transparent` is part of three's program key, and a transparent double-sided
+// material draws in two passes with `side` swapped, so fading needs its own
+// variants. Single-pass keeps that to one extra program per opaque recipe.
+function hide(fade: Fade) {
+  const m = fade.material;
+  if (!fade.transparent) m.transparent = m.forceSinglePass = true;
+  m.opacity = 0;
+}
+
+function show(fade: Fade) {
+  const m = fade.material;
+  m.opacity = fade.opacity;
+  m.transparent = fade.transparent;
+  m.forceSinglePass = fade.forceSinglePass;
+  if (!fade.transparent) m.needsUpdate = true;
+}
+
+// A driver that never reports ready must not leave the room frozen.
+const settle = (work: Promise<unknown>) =>
+  Promise.race([
+    work,
+    new Promise((resolve) => setTimeout(resolve, 5000)),
+  ]).catch(() => undefined);
+
+/**
+ * Mounts `children` one frame after the shell, in a transition so React can slice the
+ * work. Its priority-1 frame slot keeps R3F from rendering until the composer (inside
+ * `children`) takes over, so no program is ever built for the unused on-screen variant.
+ * Once every child has resolved, with the frame loop paused, it runs `precompile` for
+ * the final look and again for the fade, then fades the new detail in.
+ */
+export function Staged({
+  children,
+  reduced,
+  precompile,
+}: {
+  children: ReactNode;
+  reduced: boolean;
+  precompile: (state: RootState) => Promise<unknown>;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const group = useRef<Group>(null);
+  const requested = useRef(false);
+  const fades = useRef<Fade[] | null>(null);
+  const progress = useRef(-1);
+  const get = useThree((state) => state.get);
+  const compile = useRef(precompile);
+  compile.current = precompile;
+  const reveal = useCallback(() => {
+    const list = (fades.current ??= collectFades(group.current!));
+    const { setFrameloop } = get();
+    setFrameloop('never');
+    let live = true;
+    // Deferred: Strict Mode's rehearsal unmount disposes materials, and a compile already
+    // polling them would throw. The cleanup cancels the start instead.
+    const start = setTimeout(async () => {
+      list.forEach(show);
+      await settle(compile.current(get()));
+      if (!live) return;
+      list.forEach(hide);
+      await settle(compile.current(get()));
+      if (!live) return;
+      setFrameloop('always');
+      progress.current = 0;
+    });
+    return () => {
+      live = false;
+      clearTimeout(start);
+      setFrameloop('always');
+    };
+  }, [get]);
+  useFrame((_, delta) => {
+    if (!mounted) {
+      if (!requested.current) startTransition(() => setMounted(true));
+      requested.current = true;
+      return;
+    }
+    if (progress.current < 0) return;
+    const t = (progress.current = reduced
+      ? 1
+      : Math.min(1, progress.current + delta / FADE_SECONDS));
+    const eased = t * t * (3 - 2 * t);
+    for (const fade of fades.current!)
+      fade.material.opacity = fade.opacity * eased;
+    if (t === 1) {
+      fades.current!.forEach(show);
+      progress.current = -1;
+    }
+  }, 1);
+  return (
+    <Suspense fallback={null}>
+      <group ref={group}>{mounted && children}</group>
+      {mounted && <OnCommit run={reveal} />}
+    </Suspense>
+  );
+}
+
+/** Runs after its Suspense siblings commit, i.e. once every lazy child has resolved. */
+function OnCommit({ run }: { run: () => () => void }) {
+  useLayoutEffect(run, [run]);
+  return null;
 }
