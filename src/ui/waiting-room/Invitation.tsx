@@ -40,6 +40,7 @@ const CAM_Z = 8.2;
 // sheet centred between the header and the controls below it. On wide
 // screens the side columns (see .inv-signers) also bound its width.
 const WIDE_RESERVE = { top: 96, bottom: 16, fill: 0.9, columns: true };
+// Narrow, the bottom reserve is the measured controls column (see .inv-controls).
 const NARROW_RESERVE = { top: 96, bottom: 190, fill: 0.9, columns: false };
 // Matches the wide rules in Invitation.css.
 const WIDE_QUERY = '(min-width: 1000px) and (min-aspect-ratio: 1/1)';
@@ -566,8 +567,10 @@ function Sheet({
 export function Invitation({ reduced }: { reduced: boolean }) {
   const [side, setSide] = useState<Side>('front');
   const [wide, setWide] = useState(true);
+  const [foot, setFoot] = useState(NARROW_RESERVE.bottom);
   const flips = useRef(0);
   const focus = useRef<number | null>(null);
+  const controls = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const media = window.matchMedia(WIDE_QUERY);
     const apply = () => setWide(media.matches);
@@ -575,6 +578,14 @@ export function Invitation({ reduced }: { reduced: boolean }) {
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
   }, []);
+  useEffect(() => {
+    const el = controls.current;
+    if (wide || !el) return;
+    // 10px below the column (its CSS bottom) and 16px of air above it.
+    const ro = new ResizeObserver(() => setFoot(el.offsetHeight + 26));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [wide]);
   return (
     <div className="inv" data-side={side}>
       <Canvas
@@ -590,7 +601,7 @@ export function Invitation({ reduced }: { reduced: boolean }) {
       >
         <Sheet
           reduced={reduced}
-          reserve={wide ? WIDE_RESERVE : NARROW_RESERVE}
+          reserve={wide ? WIDE_RESERVE : { ...NARROW_RESERVE, bottom: foot }}
           onSide={setSide}
           flips={flips}
           focus={focus}
@@ -600,46 +611,48 @@ export function Invitation({ reduced }: { reduced: boolean }) {
         </group>
       </Canvas>
 
-      <aside className="inv-signers" aria-label="The team on X">
-        <p className="inv-label">Signed at the door</p>
-        <ul>
-          {TEAM.map((member, i) => (
-            <li
-              key={member.handle}
-              onPointerEnter={() => (focus.current = i)}
-              onPointerLeave={() => (focus.current = null)}
-              onFocus={() => (focus.current = i)}
-              onBlur={() => (focus.current = null)}
-            >
-              <a href={xUrl(member.handle)} target="_blank" rel="noreferrer">
-                <span>@{member.handle}</span>
-                <small>{member.roles}</small>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      <div ref={controls} className="inv-controls">
+        <aside className="inv-signers" aria-label="The team on X">
+          <p className="inv-label">Signed at the door</p>
+          <ul>
+            {TEAM.map((member, i) => (
+              <li
+                key={member.handle}
+                onPointerEnter={() => (focus.current = i)}
+                onPointerLeave={() => (focus.current = null)}
+                onFocus={() => (focus.current = i)}
+                onBlur={() => (focus.current = null)}
+              >
+                <a href={xUrl(member.handle)} target="_blank" rel="noreferrer">
+                  <span>@{member.handle}</span>
+                  <small>{member.roles}</small>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </aside>
 
-      <div className="inv-turn">
-        <button
-          type="button"
-          className="inv-flip"
-          onClick={() => {
-            flips.current += 1;
-          }}
-          aria-pressed={side === 'back'}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6" />
-            <path d="M17.7 2.8v3.6h-3.6M6.3 21.2v-3.6h3.6" />
-          </svg>
-          {side === 'front' ? 'Turn it over' : 'Back to the charter'}
-        </button>
-        <p className="inv-hint" aria-hidden="true">
-          <span className="on-mouse">Drag to turn · Hover to light</span>
-          <span className="on-touch">Drag the sheet to turn it</span>
-        </p>
-        <p className="inv-honesty">{PROJECT.honesty}</p>
+        <div className="inv-turn">
+          <button
+            type="button"
+            className="inv-flip"
+            onClick={() => {
+              flips.current += 1;
+            }}
+            aria-pressed={side === 'back'}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6" />
+              <path d="M17.7 2.8v3.6h-3.6M6.3 21.2v-3.6h3.6" />
+            </svg>
+            {side === 'front' ? 'Turn it over' : 'Back to the charter'}
+          </button>
+          <p className="inv-hint" aria-hidden="true">
+            <span className="on-mouse">Drag to turn · Hover to light</span>
+            <span className="on-touch">Drag the sheet to turn it</span>
+          </p>
+          <p className="inv-honesty">{PROJECT.honesty}</p>
+        </div>
       </div>
 
       <div className="sr-only" aria-live="polite">

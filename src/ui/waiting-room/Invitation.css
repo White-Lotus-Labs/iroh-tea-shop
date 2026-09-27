@@ -23,6 +23,9 @@
   text-transform: uppercase;
   color: var(--wr-gold-hi);
 }
+.inv-controls {
+  display: contents;
+}
 .inv-signers,
 .inv-turn {
   position: absolute;
@@ -169,22 +172,30 @@
 
 /* Everything that is not WIDE_QUERY in Invitation.tsx. */
 @media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
-  .inv-signers,
-  .inv-turn {
-    top: auto;
+  /* One column under the sheet, so the chips can wrap without overlap. */
+  .inv-controls {
+    position: absolute;
+    bottom: 10px;
     left: 50%;
-    right: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 14px;
     width: min(720px, calc(100vw - 24px));
     transform: translateX(-50%);
   }
+  .inv-signers,
   .inv-turn {
-    bottom: 128px;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: auto;
+    transform: none;
+  }
+  .inv-turn {
     justify-items: center;
     text-align: center;
     gap: 8px;
-  }
-  .inv-signers {
-    bottom: 10px;
   }
   .inv-label,
   .inv-honesty,
@@ -219,6 +230,18 @@
   }
   .inv-signers a small {
     display: none;
+  }
+}
+/* The five handles still fit two rows on the narrowest phones. */
+@media (max-width: 360px) {
+  .inv-signers ul {
+    gap: 5px;
+  }
+  .inv-signers a {
+    padding: 8px 10px;
+  }
+  .inv-signers a span {
+    font-size: 14px;
   }
 }
 
