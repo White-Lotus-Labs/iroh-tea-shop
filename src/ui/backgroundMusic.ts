@@ -25,13 +25,14 @@ export function loopBounds(samples: Float32Array, sampleRate: number) {
   return { start: start / sampleRate, end: end / sampleRate };
 }
 
+/** On unless the guest turned it off. */
 export function readBackgroundMusic(
   storage: Pick<Storage, 'getItem'>,
 ): boolean {
   try {
-    return storage.getItem(BACKGROUND_MUSIC_KEY) === 'on';
+    return storage.getItem(BACKGROUND_MUSIC_KEY) !== 'off';
   } catch {
-    return false;
+    return true;
   }
 }
 

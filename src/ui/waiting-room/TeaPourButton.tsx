@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, type CSSProperties } from 'react';
+import { whenBookRests } from './bookMotion';
 
 // A black raku chawan seen from above. A tokoname kyusu pours sencha into it
 // while the room loads; the pool grows to the rim, then the pot withdraws.
@@ -11,6 +12,8 @@ const SPAN = 1.6;
 const POOL = 0.72;
 const LAND: [number, number] = [0.55, 0.83];
 const LAMP: [number, number, number] = [-0.62, 0.76, 2.2];
+/** Fastest the bowl fills while the room loads, in bowls per second. */
+const FILL_RATE = 1 / 12;
 
 const VERT = `#version 300 es
 void main() {
@@ -205,8 +208,28 @@ function link(gl: WebGL2RenderingContext) {
     gl.compileShader(shader);
     gl.attachShader(program, shader);
   }
+  // Not checked here: asking for LINK_STATUS now would block until the driver
+  // links, a few hundred ms on ANGLE/D3D11 while the sketchbook opens.
   gl.linkProgram(program);
-  return gl.getProgramParameter(program, gl.LINK_STATUS) ? program : null;
+  return program;
+}
+
+function uniforms(gl: WebGL2RenderingContext, program: WebGLProgram) {
+  const at = (name: string) => gl.getUniformLocation(program, name);
+  return {
+    res: at('uRes'),
+    span: at('uSpan'),
+    t: at('uT'),
+    pool: at('uPool'),
+    ready: at('uReady'),
+    spout: at('uSpout'),
+    steam: at('uSteam'),
+    land: at('uLand'),
+    stream: at('uStream'),
+    light: at('uLight'),
+    well: at('uWell'),
+    rip: at('uRip'),
+  };
 }
 
 const ease = (from: number, to: number, dt: number, rate: number) =>
@@ -231,26 +254,42 @@ export function TeaPourButton({
   live.current = { fill, ready, reduced };
 
   useEffect(() => {
+    // Creating a WebGL context blocks the page for a few hundred ms, so the
+    // CSS bowl pours until the sketchbook rests.
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    void whenBookRests().then(() => {
+      if (!cancelled) stop = start();
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, []);
+
+  function start() {
     const btn = button.current;
     const cv = canvas.current;
     const gl = cv?.getContext('webgl2', { premultipliedAlpha: true });
     const program = gl && link(gl);
     if (!btn || !cv || !gl || !program) return;
-    gl.useProgram(program);
-    const at = (name: string) => gl.getUniformLocation(program, name);
-    const u = {
-      res: at('uRes'),
-      span: at('uSpan'),
-      t: at('uT'),
-      pool: at('uPool'),
-      ready: at('uReady'),
-      spout: at('uSpout'),
-      steam: at('uSteam'),
-      land: at('uLand'),
-      stream: at('uStream'),
-      light: at('uLight'),
-      well: at('uWell'),
-      rip: at('uRip'),
+    const parallel = gl.getExtension('KHR_parallel_shader_compile');
+    let found: ReturnType<typeof uniforms> | null = null;
+    let broken = false;
+    // The CSS bowl shows until the driver has linked the program in the background.
+    const linked = () => {
+      if (found) return found;
+      if (
+        parallel &&
+        !gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR)
+      )
+        return null;
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        broken = true;
+        return null;
+      }
+      gl.useProgram(program);
+      return (found = uniforms(gl, program));
     };
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const ripples: { x: number; y: number; t: number }[] = [];
@@ -337,7 +376,11 @@ export function TeaPourButton({
         ripples.length = 0;
       } else {
         clock += dt;
-        level = ease(level, target, dt, done ? 6 : 3);
+        // A slow pour while the guest reads: at most a full bowl in ~12 s.
+        // Once the room is ready the last of it goes in quickly.
+        level = done
+          ? ease(level, target, dt, 2.5)
+          : level + Math.max(-dt, Math.min(target - level, dt * FILL_RATE));
         glow = ease(glow, done ? 1 : 0, dt, 2);
         if (!done) pouring = true;
         if (pouring && (!done || level < 0.97)) {
@@ -367,6 +410,11 @@ export function TeaPourButton({
         well.amount = ease(well.amount, ptr.near ? 1 : 0, dt, 5);
       }
 
+      const u = linked();
+      if (!u) {
+        if (broken) cancelAnimationFrame(raf);
+        return;
+      }
       if (size && cv.width !== size) cv.width = cv.height = size;
       const sig = calm ? `${level}|${glow}|${size}` : '';
       if (!size || (sig && sig === drawn)) return;
@@ -421,7 +469,7 @@ export function TeaPourButton({
       gl.deleteProgram(program);
       delete btn.dataset.gl;
     };
-  }, []);
+  }
 
   return (
     <button

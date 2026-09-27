@@ -3032,6 +3032,24 @@ body:has(.auth-shell) {
     0 2px 6px rgba(20, 10, 5, 0.35),
     inset 0 1px rgba(255, 230, 180, 0.25);
 }
+/* On desktop the knob lines up with the header: centred on its main line and
+   flush with the right edge its rule and content end on. */
+@media (min-width: 761px) {
+  .app-shell[data-station='Counter'] .panel-close {
+    top: 16px;
+    right: clamp(22px, 3.2vw, 52px);
+  }
+  .app-shell[data-station='Counter'] .reading-panel .deck-head {
+    padding-right: 50px;
+  }
+  .app-shell[data-station='AvatarSeat'] .panel-close {
+    top: 32px;
+    right: clamp(20px, 2.6vw, 38px);
+  }
+  .app-shell[data-station='AvatarSeat'] .reading-panel .iroh-chat-head {
+    padding-right: calc(clamp(20px, 2.6vw, 38px) + 50px);
+  }
+}
 .app-shell .panel-close > span[aria-hidden] {
   transition: transform 260ms var(--ease-lift);
 }
@@ -3470,29 +3488,17 @@ body:has(.auth-shell) {
     bottom: calc(100% + var(--band-top) - 24px);
   }
 }
+/* Opacity and translate only: both stay on the compositor. The old blur and
+   sweeping mask repainted every block of the scroll each frame while it
+   unrolled over the live room, which read as the scroll loading twice. */
 @keyframes ink-bleed {
   from {
     opacity: 0;
-    filter: blur(5px);
-    -webkit-mask-image: linear-gradient(100deg, #000 42%, transparent 58%);
-    mask-image: linear-gradient(100deg, #000 42%, transparent 58%);
-    -webkit-mask-size: 260% 100%;
-    mask-size: 260% 100%;
-    -webkit-mask-position: 100% 0;
-    mask-position: 100% 0;
-  }
-  55% {
-    opacity: 1;
+    translate: 0 6px;
   }
   to {
     opacity: 1;
-    filter: blur(0);
-    -webkit-mask-image: linear-gradient(100deg, #000 42%, transparent 58%);
-    mask-image: linear-gradient(100deg, #000 42%, transparent 58%);
-    -webkit-mask-size: 260% 100%;
-    mask-size: 260% 100%;
-    -webkit-mask-position: 0 0;
-    mask-position: 0 0;
+    translate: 0 0;
   }
 }
 @keyframes ink-type {

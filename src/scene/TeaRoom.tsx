@@ -1,12 +1,13 @@
 import {
   Component,
+  startTransition,
   Suspense,
   type ReactNode,
   useEffect,
   useMemo,
   useState,
 } from 'react';
-import { Canvas, type RootState } from '@react-three/fiber';
+import { advance, Canvas, useStore, type RootState } from '@react-three/fiber';
 import { ContactShadows, useProgress } from '@react-three/drei';
 import { WebGLRenderTarget } from 'three';
 import { CameraRig } from './CameraRig';
@@ -34,6 +35,7 @@ import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 import type { ThesisId } from '../thesis/types';
+import { bookResting } from '../ui/waiting-room/bookMotion';
 
 function RoomGeometry({
   mood,
@@ -185,6 +187,93 @@ function compileRoom({ gl, scene, camera }: RootState) {
   return done.finally(() => target.dispose());
 }
 
+/**
+ * Builds whatever programs the room needs right now (a texture that arrived
+ * late is a new variant) and says whether the driver has linked them all. It
+ * only asks, never waits, so a frame drawn straight after a `true` cannot
+ * block on a link.
+ */
+function linkedNow({ gl, scene, camera }: RootState) {
+  const target = new WebGLRenderTarget(1, 1),
+    previous = gl.getRenderTarget();
+  gl.setRenderTarget(target);
+  const materials = gl.compile(scene, camera);
+  gl.setRenderTarget(previous);
+  target.dispose();
+  for (const material of materials) {
+    const { currentProgram: program } = gl.properties.get(material) as {
+      currentProgram?: { isReady: () => boolean };
+    };
+    if (program && !program.isReady()) return false;
+  }
+  return true;
+}
+
+/**
+ * Behind the waiting room nobody sees the room, but the page curl, petals and
+ * pour share the page with it. Draw a few frames a second while the book rests
+ * (textures upload, shadows settle, staging finishes) and none while a page
+ * turns. Each frame waits until its programs are linked, so a late texture
+ * never blocks on a shader link. The loop stays 'never' so nothing else (a
+ * prop change, a loaded texture) can draw a frame in between.
+ */
+function HiddenFrames({ hidden }: { hidden: boolean }) {
+  const store = useStore();
+  useEffect(() => {
+    if (!hidden) return;
+    const hold = () => {
+      const state = store.getState();
+      if (state.frameloop === 'never') return;
+      state.setFrameloop('never');
+      // Switching the loop on (Staged does) already queued a frame; drop it.
+      state.internal.frames = 0;
+    };
+    hold();
+    const unsubscribe = store.subscribe(hold);
+    // Check and draw in the same task, so nothing can add a variant between.
+    const tick = window.setInterval(() => {
+      const state = store.getState();
+      if (bookResting() && linkedNow(state))
+        // advance() takes seconds; r3f derives delta from it.
+        advance(performance.now() / 1000, true, state);
+    }, 250);
+    return () => {
+      unsubscribe();
+      window.clearInterval(tick);
+      // The enter button waits for staging, so no compile is left to protect.
+      store.getState().setFrameloop('always');
+    };
+  }, [hidden, store]);
+  return null;
+}
+
+/**
+ * Mounts the room in a transition, so React slices its first render into
+ * short tasks instead of one long one while the sketchbook is on screen.
+ */
+function InTransition({ children }: { children: ReactNode }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => startTransition(() => setShown(true)), []);
+  return shown ? children : null;
+}
+
+/**
+ * Textures load through three's default manager, which useProgress observes.
+ * Its own leaf: a store update renders synchronously, and in TeaRoom every
+ * loaded texture re-rendered the whole scene.
+ */
+function LoadProgress({
+  onLoadProgress,
+}: {
+  onLoadProgress?: (active: boolean, progress: number) => void;
+}) {
+  const { active, progress } = useProgress();
+  useEffect(() => {
+    onLoadProgress?.(active, progress);
+  }, [active, progress, onLoadProgress]);
+  return null;
+}
+
 class SceneBoundary extends Component<
   { children: ReactNode; fallback: ReactNode; onUnavailable: () => void },
   { failed: boolean }
@@ -247,11 +336,6 @@ export default function TeaRoom({
   hostModel: boolean;
 }) {
   const [lost, setLost] = useState(false);
-  // Textures load through three's default manager, which useProgress observes.
-  const { active, progress } = useProgress();
-  useEffect(() => {
-    onLoadProgress?.(active, progress);
-  }, [active, progress, onLoadProgress]);
   const light = lightExperience();
   const counterPosition = STATIONS.find(
     (place) => place.id === 'Counter',
@@ -265,65 +349,71 @@ export default function TeaRoom({
   );
   if (lost) return fallback;
   return (
-    <SceneBoundary
-      fallback={fallback}
-      onUnavailable={() => onAvailabilityChange(false)}
-    >
-      <Canvas
-        shadows="percentage"
-        dpr={light ? [1, 1] : [1, 1.25]}
-        camera={{
-          position: light ? [0.05, 1.66, 7.82] : counterPosition,
-          fov: 58,
-          near: 0.08,
-          far: 45,
-        }}
-        gl={{ antialias: true, toneMappingExposure: 1.0 }}
+    <>
+      <LoadProgress onLoadProgress={onLoadProgress} />
+      <SceneBoundary
         fallback={fallback}
-        onCreated={({ gl }) => {
-          gl.domElement.addEventListener(
-            'webglcontextlost',
-            (event) => {
-              event.preventDefault();
-              setLost(true);
-              onAvailabilityChange(false);
-            },
-            { once: true },
-          );
-          onAvailabilityChange(true);
-        }}
+        onUnavailable={() => onAvailabilityChange(false)}
       >
-        <Suspense fallback={null}>
-          <Surfaces>
-            <RoomGeometry
-              mood={mood}
-              reduced={reduced}
-              requestKey={requestKey}
-              irohActivity={irohActivity}
-              onShelfSelect={onShelfSelect}
-              shelfRevealed={shelfRevealed}
-              station={station}
-              menuClosed={menuClosed}
-              onMenuOpen={onMenuOpen}
-              onThesisPick={onThesisPick}
-              onNavigate={onNavigate}
-              onStaged={onStaged}
-              hostModel={hostModel}
-            />
-          </Surfaces>
-        </Suspense>
-        <CameraRig
-          station={station}
-          shelfFocused={shelfFocused}
-          reduced={reduced}
-          resetKey={resetKey}
-          typing={typing}
-          reading={reading}
-          allowTravelWhileTyping={allowTravelWhileTyping}
-          onArrive={onArrive}
-        />
-        <DevShotCamera />
-      </Canvas>
-    </SceneBoundary>
+        <Canvas
+          shadows="percentage"
+          dpr={light ? [1, 1] : [1, 1.25]}
+          camera={{
+            position: light ? [0.05, 1.66, 7.82] : counterPosition,
+            fov: 58,
+            near: 0.08,
+            far: 45,
+          }}
+          gl={{ antialias: true, toneMappingExposure: 1.0 }}
+          fallback={fallback}
+          onCreated={({ gl }) => {
+            gl.domElement.addEventListener(
+              'webglcontextlost',
+              (event) => {
+                event.preventDefault();
+                setLost(true);
+                onAvailabilityChange(false);
+              },
+              { once: true },
+            );
+            onAvailabilityChange(true);
+          }}
+        >
+          <Suspense fallback={null}>
+            <Surfaces>
+              <InTransition>
+                <RoomGeometry
+                  mood={mood}
+                  reduced={reduced}
+                  requestKey={requestKey}
+                  irohActivity={irohActivity}
+                  onShelfSelect={onShelfSelect}
+                  shelfRevealed={shelfRevealed}
+                  station={station}
+                  menuClosed={menuClosed}
+                  onMenuOpen={onMenuOpen}
+                  onThesisPick={onThesisPick}
+                  onNavigate={onNavigate}
+                  onStaged={onStaged}
+                  hostModel={hostModel}
+                />
+              </InTransition>
+            </Surfaces>
+          </Suspense>
+          <CameraRig
+            station={station}
+            shelfFocused={shelfFocused}
+            reduced={reduced}
+            resetKey={resetKey}
+            typing={typing}
+            reading={reading}
+            allowTravelWhileTyping={allowTravelWhileTyping}
+            onArrive={onArrive}
+          />
+          <DevShotCamera />
+          <HiddenFrames hidden={station === 'Entrance'} />
+        </Canvas>
+      </SceneBoundary>
+    </>
   );
 }

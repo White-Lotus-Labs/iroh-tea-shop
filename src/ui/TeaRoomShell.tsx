@@ -19,6 +19,7 @@ import type { ConvictionLevel, ThesisId } from '../thesis/types';
 import { convictionToMood } from './convictionMood';
 import { InkLine, STATION_TEASERS } from './stationTeasers';
 import { WaitingRoom } from './waiting-room/WaitingRoom';
+import { whenBookRests } from './waiting-room/bookMotion';
 import { WaitingVersions } from './waiting-room/Versions';
 import { MusicToggle } from './MusicToggle';
 import { roomTextures, SHELF_POSTERS } from './roomTextures';
@@ -46,35 +47,19 @@ const warmTeaRoom = () => {
   });
 };
 
-let firstSpread: Promise<void> | undefined;
-/** Resolves once the sketchbook's first spread is baked (or after 12 s), so the room never competes with the first read. */
-const afterFirstSpread = () =>
-  (firstSpread ??= new Promise<void>((resolve) => {
-    const done = () => {
-      observer.disconnect();
-      resolve();
-    };
-    const check = () => {
-      const bake = document
-        .querySelector('[data-bake]')
-        ?.getAttribute('data-bake');
-      if (Number(bake) >= 2) done();
-    };
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['data-bake'],
-    });
-    window.setTimeout(done, 12000);
-    check();
-  }));
-
-const TeaRoom = dynamic(() => afterFirstSpread().then(loadTeaRoom), {
-  ssr: false,
-  loading: () => <div className="scene-fallback" />,
-});
+// The sketchbook plays first. Each heavy step of the room (parsing three.js,
+// then mounting and compiling the scene) waits for the book to rest, so no
+// step lands in a page turn. The guest is reading; a slow load is fine.
+const TeaRoom = dynamic(
+  () =>
+    whenBookRests()
+      .then(loadTeaRoom)
+      .then((room) => whenBookRests().then(() => room)),
+  {
+    ssr: false,
+    loading: () => <div className="scene-fallback" />,
+  },
+);
 const ThesisDeck = dynamic(loadThesisDeck, {
   loading: () => null,
 });
@@ -133,12 +118,19 @@ export default function TeaRoomShell({
   const onStaged = useCallback(() => setStaged(true), []);
   const [revealed, setRevealed] = useState(false);
   const onReveal = useCallback(() => setRevealed(true), []);
-  // Warm the 3D room behind the sketchbook, after its first spread.
-  useEffect(() => void afterFirstSpread().then(warmTeaRoom), []);
+  // Warm the 3D room behind the sketchbook once it rests.
+  useEffect(() => void whenBookRests().then(warmTeaRoom), []);
   // Warm the shelf posters and the Counter / Host panels once the room is ready to enter.
   useEffect(() => {
     if (!sceneReady) return;
     return idlePreload(() => {
+      // The scroll seals and watermark use the CJK face, which is not
+      // preloaded; fetch its glyph slices now so a first scroll does not swap.
+      const cjk = getComputedStyle(document.documentElement)
+        .getPropertyValue('--font-cjk-face')
+        .trim();
+      if (cjk)
+        document.fonts.load(`600 20px ${cjk}`, '茶禅签师卷星').catch(() => {});
       for (const src of SHELF_POSTERS) {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -284,16 +276,19 @@ export default function TeaRoomShell({
   }, []);
   const onLoadProgress = useCallback((active: boolean, progress: number) => {
     setAssetsLoading(active);
-    setAssetProgress((current) => Math.max(current, progress));
+    // Every loaded texture reports; tenths keep that from re-rendering the
+    // shell on each one. The pour eases between steps anyway.
+    const step = Math.floor(progress / 10) * 10;
+    setAssetProgress((current) => Math.max(current, step));
   }, []);
   const sceneSettled =
     sceneFailed || (sceneAvailable && staged && !assetsLoading);
   useEffect(() => {
     if (sceneReady) return;
-    // Wait for loading to stay quiet briefly; never hold the room past 20s.
+    // Wait for loading to stay quiet briefly; never hold the room past 30s.
     const timer = window.setTimeout(
       () => setSceneReady(true),
-      sceneSettled ? 450 : 20000,
+      sceneSettled ? 450 : 30000,
     );
     return () => window.clearTimeout(timer);
   }, [sceneSettled, sceneReady]);
