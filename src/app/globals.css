@@ -3160,10 +3160,10 @@ body:has(.auth-shell) {
 /* ---------- Motion ---------- */
 @keyframes paper-arrive {
   from {
-    clip-path: inset(-120px -120px calc(100% - 26px) -120px);
+    clip-path: inset(-120px -120px calc(100% - 14px) -120px);
   }
   99% {
-    clip-path: inset(-120px -120px -10px -120px);
+    clip-path: inset(-120px -120px 3px -120px);
   }
   to {
     clip-path: inset(-120px -120px -120px -120px);
@@ -3192,11 +3192,14 @@ body:has(.auth-shell) {
 }
 @keyframes paper-roll-up {
   from {
-    clip-path: inset(-120px -120px -10px -120px);
+    clip-path: inset(-120px -120px 3px -120px);
+  }
+  78% {
+    opacity: 1;
   }
   to {
-    clip-path: inset(-120px -120px calc(100% - 26px) -120px);
-    opacity: 0.4;
+    clip-path: inset(-120px -120px calc(100% - 14px) -120px);
+    opacity: 0;
   }
 }
 @keyframes roller-ascend {
@@ -3406,6 +3409,7 @@ body:has(.auth-shell) {
   pointer-events: none;
 }
 .halo-label {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3425,6 +3429,16 @@ body:has(.auth-shell) {
     inset 0 1px rgba(255, 226, 170, 0.14);
   user-select: none;
   animation: halo-label-rise 520ms var(--ease-lift) both;
+}
+/* A short gilt thread pins the tag to the smoke ring below it. */
+.halo-label::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: 18px;
+  background: linear-gradient(rgba(233, 201, 131, 0.85), transparent);
 }
 .halo-label[data-clickable='true'] {
   cursor: pointer;
@@ -3598,6 +3612,7 @@ body:has(.auth-shell) {
   transform: none;
 }
 .status-popup {
+  min-width: 260px;
   transform: none;
   clip-path: inset(-12px -12px 100% -12px);
   transition:
