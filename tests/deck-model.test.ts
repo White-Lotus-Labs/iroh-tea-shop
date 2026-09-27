@@ -7,6 +7,7 @@ import {
   convictionSentence,
   formatRelative,
   isDust,
+  localStore,
   readFollowed,
   toggleFollowed,
   xIntentUrl,
@@ -81,5 +82,31 @@ describe('deck model', () => {
     expect(readFollowed(storage)).toEqual(['robinhood']);
     data.set('tea.followedTheses', '{bad');
     expect(readFollowed(storage)).toEqual([]);
+  });
+
+  it('keeps follows in memory when the browser blocks site data', () => {
+    const blocked = {} as Window;
+    Object.defineProperty(blocked, 'localStorage', {
+      get() {
+        throw new DOMException('denied', 'SecurityError');
+      },
+    });
+    const g = globalThis as { window?: Window };
+    const saved = g.window;
+    g.window = blocked;
+    try {
+      expect(localStore()).toBeNull();
+    } finally {
+      g.window = saved;
+    }
+    expect(readFollowed(null)).toEqual([]);
+    expect(toggleFollowed(null, 'ai')).toEqual(['ai']);
+    const full = {
+      getItem: () => '["bullrun"]',
+      setItem: () => {
+        throw new DOMException('full', 'QuotaExceededError');
+      },
+    };
+    expect(toggleFollowed(full, 'ai')).toEqual(['bullrun', 'ai']);
   });
 });

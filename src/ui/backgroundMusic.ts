@@ -27,21 +27,21 @@ export function loopBounds(samples: Float32Array, sampleRate: number) {
 
 /** On unless the guest turned it off. */
 export function readBackgroundMusic(
-  storage: Pick<Storage, 'getItem'>,
+  storage: Pick<Storage, 'getItem'> | null,
 ): boolean {
   try {
-    return storage.getItem(BACKGROUND_MUSIC_KEY) !== 'off';
+    return storage?.getItem(BACKGROUND_MUSIC_KEY) !== 'off';
   } catch {
     return true;
   }
 }
 
 export function writeBackgroundMusic(
-  storage: Pick<Storage, 'setItem'>,
+  storage: Pick<Storage, 'setItem'> | null,
   enabled: boolean,
 ) {
   try {
-    storage.setItem(BACKGROUND_MUSIC_KEY, enabled ? 'on' : 'off');
+    storage?.setItem(BACKGROUND_MUSIC_KEY, enabled ? 'on' : 'off');
   } catch {
     /* Private mode and blocked storage keep the in-memory choice. */
   }

@@ -42,6 +42,8 @@ describe('background music preference', () => {
     };
     expect(readBackgroundMusic(storage)).toBe(true);
     expect(() => writeBackgroundMusic(storage, true)).not.toThrow();
+    expect(readBackgroundMusic(null)).toBe(true);
+    expect(() => writeBackgroundMusic(null, false)).not.toThrow();
   });
 });
 

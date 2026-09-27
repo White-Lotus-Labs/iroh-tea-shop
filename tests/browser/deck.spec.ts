@@ -217,3 +217,21 @@ test('full motion reading switches theses in place and returns focus to the book
   await expect(robinhood).toHaveAccessibleName(/Following\./);
   expect(errors).toEqual([]);
 });
+
+test('blocked site storage does not crash the page', async ({ page }) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('denied', 'SecurityError');
+      },
+    }),
+  );
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  const music = page.getByRole('button', { name: 'Background music' });
+  await expect(music).toBeVisible({ timeout: 45000 });
+  await music.click();
+  expect(errors).toEqual([]);
+});

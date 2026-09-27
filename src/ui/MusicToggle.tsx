@@ -7,6 +7,7 @@ import {
   readBackgroundMusic,
   writeBackgroundMusic,
 } from './backgroundMusic';
+import { localStore } from './deckModel';
 import './MusicToggle.css';
 
 const VOLUME = 0.7;
@@ -93,7 +94,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
     (next: boolean) => {
       want.current = next;
       setOn(next);
-      writeBackgroundMusic(window.localStorage, next);
+      writeBackgroundMusic(localStore(), next);
       if (next) start();
       else fade();
     },
@@ -101,7 +102,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
   );
 
   useEffect(() => {
-    if (!readBackgroundMusic(window.localStorage)) return;
+    if (!readBackgroundMusic(localStore())) return;
     want.current = true;
     setOn(true);
   }, []);
