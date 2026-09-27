@@ -3836,7 +3836,7 @@ body:has(.auth-shell) {
 }
 
 /* ==========================================================================
-   Scroll UI — topbar slips, entrance hero, and loader share the language.
+   Scroll UI — topbar slips and entrance hero share the language.
    ========================================================================== */
 .brand-text {
   font-family: var(--font-display);
@@ -4073,5 +4073,3 @@ body:has(.auth-shell) {
     transform: none;
   }
 }
-
-/* Loader: calligraphy line over a silk band that fills with gold ink. */
