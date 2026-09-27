@@ -240,7 +240,7 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
   await expect.poll(() => Boolean(release)).toBe(true);
   await page.getByRole('button', { name: 'Stop generation' }).click();
   release();
-  await expect(page.getByText('Stopped', { exact: true })).toBeVisible();
+  await expect(page.getByText('Stopped · partial answer')).toBeVisible();
   await expect(input).toBeEnabled();
   await page.getByRole('button', { name: 'Begin a new conversation' }).click();
   await expect(page.getByText('Is anyone buying ETH?')).not.toBeVisible();

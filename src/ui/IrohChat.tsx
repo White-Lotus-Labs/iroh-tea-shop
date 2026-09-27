@@ -43,16 +43,16 @@ export function IrohChat({
     return ((await response.json()) as { chats: ChatSummary[] }).chats;
   };
   // Failures show fixed copy, never raw fetch text such as 'Failed to fetch'.
-  // Returns null when an unmount, openChat, or newer newChat made it stale.
+  // Skip the result when an unmount, openChat, or newer newChat made it stale.
   const createChat = async () => {
     const generation = loadGeneration.current;
     const response = await fetch('/api/iroh/chats', { method: 'POST' });
     if (!response.ok) throw new Error();
     const { chat } = (await response.json()) as { chat: ChatSummary };
-    if (generation !== loadGeneration.current) return null;
+    if (generation !== loadGeneration.current) return;
     session.restore(chat.id, [], null);
     setSelectedId(chat.id);
-    return chat;
+    setHistory((current) => [chat, ...current]);
   };
 
   const openChat = async (chatId: string) => {
@@ -85,21 +85,14 @@ export function IrohChat({
   };
 
   const newChat = async () => {
-    if (!user) {
-      session.reset();
-      setDraft('');
-      input.current?.focus();
-      return;
-    }
+    setDraft('');
+    input.current?.focus();
+    if (!user) return session.reset();
     ++loadGeneration.current;
     session.stop();
     setHistoryError(null);
     try {
-      const chat = await createChat();
-      if (!chat) return;
-      setHistory((current) => [chat, ...current]);
-      setDraft('');
-      input.current?.focus();
+      await createChat();
     } catch {
       setHistoryOpen(true);
       setHistoryError('Could not create a chat.');
@@ -123,8 +116,7 @@ export function IrohChat({
           setSelectedId(target);
           if (current !== target) await openChat(target);
         } else {
-          const chat = await createChat();
-          if (chat) setHistory([chat]);
+          await createChat();
         }
       } catch {
         if (!cancelled) {
@@ -273,9 +265,7 @@ export function IrohChat({
                 </div>
                 {message.content && <IrohMessage content={message.content} />}
                 {message.status === 'stopped' && (
-                  <small>
-                    {message.content ? 'Stopped · partial answer' : 'Stopped'}
-                  </small>
+                  <small>Stopped · partial answer</small>
                 )}
               </article>
             ))}
