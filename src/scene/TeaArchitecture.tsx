@@ -10,7 +10,7 @@ import { ChamberDressing, WaitingDressing } from './props/Dressing';
 import { TeaTable } from './props/TeaTable';
 import { BackWall } from './props/BackWall';
 import { RightWall } from './props/RightWall';
-import { WallShelf, WallTrim } from './props/WallDetail';
+import { Hengaku, WallShelf, WallTrim } from './props/WallDetail';
 import {
   block,
   boxUv,
@@ -797,6 +797,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
       />
       <Andon position={[-3.5, 0, -1.95]} />
       <WallShelf position={[-3.865, 1.42, -2.25]} />
+      <Hengaku position={[-3.99, 2.84, -2.15]} />
       <RightWall />
       <Timber
         items={[-5.94, -1.53, 3.17].map((z) => [

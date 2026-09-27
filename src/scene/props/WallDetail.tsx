@@ -10,6 +10,7 @@ import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
 import {
   block,
+  brushText,
   canvasTexture,
   merge,
   paint,
@@ -217,6 +218,69 @@ export function WallShelf({ position }: { position: Point }) {
         <sphereGeometry args={[1, 10, 8]} />
         <meshStandardMaterial color="#f2ece0" roughness={0.6} />
       </mesh>
+    </group>
+  );
+}
+
+/** 茶禅一味 ("tea and Zen are one taste"), right to left in pale gold on a dark board. */
+function drawHengaku(ctx: CanvasRenderingContext2D) {
+  const random = createRandom(2024);
+  ctx.fillStyle = '#2a1a10';
+  ctx.fillRect(0, 0, 1024, 320);
+  for (let i = 0; i < 320; i++) {
+    ctx.fillStyle = `rgba(${random() > 0.5 ? '80,52,32' : '14,8,4'},${0.1 + random() * 0.2})`;
+    ctx.fillRect(0, random() * 320, 1024, 0.8 + random() * 2.4);
+  }
+  [...'茶禅一味'].forEach((char, i) => {
+    const x = 896 - i * 256;
+    brushText(ctx, char, x + 4, 58, 200, '8,4,2');
+    brushText(ctx, char, x, 54, 200, '214,190,132');
+  });
+  ctx.fillStyle = '#9e2f1c';
+  ctx.fillRect(40, 236, 40, 40);
+  brushText(ctx, '閑', 60, 239, 34, '236,214,180');
+}
+
+/** A framed calligraphy board (hengaku) hung above the nageshi, its top tilted into the room. */
+export function Hengaku({ position }: { position: Point }) {
+  const built = useBuilt(() => {
+    const w = 1.12,
+      h = 0.36;
+    const frame = merge([
+      block([w + 0.08, 0.05, 0.05], [0, h / 2 + 0.015, 0], '#1c100a'),
+      block([w + 0.08, 0.05, 0.05], [0, -h / 2 - 0.015, 0], '#1c100a'),
+      block([0.05, h + 0.08, 0.05], [w / 2 + 0.015, 0, 0], '#1c100a'),
+      block([0.05, h + 0.08, 0.05], [-w / 2 - 0.015, 0, 0], '#1c100a'),
+      block([w, h, 0.02], [0, 0, -0.012], '#24150c'),
+    ]);
+    const art = canvasTexture(1024, 320, drawHengaku);
+    return {
+      frame,
+      art,
+      w,
+      h,
+      dispose() {
+        frame.dispose();
+        art.dispose();
+      },
+    };
+  });
+  return (
+    <group position={position} rotation={[0, Math.PI / 2, 0]}>
+      <group rotation={[0.14, 0, 0]} position={[0, 0, 0.04]}>
+        <mesh geometry={built.frame} castShadow>
+          <WoodMaterial clearcoat={0.6} />
+        </mesh>
+        <mesh position={[0, 0, 0.0005]}>
+          <planeGeometry args={[built.w, built.h]} />
+          <meshPhysicalMaterial
+            map={built.art}
+            roughness={0.45}
+            clearcoat={0.5}
+            clearcoatRoughness={0.3}
+          />
+        </mesh>
+      </group>
     </group>
   );
 }
