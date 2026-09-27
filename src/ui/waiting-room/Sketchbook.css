@@ -35,6 +35,11 @@
   z-index: 3;
   filter: blur(1.6px);
 }
+.sb[data-budget='light'] .sb-front-petals,
+.sb[data-budget='light'] .sb-cast::before,
+.sb[data-budget='light'] .sb-cast::after {
+  filter: none;
+}
 .sb-stage {
   grid-area: book;
   display: flex;
@@ -64,7 +69,8 @@
 }
 .sb-book {
   --pw: calc(var(--bw, 900px) / 2);
-  --sw: calc(var(--pw) / 18);
+  --strips: 18;
+  --sw: calc(var(--pw) / var(--strips));
   position: relative;
   aspect-ratio: 3 / 2;
   transform-style: preserve-3d;
@@ -246,6 +252,10 @@
 .sb[data-riffle='fast'] .sb-half .sb-page-inner {
   filter: url(#sb-blur-2);
 }
+.sb[data-budget='light'][data-riffle] .sb-half .sb-page-inner,
+.sb[data-budget='light'][data-riffle='fast'] .sb-half .sb-page-inner {
+  filter: none;
+}
 .sb-defs {
   position: absolute;
   width: 0;
@@ -346,6 +356,29 @@
 }
 .face-page.as-left {
   left: calc((var(--i) + 1) * var(--sw) - var(--pw));
+}
+/* The face-page is already shifted with `left` so overflow clips one
+   strip. Pin the JPEG to that box — a second background-position shift
+   showed empty paper on the curling leaf. */
+.face-page.is-shot {
+  background-color: var(--sb-paper);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: 0 0;
+}
+.sb-baker {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--pw);
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.sb-baker .sb-page {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
 }
 .face .sh,
 .face .gl {
@@ -571,24 +604,38 @@
   object-fit: cover;
 }
 .sb-stations ol {
+  flex: 1;
   display: grid;
-  gap: 5cqi;
-  margin: 1cqi 0 0;
+  align-content: space-between;
+  gap: 6cqi;
+  margin: 2cqi 0 0;
   padding: 0;
   list-style: none;
 }
 .sb-stations li {
   display: grid;
-  grid-template-columns: 7cqi minmax(0, 1fr);
-  gap: 2.6cqi;
+  grid-template-columns: 9.5cqi minmax(0, 1fr);
+  gap: 3cqi;
   align-items: start;
 }
-.sb-step-n {
-  font:
-    max(15px, 5cqi) / 1 'Hiragino Mincho ProN',
-    'Songti SC',
-    serif;
-  color: var(--sb-earth);
+.sb-stations .station-dock__paints {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.sb-step-icon {
+  display: block;
+  width: 9.5cqi;
+  height: 9.5cqi;
+  min-width: 26px;
+  min-height: 26px;
+}
+.sb-step-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 .sb-stations h3 {
   margin: 0 0 1cqi;
@@ -620,7 +667,7 @@
     padding-top: 6.5cqi;
   }
   .sb-stations ol {
-    gap: 2.6cqi;
+    gap: 4.5cqi;
   }
   .sb-stations h3 {
     margin-bottom: 0.5cqi;
@@ -857,7 +904,7 @@
 }
 .sb-stations .sb-caption-hand {
   display: block;
-  margin-top: auto;
+  margin-top: 4cqi;
   padding-right: 4cqi;
   text-align: left;
 }

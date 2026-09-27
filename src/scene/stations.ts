@@ -44,8 +44,8 @@ export const STATIONS: {
     id: 'Shelf',
     label: 'Shelf',
     purpose: 'Observe',
-    position: [0.28, 1.68, 0.65],
-    target: [2, 1.2, -4],
+    position: [0.4, 1.55, -4.8],
+    target: [3.1, 1.45, -4.55],
     hotspot: [3.25, 1.43, -4.55],
   },
 ];

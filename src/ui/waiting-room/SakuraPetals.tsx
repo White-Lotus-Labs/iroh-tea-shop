@@ -205,6 +205,31 @@ export function SakuraPetals({
   return <mesh geometry={geometry} material={material} frustumCulled={false} />;
 }
 
+/** Pause the canvas while the tab is hidden or a sketchbook leaf is riffling. */
+function usePetalHold() {
+  const [held, setHeld] = useState(false);
+  useEffect(() => {
+    const sync = () => {
+      const next =
+        document.hidden || document.querySelector('.sb[data-riffle]') !== null;
+      setHeld((prev) => (prev === next ? prev : next));
+    };
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    const root = document.querySelector('.sb');
+    const observer = root ? new MutationObserver(sync) : null;
+    observer?.observe(root as Element, {
+      attributes: true,
+      attributeFilter: ['data-riffle'],
+    });
+    return () => {
+      document.removeEventListener('visibilitychange', sync);
+      observer?.disconnect();
+    };
+  }, []);
+  return held;
+}
+
 function canWebGL() {
   try {
     const canvas = document.createElement('canvas');
@@ -222,6 +247,7 @@ export function PetalCanvas({
   area,
   size,
   seed,
+  light = false,
 }: {
   count: number;
   reduced: boolean;
@@ -229,9 +255,12 @@ export function PetalCanvas({
   area?: PetalArea;
   size?: number;
   seed?: number;
+  /** Fewer GPU features: no antialias, and a low-power context hint. */
+  light?: boolean;
 }) {
   // Probe before mounting R3F; a null WebGL context throws outside React boundaries.
   const [ok, setOk] = useState(false);
+  const held = usePetalHold();
   useEffect(() => {
     setOk(canWebGL());
   }, []);
@@ -240,8 +269,12 @@ export function PetalCanvas({
     <Canvas
       className={className}
       dpr={[1, 1]}
-      frameloop={reduced ? 'demand' : 'always'}
-      gl={{ antialias: true, alpha: true }}
+      frameloop={reduced || held ? 'demand' : 'always'}
+      gl={{
+        antialias: !light,
+        alpha: true,
+        powerPreference: light ? 'low-power' : 'default',
+      }}
       camera={{ position: [0, 1, 14], fov: 45, near: 0.1, far: 60 }}
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
       fallback={null}

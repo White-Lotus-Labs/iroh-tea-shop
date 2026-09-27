@@ -122,13 +122,84 @@ test('the sketchbook starts open, riffles forward once, and lands on the first s
     const seen: number[] = [];
     (window as unknown as { __spreads: number[] }).__spreads = seen;
     new MutationObserver(() => {
-      const n = Number(el.getAttribute('aria-label')?.match(/spread (\d)/)?.[1]);
+      const n = Number(
+        el.getAttribute('aria-label')?.match(/spread (\d)/)?.[1],
+      );
       if (n && seen[seen.length - 1] !== n) seen.push(n);
     }).observe(el, { attributes: true, attributeFilter: ['aria-label'] });
   });
   await expect(book).toHaveAttribute('data-riffle', /on|fast/, {
     timeout: 10_000,
   });
+  await expect(book).not.toHaveAttribute('data-riffle', /.+/, {
+    timeout: 10_000,
+  });
+  const spreads = await page.evaluate(
+    () => (window as unknown as { __spreads: number[] }).__spreads,
+  );
+  expect(spreads).toEqual([2, 3, 4, 5, 1]);
+  await context.close();
+});
+
+test('a light machine riffles snapshot strips and skips the page blur', async ({
+  browser,
+}) => {
+  test.setTimeout(60_000);
+  const context = await browser.newContext({
+    reducedMotion: 'no-preference',
+    viewport: { width: 1440, height: 900 },
+  });
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'hardwareConcurrency', {
+      configurable: true,
+      get: () => 2,
+    });
+  });
+  const page = await context.newPage();
+  await page.goto('/');
+  const book = page.locator('.sb');
+  await book.waitFor();
+  await page.evaluate(() => {
+    const el = document.querySelector('.sb-book')!;
+    const seen: number[] = [];
+    (window as unknown as { __spreads: number[] }).__spreads = seen;
+    new MutationObserver(() => {
+      const n = Number(
+        el.getAttribute('aria-label')?.match(/spread (\d)/)?.[1],
+      );
+      if (n && seen[seen.length - 1] !== n) seen.push(n);
+    }).observe(el, { attributes: true, attributeFilter: ['aria-label'] });
+  });
+  await expect(book).toHaveAttribute('data-budget', 'light');
+  await expect(book).toHaveAttribute('data-riffle', /on|fast/, {
+    timeout: 10_000,
+  });
+  await expect(page.locator('.curl[data-shot="on"]').first()).toBeAttached();
+  await expect(page.locator('.curl .is-plain')).toHaveCount(0);
+  const curl = await page.evaluate(() => {
+    const strips = document.querySelectorAll('.curl .strip').length;
+    const faces = [...document.querySelectorAll('.curl .face-page.is-shot')].map(
+      (el) => {
+        const style = getComputedStyle(el);
+        return {
+          position: style.backgroundPosition,
+          jpeg: style.backgroundImage.startsWith('url("data:image/jpeg'),
+        };
+      },
+    );
+    return { strips, faces };
+  });
+  expect(curl.strips).toBe(16);
+  expect(curl.faces.length).toBeGreaterThanOrEqual(16);
+  expect(curl.faces.every((face) => face.jpeg)).toBe(true);
+  expect(
+    curl.faces.every((face) => /^0(px|%) 0(px|%)$/.test(face.position)),
+  ).toBe(true);
+  const filter = await page
+    .locator('.sb-half .sb-page-inner')
+    .first()
+    .evaluate((el) => getComputedStyle(el).filter);
+  expect(filter).toBe('none');
   await expect(book).not.toHaveAttribute('data-riffle', /.+/, {
     timeout: 10_000,
   });

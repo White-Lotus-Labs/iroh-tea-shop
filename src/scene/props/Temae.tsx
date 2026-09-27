@@ -98,6 +98,62 @@ const shinoMap = once(() => canvasTexture(512, 256, drawShino));
 const KENSUI: Point = [2.02, 0, -1.3];
 const LID_REST: Point = [2.34, 0, -1.03];
 const LID_REST_H = 0.055;
+/** Floor-board top. Bases sit this far above it so they are not coplanar. */
+const FLOOR_TOP = 0;
+const TEMAE_SEAT = 0.008;
+/** Tatami top, from the mat boxes in TeaArchitecture. */
+const TATAMI_TOP = 0.052;
+const HISHAU_R = 0.0055;
+
+/**
+ * Where the temae sits: jar, kensui and lid rest clear of the boards, the hishaku
+ * handle biting the kensui lip, and the fukusa sunk a hair into the tatami.
+ */
+export function temaeLayout() {
+  const [kx, , kz] = KENSUI,
+    [fx, , fz] = LID_REST,
+    toward = new Vector3(kx - fx, 0, kz - fz).normalize(),
+    cupY = TEMAE_SEAT + LID_REST_H + 0.0225,
+    joint = new Vector3(fx, cupY, fz).addScaledVector(toward, 0.028),
+    // Widest point of the bronze lip. The cord centreline sits just inside its radius.
+    lip = new Vector3(kx, TEMAE_SEAT + 0.082, kz).addScaledVector(
+      toward,
+      -0.076,
+    ),
+    rest = lip.clone();
+  rest.y += HISHAU_R - 0.0015;
+  const tip = rest
+    .clone()
+    .addScaledVector(rest.clone().sub(joint).normalize(), 0.014);
+  const clothH = 0.009,
+    sink = 0.002,
+    clothBottom = TATAMI_TOP - sink,
+    foldH = 0.004,
+    clothSize: Point = [0.13, clothH, 0.09],
+    // Ring starts outside the cloth's corners so the contact shade sits on the mat.
+    shadowInner = Math.hypot(clothSize[0] / 2, clothSize[2] / 2) + 0.004;
+  return {
+    seat: TEMAE_SEAT,
+    floorTop: FLOOR_TOP,
+    tatami: TATAMI_TOP,
+    cordRadius: HISHAU_R,
+    jarAt: [2.12, TEMAE_SEAT, -1.8] as Point,
+    bowlAt: [kx, TEMAE_SEAT, kz] as Point,
+    restAt: [fx, TEMAE_SEAT, fz] as Point,
+    cupY,
+    joint,
+    lip,
+    tip,
+    cloth: [1.24, clothBottom + clothH / 2, -1.42] as Point,
+    clothSize,
+    clothBottom,
+    fold: [1.238, clothBottom + clothH - 0.001 + foldH / 2, -1.44] as Point,
+    foldSize: [0.124, foldH, 0.046] as Point,
+    shadow: [1.24, TATAMI_TOP + 0.001, -1.42] as Point,
+    shadowInner,
+    shadowOuter: shadowInner + 0.022,
+  };
+}
 
 /**
  * Temae utensils beside the brazier: a lidded water jar (mizusashi), a bronze waste
@@ -105,47 +161,44 @@ const LID_REST_H = 0.055;
  * laid on the kensui rim, and a folded fukusa.
  */
 export function TemaeSet() {
+  const layout = temaeLayout();
   const built = useBuilt(() => {
-    const jarAt: Point = [2.12, 0, -1.8],
+    const { jarAt, bowlAt, restAt, cupY, joint, tip } = layout,
       jar = place(lathe(JAR), jarAt),
       lacquer = merge([
         paint(
           place(new CylinderGeometry(0.075, 0.075, 0.012, 28), [
             jarAt[0],
-            0.186,
+            jarAt[1] + 0.186,
             jarAt[2],
           ]),
           '#120a06',
         ),
         paint(
-          place(new SphereGeometry(0.012, 12, 8), [jarAt[0], 0.196, jarAt[2]]),
+          place(new SphereGeometry(0.012, 12, 8), [
+            jarAt[0],
+            jarAt[1] + 0.196,
+            jarAt[2],
+          ]),
           '#120a06',
         ),
       ]),
-      bronze = place(lathe(BOWL), KENSUI);
-    const [kx, , kz] = KENSUI,
-      [fx, , fz] = LID_REST,
-      toward = new Vector3(kx - fx, 0, kz - fz).normalize(),
-      cupY = LID_REST_H + 0.0225,
-      joint = new Vector3(fx, cupY, fz).addScaledVector(toward, 0.028),
-      rim = new Vector3(kx, BOWL_RIM + 0.0055, kz).addScaledVector(
-        toward,
-        -0.076,
-      ),
-      tip = rim
-        .clone()
-        .addScaledVector(rim.clone().sub(joint).normalize(), 0.035);
+      bronze = place(lathe(BOWL), bowlAt);
     const bamboo = merge([
       paint(
-        place(new CylinderGeometry(0.026, 0.028, 0.045, 18), [fx, cupY, fz]),
+        place(new CylinderGeometry(0.026, 0.028, 0.045, 18), [
+          restAt[0],
+          cupY,
+          restAt[2],
+        ]),
         '#c9a860',
       ),
-      paint(cord(joint.toArray(), tip.toArray(), 0.0055), '#c9a860'),
+      paint(cord(joint.toArray(), tip.toArray(), HISHAU_R), '#c9a860'),
       paint(
         place(new CylinderGeometry(0.024, 0.024, LID_REST_H, 14), [
-          fx,
-          LID_REST_H / 2,
-          fz,
+          restAt[0],
+          restAt[1] + LID_REST_H / 2,
+          restAt[2],
         ]),
         '#a88a48',
       ),
@@ -189,16 +242,27 @@ export function TemaeSet() {
       <mesh geometry={built.bamboo} castShadow>
         <meshStandardMaterial vertexColors roughness={0.55} />
       </mesh>
-      {/* Folded flat on the tatami, whose top is at 0.052 m. */}
+      <mesh position={layout.shadow} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[layout.shadowInner, layout.shadowOuter, 28]} />
+        <meshBasicMaterial
+          color="#140c09"
+          transparent
+          opacity={0.32}
+          depthWrite={false}
+          polygonOffset
+          polygonOffsetFactor={-1}
+          polygonOffsetUnits={-4}
+        />
+      </mesh>
       <Solid
-        position={[1.24, 0.0565, -1.42]}
-        size={[0.13, 0.009, 0.09]}
+        position={layout.cloth}
+        size={layout.clothSize}
         color="#6e2433"
         surface="cloth"
       />
       <Solid
-        position={[1.238, 0.063, -1.44]}
-        size={[0.124, 0.004, 0.046]}
+        position={layout.fold}
+        size={layout.foldSize}
         color="#7a2a3a"
         surface="cloth"
       />
@@ -319,15 +383,15 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = band;
     ctx.fillRect(0, y - 40, w, 80);
   }
-  // Ink wash, not solid black: a blurred pale bleed under a thin, dilute stroke.
+  // Dilute ink on gold leaf: a wide pale bleed and a thin warm stroke, never a black mass.
   const wash = (path: [number, number][], width: number) => {
     ctx.save();
-    ctx.filter = 'blur(7px)';
-    ctx.globalAlpha = 0.3;
-    inkStroke(ctx, path, width * 1.7, random, '92,74,52');
+    ctx.filter = 'blur(8px)';
+    ctx.globalAlpha = 0.18;
+    inkStroke(ctx, path, width * 2.4, random, '150,118,82');
     ctx.filter = 'none';
-    ctx.globalAlpha = 0.45;
-    inkStroke(ctx, path, width, random, '66,52,38');
+    ctx.globalAlpha = 0.32;
+    inkStroke(ctx, path, width * 0.65, random, '118,90,62');
     ctx.restore();
   };
   const trunk: [number, number][] = [
@@ -337,7 +401,7 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
     [560, 380],
     [470, 330],
   ];
-  wash(trunk, 30);
+  wash(trunk, 18);
   const branches: [number, number][][] = [
     [
       [640, 480],
@@ -355,8 +419,8 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
       [300, 350],
     ],
   ];
-  branches.forEach((path) => wash(path, 11));
-  ctx.globalAlpha = 0.5;
+  branches.forEach((path) => wash(path, 7));
+  ctx.globalAlpha = 0.35;
   for (const [cx, cy] of [
     [840, 410],
     [560, 225],
@@ -377,7 +441,7 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
         ],
         2.2,
         random,
-        '52,66,50',
+        '72,92,68',
       );
     }
   ctx.globalAlpha = 1;

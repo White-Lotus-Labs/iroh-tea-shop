@@ -1,5 +1,6 @@
 import { SseDecoder } from './sse';
 import { contextualQuestion } from './context';
+import { MAX_QUESTION_LENGTH } from './limits';
 
 export interface ChatMessage {
   id: string;
@@ -15,6 +16,7 @@ export interface ChatSnapshot {
   isStreaming: boolean;
   currentTool: string | null;
   error: string | null;
+  errorCode: string | null;
   lastQuestion: string | null;
 }
 
@@ -25,12 +27,19 @@ const initial = (): ChatSnapshot => ({
   isStreaming: false,
   currentTool: null,
   error: null,
+  errorCode: null,
   lastQuestion: null,
 });
 
-class ChatError extends Error {}
+class ChatError extends Error {
+  constructor(
+    message: string,
+    readonly code: string | null = null,
+  ) {
+    super(message);
+  }
+}
 
-const MAX_TEXT = 6000;
 export class IrohSession {
   private state = initial();
   private listeners = new Set<() => void>();
@@ -63,7 +72,7 @@ export class IrohSession {
 
   send(question: string): Promise<void> | false {
     const text = question.trim();
-    if (this.active || !text || text.length > MAX_TEXT) return false;
+    if (this.active || !text || text.length > MAX_QUESTION_LENGTH) return false;
     const conversationId = this.state.conversationId;
     const chatId = this.state.chatId;
     const requestText =
@@ -93,10 +102,12 @@ export class IrohSession {
       isStreaming: true,
       currentTool: null,
       error: null,
+      errorCode: null,
       lastQuestion: text,
     });
     return this.run(
       requestText,
+      text,
       conversationId,
       chatId,
       assistantId,
@@ -107,6 +118,7 @@ export class IrohSession {
 
   private async run(
     text: string,
+    question: string,
     conversationId: string | null,
     chatId: string | null,
     assistantId: string,
@@ -121,6 +133,7 @@ export class IrohSession {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           text,
+          ...(text !== question ? { question } : {}),
           ...(chatId
             ? { chatId }
             : conversationId
@@ -133,11 +146,13 @@ export class IrohSession {
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as {
           error?: unknown;
+          code?: unknown;
         };
         throw new ChatError(
           typeof data.error === 'string'
             ? data.error
             : 'Nansen Research Agent is temporarily unavailable.',
+          typeof data.code === 'string' ? data.code : null,
         );
       }
       if (!response.body)
@@ -190,7 +205,12 @@ export class IrohSession {
           ? error.message
           : 'The research connection was interrupted. You can retry.';
       this.updateMessage(assistantId, { status: 'error' });
-      this.update({ error: message, currentTool: null, isStreaming: false });
+      this.update({
+        error: message,
+        errorCode: error instanceof ChatError ? error.code : null,
+        currentTool: null,
+        isStreaming: false,
+      });
     } finally {
       if (current()) {
         this.active = null;

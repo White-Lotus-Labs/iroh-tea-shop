@@ -12,6 +12,16 @@ import {
 } from '../../../iroh/history';
 import { claimChatTurn } from '../../../iroh/turn-guard';
 import { SESSION_COOKIE } from '../../../auth/cookie';
+import {
+  agentDailyCap,
+  clientIpFromRequest,
+  type AgentCapClaim,
+} from '../../../nansen/agent-cap';
+import {
+  MAX_QUESTION_LENGTH,
+  MAX_RESEARCH_TEXT_LENGTH,
+  QUESTION_TOO_LONG_MESSAGE,
+} from '../../../nansen/limits';
 import { withUnclePersona } from '../../../nansen/uncle';
 import { parseRetryAfter } from '../../../nansen/client';
 import {
@@ -23,14 +33,37 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ENDPOINT = 'https://api.nansen.ai/api/v1/agent/fast';
-const MAX_TEXT = 6000;
 const TIMEOUT_MS = 90_000;
 
-function jsonError(status: number, error: string, retryAfter?: string | null) {
+function jsonError(
+  status: number,
+  error: string,
+  retryAfter?: string | null,
+  code?: string,
+) {
   const headers = new Headers({ 'cache-control': 'no-store' });
   if (retryAfter && /^(\d{1,6}|[A-Za-z]{3}, .+ GMT)$/.test(retryAfter))
     headers.set('retry-after', retryAfter);
-  return Response.json({ error }, { status, headers });
+  return Response.json(
+    { error, ...(code ? { code } : {}) },
+    { status, headers },
+  );
+}
+
+function capError(claim: AgentCapClaim) {
+  const response = jsonError(
+    429,
+    'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
+    String(claim.retryAfterSeconds),
+    'nansen_agent_daily_limit',
+  );
+  response.headers.set('x-ratelimit-limit', String(claim.limit));
+  response.headers.set('x-ratelimit-remaining', String(claim.remaining));
+  response.headers.set(
+    'x-ratelimit-reset',
+    String(Math.ceil(claim.resetAt / 1000)),
+  );
+  return response;
 }
 
 function upstreamMessage(status: number) {
@@ -78,12 +111,11 @@ function streamError(event: AgentEvent): AgentEvent {
 
 export async function POST(request: Request) {
   if (Number(request.headers.get('content-length')) > 16_000)
-    return jsonError(413, 'Your question is too long.');
+    return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
   let body: unknown;
   try {
     const raw = await request.text();
-    if (raw.length > 16_000)
-      return jsonError(413, 'Your question is too long.');
+    if (raw.length > 16_000) return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
     body = JSON.parse(raw);
   } catch {
     return jsonError(400, 'Invalid question.');
@@ -93,11 +125,13 @@ export async function POST(request: Request) {
   const value = body as Record<string, unknown>;
   if (
     Object.keys(value).some(
-      (key) => !['text', 'conversation_id', 'chatId'].includes(key),
+      (key) => !['text', 'question', 'conversation_id', 'chatId'].includes(key),
     ) ||
     typeof value.text !== 'string' ||
     !value.text.trim() ||
-    value.text.trim().length > MAX_TEXT ||
+    value.text.trim().length > MAX_RESEARCH_TEXT_LENGTH ||
+    (value.question !== undefined &&
+      (typeof value.question !== 'string' || !value.question.trim())) ||
     (value.conversation_id !== undefined &&
       !validConversationId(value.conversation_id)) ||
     (value.chatId !== undefined &&
@@ -106,6 +140,10 @@ export async function POST(request: Request) {
         !value.chatId))
   )
     return jsonError(400, 'Invalid question or conversation.');
+
+  const question = (value.question ?? value.text) as string;
+  if (question.trim().length > MAX_QUESTION_LENGTH)
+    return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
 
   const key = process.env.NANSEN_API_KEY?.trim();
   if (!key) return jsonError(503, 'Nansen Research Agent is not configured.');
@@ -137,6 +175,13 @@ export async function POST(request: Request) {
     persisted = { userId: user.id, chatId: value.chatId };
   }
 
+  // Main's daily cup gate stays ahead of the manager and upstream call.
+  const cap = agentDailyCap.claim(clientIpFromRequest(request));
+  if (!cap.allowed) {
+    releaseTurn?.();
+    return capError(cap);
+  }
+
   const preparation: {
     value: Awaited<ReturnType<typeof prepareAdmittedResearchRequest>> | null;
   } = { value: null };
@@ -161,7 +206,7 @@ export async function POST(request: Request) {
               db!,
               persisted!.userId,
               persisted!.chatId,
-              text,
+              question.trim(),
               signal,
             );
           }
@@ -381,6 +426,9 @@ export async function POST(request: Request) {
       'cache-control': 'no-store, no-transform',
       connection: 'keep-alive',
       'x-accel-buffering': 'no',
+      'x-ratelimit-limit': String(cap.limit),
+      'x-ratelimit-remaining': String(cap.remaining),
+      'x-ratelimit-reset': String(Math.ceil(cap.resetAt / 1000)),
     },
   });
 }

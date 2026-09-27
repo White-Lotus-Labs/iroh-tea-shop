@@ -52,7 +52,7 @@ test('Entrance to Counter shows the thesis desk placeholder', async ({
   await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
   await expect(
     page.getByRole('textbox', { name: 'Ask Uncle a research question' }),
-  ).toHaveValue(/Here is my own thesis/);
+  ).toHaveValue('Uncle, test my thesis: ');
   expect(errors).toEqual([]);
 });
 

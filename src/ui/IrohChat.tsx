@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { IrohSession, type ChatMessage } from '../nansen/session';
+import { MAX_QUESTION_LENGTH } from '../nansen/limits';
 import type { NansenAvailability } from '../nansen/availability';
 import type { PublicUser } from '../auth/service';
 import { IrohMessage } from './IrohMessage';
@@ -294,16 +295,30 @@ export function IrohChat({
             </p>
           )}
           {chat.error && (
-            <div className="iroh-error" role="alert">
+            <div
+              className={`iroh-error${chat.errorCode === 'nansen_agent_daily_limit' ? ' is-limit' : ''}`}
+              role="alert"
+            >
               <p>{chat.error}</p>
-              <button
-                type="button"
-                onClick={() =>
-                  chat.lastQuestion && session.send(chat.lastQuestion)
-                }
-              >
-                Retry question
-              </button>
+              {chat.errorCode === 'nansen_agent_daily_limit' ? (
+                <a
+                  className="iroh-limit-cta"
+                  href="https://nsn.ai/iroh0x"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Keep exploring with Nansen ↗
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    chat.lastQuestion && session.send(chat.lastQuestion)
+                  }
+                >
+                  Retry question
+                </button>
+              )}
             </div>
           )}
           <div ref={bottom} />
@@ -323,7 +338,7 @@ export function IrohChat({
           id="iroh-question"
           ref={input}
           value={draft}
-          maxLength={6000}
+          maxLength={MAX_QUESTION_LENGTH}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (
@@ -344,7 +359,9 @@ export function IrohChat({
           }
         />
         <div className="iroh-compose-bottom">
-          <span>Enter to send · Shift+Enter for a new line</span>
+          <span>
+            Ask briefly for a wise answer · {draft.length}/{MAX_QUESTION_LENGTH}
+          </span>
           {chat.isStreaming ? (
             <button
               type="button"

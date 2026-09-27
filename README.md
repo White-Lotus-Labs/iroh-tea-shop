@@ -16,6 +16,8 @@ Requires Node.js **22.12+**, npm, and a modern browser.
 npm ci
 cp .env.example .env.local
 # Put your key in .env.local: NANSEN_API_KEY=...
+# Optional: adjust the per-IP UTC daily Research Agent cap (default 1).
+# NANSEN_AGENT_DAILY_LIMIT=1
 npm run db:migrate
 npm run dev
 ```
@@ -73,5 +75,6 @@ Unit tests cover conviction, thesis routes, Nansen streaming, Shelf data, auth, 
 
 - The Host 3D model is a teammate’s work in progress; visible copy says Uncle while the mesh still resembles Iroh.
 - Railway deploy is pending. SQLite and the in-process caches suit one Node process, not multi-instance hosts without shared storage.
+- The Research Agent's per-IP daily call cap is process-local, trusts the deployment proxy's forwarding headers, and resets at midnight UTC or on a server restart.
 - Automated Nansen tests mock upstream; live plan entitlements and credits are not asserted in CI.
 - Branch `feature/waiting-room-invitation` is separate work and is not part of this deck PR.

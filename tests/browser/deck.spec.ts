@@ -91,8 +91,9 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   const composer = page.getByRole('textbox', {
     name: 'Ask Uncle a research question',
   });
-  await expect(composer).toHaveValue(/Thesis: AI taking over the world/);
-  await expect(composer).toHaveValue(/Weakest signal: NVDA/);
+  await expect(composer).toHaveValue(
+    'Uncle, Nansen rates “AI taking over the world” weak. What could disprove it?',
+  );
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

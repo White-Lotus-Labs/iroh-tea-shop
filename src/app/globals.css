@@ -749,13 +749,16 @@ input {
   justify-content: flex-end;
 }
 .iroh-chat-actions button,
-.iroh-error button {
+.iroh-error button,
+.iroh-limit-cta {
+  display: inline-block;
   border: 1px solid #b9aa8d;
   background: #f9f2e4;
   color: var(--ink);
   border-radius: 4px;
   padding: 7px 11px;
   font-size: 12px;
+  text-decoration: none;
 }
 .iroh-chat-body {
   display: grid;
@@ -908,6 +911,10 @@ input {
   padding: 12px 16px;
   margin-bottom: 16px;
   font-size: 13px;
+}
+.iroh-error.is-limit {
+  border-left-color: #8a7445;
+  background: #edf0df;
 }
 .iroh-error p {
   margin-bottom: 8px;
@@ -1259,38 +1266,6 @@ body:has(.auth-shell) {
 .app-shell[data-station='Shelf'][data-shelf-view='focusing'] .reading-panel {
   display: none;
 }
-/* Same scroll tag as .panel-open-hint, pinned bottom-right on the Shelf overview. */
-.shelf-approach.panel-open-hint {
-  left: auto;
-  right: clamp(28px, 5vw, 82px);
-  bottom: 132px;
-  z-index: 3;
-  transform: none;
-}
-.shelf-approach.panel-open-hint:active:not(:disabled) {
-  transform: translateY(2px) scale(0.985);
-}
-.app-shell[data-motion='reduce']
-  .shelf-approach.panel-open-hint:active:not(:disabled) {
-  transform: none;
-}
-/* Small screens: centered on the same baseline as Open Counter and Open Host. */
-@media (max-width: 760px) {
-  .shelf-approach.panel-open-hint {
-    left: 50%;
-    right: auto;
-    bottom: 112px;
-    transform: translateX(-50%);
-  }
-  .shelf-approach.panel-open-hint:active:not(:disabled) {
-    transform: translateX(-50%) translateY(2px) scale(0.985);
-  }
-  .app-shell[data-motion='reduce']
-    .shelf-approach.panel-open-hint:active:not(:disabled) {
-    transform: translateX(-50%);
-  }
-}
-
 /* The same parchment expands into a readable full leaderboard after travel. */
 .app-shell[data-station='Shelf'] .reading-panel {
   position: fixed;
@@ -3186,7 +3161,8 @@ body:has(.auth-shell) {
 }
 .app-shell:not([data-station='Shelf']) .reading-panel .secondary,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button,
-.app-shell:not([data-station='Shelf']) .iroh-error button {
+.app-shell:not([data-station='Shelf']) .iroh-error button,
+.app-shell:not([data-station='Shelf']) .iroh-limit-cta {
   border: 1px solid rgba(74, 47, 29, 0.32);
   border-radius: 3px;
   background: rgba(255, 252, 243, 0.6);
@@ -3197,7 +3173,8 @@ body:has(.auth-shell) {
 }
 .app-shell:not([data-station='Shelf']) .reading-panel .secondary:hover,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button:hover,
-.app-shell:not([data-station='Shelf']) .iroh-error button:hover {
+.app-shell:not([data-station='Shelf']) .iroh-error button:hover,
+.app-shell:not([data-station='Shelf']) .iroh-limit-cta:hover {
   border-color: rgba(138, 47, 34, 0.6);
   background: #fffaf0;
 }
@@ -3386,6 +3363,10 @@ body:has(.auth-shell) {
   border-left: 3px solid var(--seal);
   background: rgba(163, 38, 28, 0.07);
   font-size: 14px;
+}
+.app-shell:not([data-station='Shelf']) .iroh-error.is-limit {
+  border-left-color: var(--gold);
+  background: rgba(86, 101, 72, 0.08);
 }
 .app-shell:not([data-station='Shelf']) .iroh-compose {
   position: relative;
@@ -3703,6 +3684,18 @@ body:has(.auth-shell) {
   user-select: none;
   animation: halo-label-rise 320ms var(--ease-lift) both;
 }
+.halo-label {
+  gap: 9px;
+  max-width: min(460px, 50vw);
+  padding: 5px 13px 6px 5px;
+}
+/* The Shelf ember sits right of center, so its tag opens to the left. */
+.app-shell[data-station='Shelf'] .halo-label {
+  flex-direction: row-reverse;
+  margin-left: 0;
+  padding: 5px 5px 6px 13px;
+  translate: calc(-100% - 17px) -50%;
+}
 .halo-tag {
   padding: 2px 8px 3px;
 }
@@ -3710,12 +3703,12 @@ body:has(.auth-shell) {
   display: grid;
   flex: none;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 24px;
+  height: 24px;
   border-radius: 1px 3px 2px 1px;
   background: var(--seal);
   color: #fbefdc;
-  font: 600 10.5px / 1 var(--font-cjk);
+  font: 600 14px / 1 var(--font-cjk);
   box-shadow:
     inset 0 0 0 1px rgba(251, 239, 220, 0.75),
     inset 0 0 0 2px var(--seal);
@@ -3727,6 +3720,10 @@ body:has(.auth-shell) {
   font: italic 500 13px / 1.25 var(--font-display);
   letter-spacing: 0.01em;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.halo-label-text {
+  font-size: 19px;
+  text-wrap: pretty;
 }
 .halo-tag-text {
   --ink-start: 0ms;
@@ -3910,7 +3907,10 @@ body:has(.auth-shell) {
     font-size: 12.5px;
   }
   .halo-label {
-    max-width: 200px;
+    max-width: min(260px, 70vw);
+  }
+  .halo-label-text {
+    font-size: 16px;
   }
   .recenter-view {
     top: 90px;

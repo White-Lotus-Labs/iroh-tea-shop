@@ -1,4 +1,4 @@
-import { formatMoney } from '../leaderboard/model';
+import { MAX_QUESTION_LENGTH } from '../nansen/limits';
 import type {
   Conviction,
   ConvictionLevel,
@@ -79,37 +79,13 @@ export function buildUncleDraft(
   thesis: Thesis,
   summary: ThesisSummary | null,
 ): string {
-  const leaves = thesis.tickers
-    .map((t) => `${t.symbol} (${t.name})`)
-    .join(', ');
-  const lines = [
-    'Uncle, I want to test a thesis against smart money data.',
-    '',
-    `Thesis: ${thesis.title} — ${thesis.subtitle}.`,
-    thesis.body,
-    '',
-    `Leaves: ${leaves}.`,
-  ];
-  if (summary) {
-    const { conviction } = summary;
-    lines.push(
-      `Conviction: ${LEVEL_LABEL[conviction.level]}. ${convictionSentence(conviction, thesis.tickers.length)}, net 7-day flow ${formatMoney(conviction.netFlowUsd, true)}.`,
-    );
-    const ends = strongestAndWeakest(summary.tickers);
-    if (ends) {
-      lines.push(
-        `Strongest signal: ${ends.strongest.symbol} ${formatMoney(ends.strongest.smartMoneyNetFlowUsd, true)} 7-day smart money flow.`,
-        `Weakest signal: ${ends.weakest.symbol} ${formatMoney(ends.weakest.smartMoneyNetFlowUsd, true)} 7-day smart money flow.`,
-      );
-    }
-  } else {
-    lines.push('Conviction: not available right now (Nansen is offline).');
-  }
-  lines.push(
-    '',
-    'What would change your mind about this thesis, and which leaf should I watch first?',
+  const premise = summary
+    ? `Nansen rates “${thesis.title}” ${LEVEL_LABEL[summary.conviction.level].toLowerCase()}.`
+    : `test “${thesis.title}” with Nansen.`;
+  return `Uncle, ${premise} What could disprove it?`.slice(
+    0,
+    MAX_QUESTION_LENGTH,
   );
-  return lines.join('\n');
 }
 
 /** Trades and wallet moves under $10 are dust; unknown values are hidden too. */

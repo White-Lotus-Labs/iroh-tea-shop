@@ -18,6 +18,7 @@ import {
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
 import { brushText, Hanger, merge, Timber, useBuilt } from './craft';
+import { KAKEJIKU_HANGER, KAKEJIKU_ORIGIN_Y, KAKEJIKU_ROD } from './hanging';
 import { stemLeaves } from './Plants';
 import { ShojiWindow } from './Shoji';
 
@@ -363,8 +364,13 @@ function Kakejiku({ position }: { position: Point }) {
           <SurfaceMaterial surface="cloth" color="#6a5d3e" />
         </mesh>
       ))}
-      <mesh position={[0, 0.755, 0.008]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.008, 0.008, 0.52, 10]} />
+      <mesh
+        position={[0, KAKEJIKU_ROD.y, KAKEJIKU_ROD.z]}
+        rotation={[0, 0, Math.PI / 2]}
+      >
+        <cylinderGeometry
+          args={[KAKEJIKU_ROD.radius, KAKEJIKU_ROD.radius, 0.52, 10]}
+        />
         <meshStandardMaterial color="#2b1d12" roughness={0.6} />
       </mesh>
       <mesh
@@ -390,12 +396,10 @@ function Kakejiku({ position }: { position: Point }) {
         </mesh>
       ))}
       <Hanger
-        hook={[0, 0.9, 0.012]}
-        into={[0, 0, -1]}
-        ends={[
-          [-0.2, 0.762, 0.009],
-          [0.2, 0.762, 0.009],
-        ]}
+        hook={KAKEJIKU_HANGER.hook}
+        into={KAKEJIKU_HANGER.into}
+        ring={KAKEJIKU_HANGER.ring}
+        ends={[KAKEJIKU_HANGER.end]}
       />
     </group>
   );
@@ -664,7 +668,7 @@ function Tokonoma() {
         intensity={4.2}
         distance={2.8}
       />
-      <Kakejiku position={[midX - 0.12, 1.62, toko.back]} />
+      <Kakejiku position={[midX - 0.12, KAKEJIKU_ORIGIN_Y, toko.back]} />
       <Chabana position={[midX + 0.55, toko.floor, midZ - 0.05]} />
       <Koro position={[midX - 0.68, toko.floor, midZ + 0.02]} />
     </group>

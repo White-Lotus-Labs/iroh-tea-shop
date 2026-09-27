@@ -283,6 +283,21 @@ export function cord(from: Point, to: Point, radius = 0.0018) {
 }
 
 /**
+ * Screw eye above `hook` (the bottom of the ring). The shank runs `into` the
+ * timber. Default `ring` keeps the 茶-sign hanger: top at +0.01 m, tube 0.0013 m.
+ */
+export function screwEye(hook: Point, into: Point = [0, 1, 0], ring = 0.005) {
+  const [x, y, z] = hook,
+    top: Point = [x, y + ring * 2, z],
+    shank: Point = [
+      x + into[0] * 0.02,
+      top[1] + into[1] * 0.02,
+      z + into[2] * 0.02,
+    ];
+  return { top, shank, tube: ring * 0.26, centre: [x, y + ring, z] as Point };
+}
+
+/**
  * Cords from each of `ends` up to one brass screw eye; `hook` is the bottom of its ring
  * and `into` points from the ring into the timber or wall that holds it.
  */
@@ -291,23 +306,21 @@ export function Hanger({
   ends,
   into = [0, 1, 0],
   color = '#6b5a3a',
+  ring = 0.005,
 }: {
   hook: Point;
   ends: Point[];
   into?: Point;
+  /** Screw-eye radius. The hook point is the bottom of the ring. */
+  ring?: number;
   color?: string;
 }) {
   const built = useBuilt(() => {
-    const [x, y, z] = hook,
-      top: Point = [x, y + 0.01, z],
+    const eyeShape = screwEye(hook, into, ring),
       cords = merge(ends.map((end) => cord(end, hook))),
       eye = merge([
-        place(new TorusGeometry(0.005, 0.0013, 6, 16), [x, y + 0.005, z]),
-        cord(
-          top,
-          [x + into[0] * 0.02, top[1] + into[1] * 0.02, z + into[2] * 0.02],
-          0.0015,
-        ),
+        place(new TorusGeometry(ring, eyeShape.tube, 6, 16), eyeShape.centre),
+        cord(eyeShape.top, eyeShape.shank, 0.0015),
       ]);
     return {
       cords,

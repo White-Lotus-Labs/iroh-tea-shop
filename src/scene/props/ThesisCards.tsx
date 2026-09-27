@@ -158,6 +158,7 @@ function ThesisCard({
   const cover = useCover(thesis.image);
   const card = useRef<Group>(null);
   const hovered = useRef(false);
+  const posed = useRef(false);
   const spring = useRef({ at: 0, velocity: 0 });
   const [face] = useState(
     () => new MeshStandardMaterial({ color: '#e6d8bb', roughness: 0.78 }),
@@ -186,21 +187,29 @@ function ThesisCard({
     [face, blob],
   );
   useFrame((_, delta) => {
-    const s = spring.current,
-      target = hovered.current ? 1 : 0;
-    if (reduced) {
+    const s = spring.current;
+    const target = hovered.current ? 1 : 0;
+    const idle = Math.abs(target - s.at) < 0.001 && Math.abs(s.velocity) < 0.02;
+    // A resting card is already where the JSX posed it. Don't write every frame.
+    if (idle && posed.current) return;
+    if (reduced || idle) {
       s.at = target;
       s.velocity = 0;
     } else {
       const dt = Math.min(delta, 1 / 30);
       s.velocity += (STIFFNESS * (target - s.at) - DAMPING * s.velocity) * dt;
       s.at += s.velocity * dt;
+      if (Math.abs(target - s.at) < 0.001 && Math.abs(s.velocity) < 0.02) {
+        s.at = target;
+        s.velocity = 0;
+      }
     }
     const group = card.current;
     if (!group) return;
     group.position.y = REST_Y + index * 0.0015 + s.at * LIFT;
     group.rotation.x = LEAN + s.at * TILT;
     blob.opacity = 0.55 - Math.min(1, Math.max(0, s.at)) * 0.3;
+    posed.current = s.velocity === 0 && s.at === target;
   });
   const [x, yaw] = FAN[index];
   const pick = () => onPick?.(thesis.id);
