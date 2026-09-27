@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
-import { createSnapshotService } from '../src/leaderboard/snapshot';
 import { NANSEN_WARMING_MESSAGE } from '../src/nansen/snapshot-store';
 import { THESES } from '../src/thesis/deck';
 import { openTempDb } from './temp-sqlite';
@@ -157,36 +156,6 @@ describe('GET /api/theses', () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: NANSEN_WARMING_MESSAGE });
     expect(upstream).not.toHaveBeenCalled();
-  });
-
-  test('serves a stale deck when refresh fails after a good snapshot', async () => {
-    let now = Date.parse('2026-09-27T12:00:00Z');
-    let fail = false;
-    const load = vi.fn(async () => {
-      if (fail) throw new Error('offline');
-      return {
-        theses: [
-          {
-            id: 'ai' as const,
-            conviction: {
-              level: 'strong' as const,
-              accumulating: 1,
-              measured: 1,
-              netFlowUsd: 1,
-            },
-            tickers: [],
-          },
-        ],
-      };
-    });
-    const service = createSnapshotService(load, 10 * 60_000, () => now);
-    const first = await service.get();
-    fail = true;
-    now += 10 * 60_000;
-    const stale = await service.get();
-    expect(stale.stale).toBe(true);
-    expect(stale.refreshError).toBeTruthy();
-    expect(stale.fetchedAt).toBe(first.fetchedAt);
   });
 });
 

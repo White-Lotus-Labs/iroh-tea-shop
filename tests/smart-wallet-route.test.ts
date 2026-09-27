@@ -35,7 +35,9 @@ test('GET reads the saved leaderboard and does not call Nansen', async () => {
   );
   vi.stubGlobal('fetch', upstream);
   const { writeNansenSnapshot } = await import('../src/nansen/snapshot-store');
-  const { LEADERBOARD_CACHE_KEY } = await import('../src/leaderboard/snapshot');
+  const { DEFAULT_LEADERBOARD_CACHE_KEY: LEADERBOARD_CACHE_KEY } = await import(
+    '../src/leaderboard/boards'
+  );
   const saved = await writeNansenSnapshot(
     temp.db,
     LEADERBOARD_CACHE_KEY,

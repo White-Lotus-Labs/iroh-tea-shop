@@ -1,14 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   normalizeLeaderboard,
   formatMoney,
   formatRoi,
 } from '../src/leaderboard/model';
 import { fetchNansenLeaderboard } from '../src/leaderboard/provider';
-import {
-  createSnapshotService,
-  SNAPSHOT_TTL_MS,
-} from '../src/leaderboard/snapshot';
 
 const address = (n: number) => `0x${n.toString(16).padStart(40, '0')}`;
 const row = (n: number, overrides: Record<string, unknown> = {}) => ({
@@ -48,9 +44,9 @@ describe('Nansen leaderboard provider', () => {
   });
 
   test('asks Nansen for Smart Money labels and the Memecoin label', async () => {
-    const fetcher = vi.fn().mockImplementation(async () =>
-      Response.json({ data: [row(1)] }),
-    );
+    const fetcher = vi
+      .fn()
+      .mockImplementation(async () => Response.json({ data: [row(1)] }));
     const now = Date.parse('2026-09-25T12:34:00Z');
     await fetchNansenLeaderboard(
       'private-key',
@@ -131,62 +127,5 @@ describe('Nansen leaderboard provider', () => {
       status: 429,
       retryAfterMs: 120_000,
     });
-  });
-});
-
-describe('in-process snapshot helper', () => {
-  let now: number;
-  beforeEach(() => {
-    now = Date.parse('2026-09-25T12:00:00Z');
-  });
-
-  test('serves the same snapshot on repeat route-equivalent requests and refreshes only after expiry', async () => {
-    type Payload = { entries: ReturnType<typeof normalizeLeaderboard> };
-    const load = vi
-      .fn<() => Promise<Payload>>()
-      .mockResolvedValueOnce({
-        entries: [normalizeLeaderboard({ data: [row(1)] })[0]],
-      })
-      .mockResolvedValueOnce({
-        entries: [normalizeLeaderboard({ data: [row(2)] })[0]],
-      });
-    const service = createSnapshotService(load, SNAPSHOT_TTL_MS, () => now);
-    const first = await service.get();
-    expect(first.expiresAt).toBe('2026-09-25T12:30:00.000Z');
-    now += 20 * 60_000;
-    expect(await service.get()).toEqual(first);
-    expect(await service.get()).toEqual(first);
-    expect(load).toHaveBeenCalledTimes(1);
-    now += 10 * 60_000;
-    const second = await service.get();
-    expect(load).toHaveBeenCalledTimes(2);
-    expect(second.entries[0].address).toBe(address(2));
-  });
-
-  test('coalesces concurrent requests and marks a previous real snapshot stale on failure', async () => {
-    type Payload = { entries: ReturnType<typeof normalizeLeaderboard> };
-    let release!: (value: Payload) => void;
-    const load = vi
-      .fn<() => Promise<Payload>>()
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            release = resolve;
-          }),
-      )
-      .mockRejectedValueOnce(new Error('provider offline'));
-    const service = createSnapshotService(load, SNAPSHOT_TTL_MS, () => now);
-    const pending = [service.get(), service.get(), service.get()];
-    expect(load).toHaveBeenCalledTimes(1);
-    release({ entries: normalizeLeaderboard({ data: [row(1)] }) });
-    const snapshots = await Promise.all(pending);
-    expect(snapshots[0]).toEqual(snapshots[1]);
-    now += 30 * 60_000;
-    const stale = await service.get();
-    expect(stale).toMatchObject({ stale: true, source: 'nansen' });
-    expect(stale.fetchedAt).toBe(snapshots[0].fetchedAt);
-    expect(load).toHaveBeenCalledTimes(2);
-    expect(await service.get()).toEqual(stale);
-    expect(load).toHaveBeenCalledTimes(2);
   });
 });
