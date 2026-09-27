@@ -75,6 +75,11 @@
   align-items: center;
   gap: 14px;
   padding: 22px clamp(18px, 3vw, 40px);
+  /* The empty strip lets drags and clicks reach the stage underneath. */
+  pointer-events: none;
+}
+.waiting-brand > * {
+  pointer-events: auto;
 }
 .waiting-brand-mark {
   display: grid;
