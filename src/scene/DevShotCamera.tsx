@@ -39,6 +39,11 @@ export const SHOTS: Record<string, Shot> = {
     fov: 46,
   },
   shelf: stationShot('Shelf'),
+  'counter-shelves': {
+    position: [-2.55, 1.65, 4.45],
+    target: [-3.85, 1.55, 4.45],
+    fov: 60,
+  },
   brazier: {
     position: [0.55, 1.15, -0.35],
     target: [2.0, 0.25, -2.0],

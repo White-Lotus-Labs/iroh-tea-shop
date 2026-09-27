@@ -1,8 +1,18 @@
-import { BufferGeometry, TorusGeometry } from 'three';
+import { BufferGeometry, PlaneGeometry, TorusGeometry } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
 import { Solid } from '../Surfaces';
-import { block, merge, paint, place, useBuilt, WoodMaterial } from './craft';
+import {
+  block,
+  brushText,
+  canvasTexture,
+  merge,
+  paint,
+  paper,
+  place,
+  useBuilt,
+  WoodMaterial,
+} from './craft';
 import { JarSet, type JarKind, type JarSpec } from './Jars';
 
 const BACK = -3.995,
@@ -31,6 +41,56 @@ function kiriBox(
       '#5a2419',
     ),
   ];
+}
+
+const KIRI: [Point, Point, string?][] = [
+  [
+    [-3.83, 0.896, 5.1],
+    [0.24, 0.13, 0.3],
+  ],
+  [[-3.83, 1.026, 5.08], [0.22, 0.11, 0.26], '#c4a078'],
+  [[-3.83, 0.896, 4.72], [0.26, 0.16, 0.2], '#a98460'],
+  [
+    [-3.83, 2.226, 3.72],
+    [0.22, 0.12, 0.28],
+  ],
+  [[-3.83, 2.346, 3.74], [0.2, 0.1, 0.22], '#c4a078'],
+  [[-3.83, 2.715, 5.1], [0.26, 0.14, 0.34], '#a98460'],
+];
+const KIRI_TEAS = ['玉露', '抹茶', '煎茶', '番茶', '白茶', '銘茶'];
+
+/** Paper box labels: a tea name in ink on each cell of a six-cell atlas. */
+function drawBoxLabels(ctx: CanvasRenderingContext2D) {
+  const random = createRandom(909);
+  KIRI_TEAS.forEach((name, i) => {
+    paper(ctx, i * 64, 0, 64, 160, i % 2 ? '#efe6d0' : '#e6dbc2', random);
+    brushText(ctx, name, i * 64 + 32, 14, 56);
+  });
+}
+
+/** One merged mesh of labels on the front face of each kiri box, beside its cord. */
+function buildLabels() {
+  const faces = KIRI.map(([[x, y, z], [w, h, d]], i) => {
+    const face = new PlaneGeometry(Math.min(d * 0.3, 0.07), h * 0.66);
+    const uv = face.attributes.uv;
+    for (let k = 0; k < uv.count; k++)
+      uv.setX(k, (i + uv.getX(k)) / KIRI.length);
+    return place(
+      face,
+      [x + w / 2 + 0.0015, y + h * 0.42, z - d * 0.26],
+      [0, Math.PI / 2, 0],
+    );
+  });
+  const geometry = merge(faces),
+    map = canvasTexture(64 * KIRI.length, 160, drawBoxLabels);
+  return {
+    geometry,
+    map,
+    dispose() {
+      geometry.dispose();
+      map.dispose();
+    },
+  };
 }
 
 function buildCase() {
@@ -80,12 +140,7 @@ function buildCase() {
   );
   wood.push(
     block([0.41, 0.05, WIDTH + 0.08], [BACK + 0.2, 2.7, MID], '#2e1c12'),
-    ...kiriBox([-3.83, 0.896, 5.1], [0.24, 0.13, 0.3]),
-    ...kiriBox([-3.83, 1.026, 5.08], [0.22, 0.11, 0.26], '#c4a078'),
-    ...kiriBox([-3.83, 0.896, 4.72], [0.26, 0.16, 0.2], '#a98460'),
-    ...kiriBox([-3.83, 2.226, 3.72], [0.22, 0.12, 0.28]),
-    ...kiriBox([-3.83, 2.346, 3.74], [0.2, 0.1, 0.22], '#c4a078'),
-    ...kiriBox([-3.83, 2.715, 5.1], [0.26, 0.14, 0.34], '#a98460'),
+    ...KIRI.flatMap(([at, size, tone]) => kiriBox(at, size, tone)),
   );
   return {
     wood: merge(wood),
@@ -203,7 +258,8 @@ const JARS: JarSpec[] = [
 
 /** Tea-merchant shelving on the waiting room's left wall, behind the counter. */
 export function CounterShelves() {
-  const built = useBuilt(buildCase);
+  const built = useBuilt(buildCase),
+    labels = useBuilt(buildLabels);
   return (
     <group>
       <Solid
@@ -218,6 +274,9 @@ export function CounterShelves() {
       </mesh>
       <mesh geometry={built.iron}>
         <meshStandardMaterial vertexColors metalness={0.7} roughness={0.45} />
+      </mesh>
+      <mesh geometry={labels.geometry}>
+        <meshStandardMaterial map={labels.map} roughness={0.85} />
       </mesh>
       <JarSet jars={JARS} />
     </group>
