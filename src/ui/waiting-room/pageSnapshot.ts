@@ -93,10 +93,24 @@ async function decodePageSvgs(root: HTMLElement): Promise<SvgPictures> {
   return pictures;
 }
 
+/** Ids named by `url(#id)` paints, such as a gradient kept in another svg. */
+export function paintRefs(markup: string): string[] {
+  return [
+    ...new Set([...markup.matchAll(/url\(#([^)'"\s]+)\)/g)].map((m) => m[1])),
+  ];
+}
+
 async function decodeSvg(svg: SVGSVGElement): Promise<HTMLImageElement | null> {
   const box = svg.getBoundingClientRect();
   if (box.width < 1 || box.height < 1) return null;
   const clone = svg.cloneNode(true) as SVGSVGElement;
+  // A data-URL image cannot see the page, so bring outside paints along.
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  for (const id of paintRefs(clone.innerHTML)) {
+    const paint = document.getElementById(id);
+    if (paint && !svg.contains(paint)) defs.append(paint.cloneNode(true));
+  }
+  if (defs.childElementCount) clone.prepend(defs);
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('width', String(box.width));
   clone.setAttribute('height', String(box.height));

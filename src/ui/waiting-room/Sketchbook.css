@@ -604,24 +604,38 @@
   object-fit: cover;
 }
 .sb-stations ol {
+  flex: 1;
   display: grid;
-  gap: 5cqi;
-  margin: 1cqi 0 0;
+  align-content: space-between;
+  gap: 6cqi;
+  margin: 2cqi 0 0;
   padding: 0;
   list-style: none;
 }
 .sb-stations li {
   display: grid;
-  grid-template-columns: 7cqi minmax(0, 1fr);
-  gap: 2.6cqi;
+  grid-template-columns: 9.5cqi minmax(0, 1fr);
+  gap: 3cqi;
   align-items: start;
 }
-.sb-step-n {
-  font:
-    max(15px, 5cqi) / 1 'Hiragino Mincho ProN',
-    'Songti SC',
-    serif;
-  color: var(--sb-earth);
+.sb-stations .station-dock__paints {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.sb-step-icon {
+  display: block;
+  width: 9.5cqi;
+  height: 9.5cqi;
+  min-width: 26px;
+  min-height: 26px;
+}
+.sb-step-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 .sb-stations h3 {
   margin: 0 0 1cqi;
@@ -653,7 +667,7 @@
     padding-top: 6.5cqi;
   }
   .sb-stations ol {
-    gap: 2.6cqi;
+    gap: 4.5cqi;
   }
   .sb-stations h3 {
     margin-bottom: 0.5cqi;
@@ -890,7 +904,7 @@
 }
 .sb-stations .sb-caption-hand {
   display: block;
-  margin-top: auto;
+  margin-top: 4cqi;
   padding-right: 4cqi;
   text-align: left;
 }
