@@ -670,6 +670,12 @@ export function Invitation({ reduced }: { reduced: boolean }) {
         </div>
       </div>
 
+      <div className="inv-read" aria-hidden="true">
+        <p className="inv-read-tagline">{PROJECT.tagline}</p>
+        <p>{PROJECT.summary}</p>
+        <p className="inv-read-honesty">{PROJECT.honesty}</p>
+      </div>
+
       <div className="sr-only" aria-live="polite">
         {side === 'front' ? (
           <>

@@ -161,6 +161,9 @@
   color: var(--wr-cream-dim);
   text-shadow: 0 1px 10px rgba(10, 7, 5, 0.8);
 }
+.inv-read {
+  display: none;
+}
 @media (hover: none) {
   .inv-hint .on-touch {
     display: inline;
@@ -256,6 +259,41 @@
       padding: 7px 13px;
       text-align: center;
     }
+    /* The sheet is too small to read here, so its words stand beside it. */
+    .inv-read {
+      position: absolute;
+      top: 50%;
+      left: max(16px, env(safe-area-inset-left));
+      display: grid;
+      gap: 8px;
+      width: min(260px, calc(50vw - 150px));
+      transform: translateY(-50%);
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--wr-cream-dim);
+      text-shadow: 0 1px 10px rgba(10, 7, 5, 0.9);
+      animation: waiting-rise 0.9s var(--wr-ease-out) 0.5s both;
+    }
+    .inv-read p {
+      margin: 0;
+    }
+    .inv-read-tagline {
+      font-family: var(--wr-serif);
+      font-size: 15px;
+      font-style: italic;
+      line-height: 1.3;
+      color: var(--wr-gold-hi);
+    }
+    .inv-read-honesty {
+      padding-top: 8px;
+      border-top: 1px solid var(--wr-rule);
+      font-size: 11.5px;
+    }
+  }
+  @media (max-height: 500px) and (min-aspect-ratio: 3/2) and (max-width: 700px) {
+    .inv-read-honesty {
+      display: none;
+    }
   }
 }
 /* The five handles still fit two rows on the narrowest phones. */
@@ -274,7 +312,8 @@
 @media (prefers-reduced-motion: reduce) {
   .inv-canvas,
   .inv-signers,
-  .inv-turn {
+  .inv-turn,
+  .inv-read {
     animation: none;
   }
 }
