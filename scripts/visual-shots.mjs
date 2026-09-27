@@ -3,7 +3,7 @@
 //
 //   node scripts/visual-shots.mjs [outDir] [--gpu=metal|swiftshader]
 //     [--shots=room-wide,host-face] [--base=http://127.0.0.1:3106]
-//     [--motion=reduce|full] [--size=1600x900] [--dpr=2] [--ui]
+//     [--motion=reduce|full] [--size=1600x900] [--dpr=2] [--ui] [--headed]
 //
 // The dev server must already run (`npm run dev -- --port 3106`); the shot
 // camera is dev-only. Default outDir: ../_scratch/shots/round-N (next free N).
@@ -76,9 +76,25 @@ if (!gpuArgs) {
   process.exit(1);
 }
 
+// Never show a window on the user's screen. Metal runs use Chrome's new headless
+// mode (channel 'chromium') with the GPU on; --headed is a fallback that stays off-screen.
+const headed = has('headed');
 const browser = await chromium.launch({
-  headless: gpu !== 'metal',
-  args: [...gpuArgs, `--window-size=${width},${height + 90}`],
+  headless: !headed,
+  channel: gpu === 'metal' && !headed ? 'chromium' : undefined,
+  args: [
+    ...gpuArgs,
+    ...(gpu === 'metal' ? ['--enable-gpu'] : []),
+    ...(headed
+      ? [
+          '--window-position=-32000,-32000',
+          '--window-size=1440,900',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-background-timer-throttling',
+        ]
+      : []),
+  ],
 });
 const context = await browser.newContext({
   viewport: { width, height },

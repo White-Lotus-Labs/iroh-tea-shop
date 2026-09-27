@@ -18,6 +18,7 @@ import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { Atmosphere } from './props/Atmosphere';
 
 /** Display-referred grade after tone mapping: split tone, soft contrast, vignette, grain. */
 const GradeShader = {
@@ -216,6 +217,7 @@ export function SceneEffects({ reduced }: { reduced: boolean }) {
       />
       <fogExp2 attach="fog" args={['#2a1c13', 0.028]} />
       <RoomEnvironment />
+      {/* <Atmosphere reduced={reduced} /> */}
       <Composer reduced={reduced} ao={tier === 2} />
     </>
   );

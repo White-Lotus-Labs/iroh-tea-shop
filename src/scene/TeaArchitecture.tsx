@@ -1,16 +1,17 @@
-import { Suspense, useEffect, useMemo } from 'react';
-import { ContactShadows, useTexture } from '@react-three/drei';
-import { CanvasTexture, DoubleSide, SRGBColorSpace, Vector2 } from 'three';
-import { Solid, SurfaceMaterial } from './Surfaces';
+import { useMemo } from 'react';
+import { ContactShadows } from '@react-three/drei';
+import { DoubleSide, Vector2 } from 'three';
+import { Solid, SurfaceMaterial, useCanvasTexture } from './Surfaces';
 import type { Point } from './stations';
 import { createRandom } from './motion/dynamics';
 import { Counter } from './props/Counter';
 import { ChamberDressing, WaitingDressing } from './props/Dressing';
 import { TeaTable } from './props/TeaTable';
+import { BackWall } from './props/BackWall';
+import { RightWall } from './props/RightWall';
 
 const timber = '#3a2419';
-const plaster = '#917354';
-const backdropTint = '#e4d3bf';
+const plaster = '#8a7862';
 
 function Beam({
   position,
@@ -24,33 +25,6 @@ function Beam({
   cast?: boolean;
 }) {
   return <Solid position={position} size={size} color={color} cast={cast} />;
-}
-
-function canvasTexture(
-  width: number,
-  height: number,
-  draw: (ctx: CanvasRenderingContext2D) => void,
-) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  draw(canvas.getContext('2d')!);
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  texture.anisotropy = 8;
-  return texture;
-}
-function useCanvasTexture(
-  width: number,
-  height: number,
-  draw: (ctx: CanvasRenderingContext2D) => void,
-) {
-  const texture = useMemo(
-    () => canvasTexture(width, height, draw),
-    [width, height, draw],
-  );
-  useEffect(() => () => texture.dispose(), [texture]);
-  return texture;
 }
 
 function drawLanternPaper(ctx: CanvasRenderingContext2D) {
@@ -367,28 +341,6 @@ function FramedWall({
   );
 }
 
-function TeaBackdrop() {
-  const texture = useTexture('/images/tea-back-wall.jpg');
-  texture.colorSpace = SRGBColorSpace;
-  return (
-    <mesh position={[0, 1.85, -6.18]}>
-      <planeGeometry args={[8.25, 4.64]} />
-      <meshBasicMaterial map={texture} color={backdropTint} />
-    </mesh>
-  );
-}
-
-function RightWallBackdrop() {
-  const texture = useTexture('/images/tea-right-wall.jpg');
-  texture.colorSpace = SRGBColorSpace;
-  return (
-    <mesh position={[3.994, 1.85, -3.05]} rotation={[0, -Math.PI / 2, 0]}>
-      <planeGeometry args={[9.55, 3.65]} />
-      <meshBasicMaterial map={texture} color={backdropTint} />
-    </mesh>
-  );
-}
-
 function Tatami({ center }: { center: Point }) {
   const [cx, , cz] = center;
   return (
@@ -697,9 +649,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
       />
       <Scroll position={[-3.99, 1.62, -4.62]} />
       <Andon position={[-3.5, 0, -1.95]} />
-      <Suspense fallback={null}>
-        <RightWallBackdrop />
-      </Suspense>
+      <RightWall />
       {[-5.94, -1.53, 3.17].map((z) => (
         <Beam key={z} position={[3.91, 1.85, z]} size={[0.17, 3.7, 0.17]} />
       ))}
@@ -711,9 +661,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
           cast={false}
         />
       ))}
-      <Suspense fallback={null}>
-        <TeaBackdrop />
-      </Suspense>
+      <BackWall />
       <Tatami center={[0, 0, -2.5]} />
       <ContactShadows
         position={[0, 0.054, -2.5]}

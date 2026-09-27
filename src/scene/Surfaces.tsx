@@ -2,11 +2,17 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react';
 import {
+  CanvasTexture,
+  Color,
   DataTexture,
+  Matrix4,
+  type InstancedMesh,
   LinearFilter,
   LinearMipmapLinearFilter,
   NoColorSpace,
@@ -50,7 +56,7 @@ const SIZE: Record<Surface, [number, number]> = {
 const RELIEF: Record<Surface, number> = {
   wood: 1.5,
   floor: 2.6,
-  plaster: 0.55,
+  plaster: 0.4,
   paper: 1.2,
   shoji: 1.2,
   cloth: 1.6,
@@ -185,19 +191,23 @@ function sampler(kind: Surface): (s: number, t: number) => Texel {
     }
     case 'plaster':
       return (s, t) => {
-        const mottle = fbm(n1, s * 3, t * 3, 3, 3, 5);
+        const mottle = fbm(n1, s * 2, t * 2, 2, 2, 5);
+        const cloud = fbm(n4, s * 6, t * 6, 6, 6, 3);
         const trowel = fbm(n2, (s + t) * 6, (s - t) * 14, 6, 14, 3);
         const sand = n3(s * 240, t * 240, 240, 240);
-        const speck = Math.max(0, sand - 0.86) * 5;
+        const speck = Math.max(0, sand - 0.88) * 5;
+        const straw = Math.max(0, n4(s * 160, t * 14, 160, 14) - 0.8) * 3;
         return [
-          0.86 +
-            (mottle - 0.5) * 0.32 +
-            (trowel - 0.5) * 0.08 +
-            (sand - 0.5) * 0.06 -
-            speck * 0.16,
-          0.9 + (sand - 0.5) * 0.08 - (trowel - 0.5) * 0.1,
-          mottle * 0.1 + trowel * 0.2 + sand * 0.7,
-          (mottle - 0.5) * 0.08,
+          0.9 +
+            (mottle - 0.5) * 0.12 +
+            (cloud - 0.5) * 0.06 +
+            (trowel - 0.5) * 0.04 +
+            (sand - 0.5) * 0.05 -
+            speck * 0.12 +
+            straw * 0.07,
+          0.94 + (sand - 0.5) * 0.06 - (trowel - 0.5) * 0.04,
+          mottle * 0.1 + trowel * 0.25 + sand * 0.55 + straw * 0.1,
+          (mottle - 0.5) * 0.03 + straw * 0.04,
         ];
       };
     case 'paper':
@@ -254,6 +264,34 @@ function sampler(kind: Surface): (s: number, t: number) => Texel {
         ];
       };
   }
+}
+
+export function canvasTexture(
+  width: number,
+  height: number,
+  draw: (ctx: CanvasRenderingContext2D) => void,
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  draw(canvas.getContext('2d')!);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+/** A canvas texture painted once by a module-level `draw`, disposed on unmount. */
+export function useCanvasTexture(
+  width: number,
+  height: number,
+  draw: (ctx: CanvasRenderingContext2D) => void,
+) {
+  const texture = useMemo(
+    () => canvasTexture(width, height, draw),
+    [width, height, draw],
+  );
+  useEffect(() => () => texture.dispose(), [texture]);
+  return texture;
 }
 
 function dataTexture(
@@ -378,6 +416,57 @@ export function SurfaceMaterial({
     />
   ) : (
     <meshStandardMaterial {...props} />
+  );
+}
+
+/** Many static boxes in one draw call; `jitter` varies each box's tone. */
+export function Boxes({
+  items,
+  color,
+  surface = 'wood',
+  jitter = 0,
+  cast = true,
+  seed = 1,
+}: {
+  items: [position: Point, size: Point][];
+  color: string;
+  surface?: Surface;
+  jitter?: number;
+  cast?: boolean;
+  seed?: number;
+}) {
+  const maps = useSurfaceMaps(surface);
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current!,
+      random = createRandom(seed),
+      matrix = new Matrix4(),
+      tint = new Color();
+    items.forEach(([[x, y, z], [sx, sy, sz]], i) => {
+      mesh.setMatrixAt(i, matrix.makeScale(sx, sy, sz).setPosition(x, y, z));
+      if (jitter)
+        mesh.setColorAt(i, tint.setScalar(1 - jitter / 2 + random() * jitter));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [items, jitter, seed]);
+  return (
+    <instancedMesh
+      ref={ref}
+      args={[undefined, undefined, items.length]}
+      castShadow={cast}
+      receiveShadow
+    >
+      <boxGeometry />
+      <meshStandardMaterial
+        color={color}
+        map={maps.color}
+        normalMap={maps.normal}
+        roughnessMap={maps.rough}
+        roughness={1}
+      />
+    </instancedMesh>
   );
 }
 

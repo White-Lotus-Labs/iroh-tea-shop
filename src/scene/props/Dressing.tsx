@@ -1,63 +1,114 @@
-import { useEffect, useMemo } from 'react';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import {
+  BufferGeometry,
+  CatmullRomCurve3,
+  PlaneGeometry,
+  SphereGeometry,
+  TubeGeometry,
+  Vector3,
+} from 'three';
 import { SurfaceMaterial } from '../Surfaces';
 import type { Point } from '../stations';
+import { merge, place, useBuilt } from './craft';
+import { BambooPot, Bonsai } from './Plants';
 
-function Vase({ position }: { position: Point }) {
-  return (
-    <group position={position}>
-      <mesh castShadow>
-        <sphereGeometry args={[0.17, 20, 16]} />
-        <meshPhysicalMaterial
-          color="#394638"
-          roughness={0.35}
-          clearcoat={0.25}
-        />
-      </mesh>
-      <mesh position={[0, 0.14, 0]} castShadow>
-        <cylinderGeometry args={[0.075, 0.11, 0.16, 18]} />
-        <meshPhysicalMaterial
-          color="#394638"
-          roughness={0.35}
-          clearcoat={0.25}
-        />
-      </mesh>
-      {[
-        [-0.2, 0.33],
-        [0.08, 0.44],
-        [0.24, 0.26],
-      ].map(([x, y], index) => (
-        <group key={index}>
-          <mesh position={[x / 2, y / 2 + 0.16, 0]} rotation={[0, 0, -x * 0.7]}>
-            <cylinderGeometry args={[0.008, 0.012, y, 5]} />
-            <meshStandardMaterial color="#48583a" />
-          </mesh>
-          <mesh position={[x, y + 0.12, 0]} scale={[0.45, 1, 0.32]}>
-            <sphereGeometry args={[0.11, 8, 6]} />
-            <meshStandardMaterial color="#506346" roughness={1} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
+const CUSHION = { w: 0.74, d: 0.8, seam: 0.036, top: 0.052, bottom: 0.032 };
+
+/** Pinched outline: sides bow out a little, corners draw in. */
+const outline = (u: number, v: number): [number, number] => [
+  (u * CUSHION.w * (1 + 0.03 * (1 - v * v))) / 2,
+  (v * CUSHION.d * (1 + 0.03 * (1 - u * u))) / 2,
+];
+const puff = (s: number) => (1 - Math.min(1, Math.abs(s)) ** 4) ** 0.32;
+
+/** One stuffed face; `up` picks the top (tufted, fuller) or the floor side. */
+function panel(up: boolean) {
+  const geometry = new PlaneGeometry(2, 2, 48, 48);
+  geometry.rotateX(up ? -Math.PI / 2 : Math.PI / 2);
+  const p = geometry.attributes.position,
+    uv = geometry.attributes.uv;
+  for (let i = 0; i < p.count; i++) {
+    const u = p.getX(i),
+      v = p.getZ(i),
+      [x, z] = outline(u, v),
+      r2 = u * u + v * v,
+      body = puff(u) * puff(v),
+      y = up
+        ? CUSHION.seam +
+          CUSHION.top * body -
+          0.024 * Math.exp(-r2 / 0.014) +
+          0.0025 *
+            Math.sin(8 * Math.atan2(v, u)) *
+            Math.sqrt(r2) *
+            Math.exp(-r2 / 0.09)
+        : CUSHION.seam - CUSHION.bottom * body;
+    p.setXYZ(i, x, Math.max(0.002, y), z);
+    uv.setXY(i, x / 0.35, z / 0.35);
+  }
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
-function Cushion({ position }: { position: Point }) {
-  const geometry = useMemo(
-    () => new RoundedBoxGeometry(0.74, 0.11, 0.8, 4, 0.045),
-    [],
+function buildCushion() {
+  const ring = Array.from({ length: 96 }, (_, i) => {
+    const a = (i / 96) * Math.PI * 2,
+      c = Math.cos(a),
+      s = Math.sin(a),
+      k = Math.max(Math.abs(c), Math.abs(s)),
+      [x, z] = outline(c / k, s / k);
+    return new Vector3(x, CUSHION.seam, z);
+  });
+  const tuftY = CUSHION.seam + CUSHION.top - 0.022;
+  const strands: BufferGeometry[] = [0.5, 2.07, 3.64, 5.21].map((a) =>
+    place(
+      new TubeGeometry(
+        new CatmullRomCurve3([
+          new Vector3(0, 0.004, 0),
+          new Vector3(Math.cos(a) * 0.018, 0.002, Math.sin(a) * 0.018),
+          new Vector3(Math.cos(a) * 0.034, -0.001, Math.sin(a) * 0.034),
+        ]),
+        6,
+        0.0032,
+        5,
+      ),
+      [0, tuftY, 0],
+    ),
   );
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  return {
+    body: merge([panel(true), panel(false)]),
+    piping: new TubeGeometry(
+      new CatmullRomCurve3(ring, true),
+      192,
+      0.0075,
+      6,
+      true,
+    ),
+    tuft: merge([
+      ...strands,
+      place(new SphereGeometry(0.009, 10, 8), [0, tuftY + 0.004, 0]),
+    ]),
+    dispose() {
+      this.body.dispose();
+      this.piping.dispose();
+      this.tuft.dispose();
+    },
+  };
+}
+
+/** A zabuton: stuffed top and floor panels, piped seam and a centre tuft tie. */
+function Cushion({ position }: { position: Point }) {
+  const built = useBuilt(buildCushion);
   return (
-    <mesh
-      geometry={geometry}
-      position={position}
-      rotation={[0, 0.18, 0]}
-      castShadow
-      receiveShadow
-    >
-      <SurfaceMaterial surface="cloth" color="#3f4a37" />
-    </mesh>
+    <group position={position} rotation={[0, 0.18, 0]}>
+      <mesh geometry={built.body} castShadow receiveShadow>
+        <SurfaceMaterial surface="cloth" color="#3f4a37" />
+      </mesh>
+      <mesh geometry={built.piping} castShadow>
+        <SurfaceMaterial surface="cloth" color="#28301f" />
+      </mesh>
+      <mesh geometry={built.tuft} castShadow>
+        <SurfaceMaterial surface="cloth" color="#cbb98e" />
+      </mesh>
+    </group>
   );
 }
 
@@ -65,7 +116,8 @@ function Cushion({ position }: { position: Point }) {
 export function ChamberDressing() {
   return (
     <group>
-      <Cushion position={[-0.76, 0.105, -0.93]} />
+      <Cushion position={[-0.76, 0.053, -0.93]} />
+      <Bonsai position={[-1.3, 0, -5.75]} seed={3} stand turn={0.1} />
     </group>
   );
 }
@@ -74,7 +126,7 @@ export function ChamberDressing() {
 export function WaitingDressing() {
   return (
     <group>
-      <Vase position={[2.55, 0.17, 4.46]} />
+      <BambooPot position={[3.35, 0, 4.0]} />
     </group>
   );
 }

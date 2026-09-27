@@ -28,7 +28,8 @@ All shots use reduced motion for determinism, except `tea-set`. The app hides st
 2. Run `node scripts/visual-shots.mjs [outDir]`.
    - Default `outDir`: `../_scratch/shots/round-N`, where N is the next free number.
    - `--shots=host-face,host-hands` takes only some shots.
-   - `--gpu=swiftshader` uses headless SwiftShader (the test renderer) instead of headed Metal.
+   - `--gpu=swiftshader` uses SwiftShader (the test renderer) instead of Metal.
+   - `--headed` is a fallback only. It opens Chromium off-screen at `-32000,-32000` and never brings it to the front.
    - `--dpr=1` renders at 1x. Metal defaults to 2x, like a Retina laptop. The Canvas caps the render at its own dpr range.
    - `--motion=full` turns off reduced motion for all shots. `--ui` keeps the HTML panels visible.
 3. The script writes one PNG per shot and `frames-<gpu>.json`. The JSON has the WebGL renderer string, mean frame time, p95 frame time, and fps per shot.
@@ -37,11 +38,13 @@ The frame sampler runs for 3 s per shot in the page with `requestAnimationFrame`
 
 ### GPU choice for scoring
 
-Score from the headed Chromium run with real GPU (`--gpu=metal`, ANGLE Metal on Apple M5 Max). A real user's browser uses the GPU, not SwiftShader.
+Score from the real-GPU run (`--gpu=metal`, ANGLE Metal on Apple M5 Max). A real user's browser uses the GPU, not SwiftShader.
+
+Launch mode (from round 3 on): every run is headless, so no window opens on the screen. The Metal run uses Chrome's new headless mode (Playwright channel `chromium`) with `--use-angle=metal --enable-gpu --ignore-gpu-blocklist`. The renderer string still reads `ANGLE Metal Renderer: Apple M5 Max`, and the `room-wide` shot matches the earlier headed reference. Rounds 0 to 3 used a headed window.
 
 Round 0 check: the same `room-wide` shot at 1600×900, 1x, from headless SwiftShader and from headed Metal, has a mean absolute pixel difference of 0.14/255 (0.1% of pixels differ by more than 16). The unlit backdrops and the simple lighting render the same on both. SwiftShader runs at about 2 fps, so it cannot measure frame time. Recheck after post effects change; results are in `docs/visual-scores.md`.
 
-Frame-time budget: the headed Metal run must stay at or above 50 fps. The M5 Max is much faster than a typical laptop GPU, so watch the trend between rounds, not only the gate.
+Frame-time budget: the Metal run must stay at or above 50 fps. The M5 Max is much faster than a typical laptop GPU, so watch the trend between rounds, not only the gate.
 
 ## Scene parts
 
