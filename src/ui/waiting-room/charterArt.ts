@@ -281,9 +281,11 @@ export const SIGN_SLOTS: [number, number][] = [
   [300, 1370],
   [900, 1370],
 ];
+const ROSTER_TOP = 352;
+const ROSTER_PITCH = 218;
 export const ROSTER_ROW = (i: number): [number, number] => [
-  470,
-  430 + i * 214 + 80,
+  440,
+  ROSTER_TOP + i * ROSTER_PITCH + 90,
 ];
 
 export function drawFront(ctx: Ctx) {
@@ -376,23 +378,26 @@ export function drawBack(ctx: Ctx, portraits: (HTMLImageElement | null)[]) {
     ctx,
     `${PROJECT.studio.toUpperCase()} · THE SIGNATORIES`,
     TW / 2,
-    196,
+    172,
     9,
     true,
   );
-  rule(ctx, 240, 215);
+  rule(ctx, 208, 215);
   ctx.fillStyle = INK;
-  ctx.font = `400 82px ${SERIF}`;
-  mid(ctx, 'Five friends of the Lotus', 346);
+  ctx.font = `400 76px ${SERIF}`;
+  mid(ctx, 'Five friends of the Lotus', 298);
 
+  // Bios are the smallest type that must be read, so they get the room:
+  // smaller cameos, a wider column, three lines when a bio needs them.
   TEAM.forEach((member, i) => {
-    const top = ROSTER_ROW(i)[1] - 80;
-    const cx = 226;
-    const cy = top + 90;
+    const top = ROSTER_TOP + i * ROSTER_PITCH;
+    const cx = 190;
+    const cy = top + 96;
+    const r = 70;
     const img = portraits[i];
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, 84, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.clip();
     if (img?.complete && img.naturalWidth) {
       const [fx, fy, fs] = CAMEO[member.handle];
@@ -404,33 +409,33 @@ export function drawBack(ctx: Ctx, portraits: (HTMLImageElement | null)[]) {
         fy * img.naturalHeight - s / 2,
         s,
         s,
-        cx - 84,
-        cy - 84,
-        168,
-        168,
+        cx - r,
+        cy - r,
+        2 * r,
+        2 * r,
       );
     }
     ctx.restore();
     ctx.strokeStyle = 'rgba(59,42,23,.7)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, 88, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
     ctx.stroke();
     ctx.lineWidth = 0.9;
     ctx.beginPath();
-    ctx.arc(cx, cy, 95, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r + 10, 0, Math.PI * 2);
     ctx.stroke();
 
-    const x = 360;
+    const x = 296;
     ctx.fillStyle = INK;
-    ctx.font = `500 52px ${SERIF}`;
-    ctx.fillText(member.handle, x, top + 50);
+    ctx.font = `500 50px ${SERIF}`;
+    ctx.fillText(member.handle, x, top + 46);
     ctx.fillStyle = EARTH;
-    ctx.font = `700 17px ${SANS}`;
-    track(ctx, member.roles.toUpperCase(), x, top + 88, 4, false);
-    ctx.fillStyle = 'rgba(59,42,23,.84)';
-    ctx.font = `italic 400 29px ${SERIF}`;
-    wrap(ctx, member.bio, top + 132, 740, 38, x);
+    ctx.font = `700 19px ${SANS}`;
+    track(ctx, member.roles.toUpperCase(), x, top + 80, 4, false);
+    ctx.fillStyle = 'rgba(59,42,23,.88)';
+    ctx.font = `italic 400 35px ${SERIF}`;
+    wrap(ctx, member.bio, top + 120, 790, 40, x);
   });
 
   rule(ctx, 1474, 180);

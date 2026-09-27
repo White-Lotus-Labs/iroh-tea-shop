@@ -37,9 +37,15 @@ const SH = (SW * TH) / TW + 0.06;
 const FOV = 24;
 const CAM_Z = 8.2;
 // The canvas starts 96px above the stage (see .inv-canvas) and keeps the
-// sheet centred between the header and the controls below it.
-const WIDE_RESERVE = { top: 96, bottom: 16, fill: 0.9 };
-const NARROW_RESERVE = { top: 96, bottom: 190, fill: 0.9 };
+// sheet centred between the header and the controls below it. On wide
+// screens the side columns (see .inv-signers) also bound its width.
+const WIDE_RESERVE = { top: 96, bottom: 16, fill: 0.9, columns: true };
+const NARROW_RESERVE = { top: 96, bottom: 190, fill: 0.9, columns: false };
+// Matches the wide rules in Invitation.css.
+const WIDE_QUERY = '(min-width: 1000px) and (min-aspect-ratio: 1/1)';
+const columnsFree = (w: number) => w - 2 * (Math.max(28, w / 2 - 590) + 274);
+// The roster side has the smallest type, so the sheet comes a little closer.
+const LEAN = 1.1;
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 
 const BEND = /* glsl */ `
@@ -182,7 +188,7 @@ function Sheet({
 }: {
   focus: RefObject<number | null>;
   reduced: boolean;
-  reserve: { top: number; bottom: number; fill: number };
+  reserve: typeof WIDE_RESERVE;
   onSide: (side: Side) => void;
   flip: RefObject<() => void>;
 }) {
@@ -205,6 +211,7 @@ function Sheet({
     over: false,
     flipTo: null as number | null,
     intro: reduced ? 1 : 0,
+    lean: 1,
     side: 'front' as Side,
     mouse: { x: 0, y: 0, tx: 0, ty: 0 },
   });
@@ -435,9 +442,14 @@ function Sheet({
     const visW = visH * (size.width / size.height);
     const top = reserve.top / size.height;
     const bottom = reserve.bottom / size.height;
+    const lean = st.side === 'back' && !st.dragging ? LEAN : 1;
+    st.lean = reduced
+      ? lean
+      : st.lean + (lean - st.lean) * Math.min(1, dt * 2.4);
+    const free = reserve.columns ? columnsFree(size.width) : size.width * 0.84;
     const scale = Math.min(
-      (visH * (1 - top - bottom) * reserve.fill) / SH,
-      (visW * 0.84) / SW,
+      (visH * (1 - top - bottom) * reserve.fill * st.lean) / SH,
+      (visW * free) / size.width / SW,
     );
     p.scale.setScalar(scale);
     g.rotation.y =
@@ -556,7 +568,7 @@ export function Invitation({ reduced }: { reduced: boolean }) {
   const flip = useRef<() => void>(() => {});
   const focus = useRef<number | null>(null);
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 1000px)');
+    const media = window.matchMedia(WIDE_QUERY);
     const apply = () => setWide(media.matches);
     apply();
     media.addEventListener('change', apply);

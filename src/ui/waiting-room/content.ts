@@ -23,7 +23,7 @@ export const TEAM: Member[] = [
   {
     handle: 'david_grii',
     roles: 'Front-end · UI',
-    bio: 'Full-stack dev who has worked on SaaS, health, and crypto projects. Does not watch anime, but somehow has an anime pfp.',
+    bio: 'Full-stack dev across SaaS, health, and crypto. Does not watch anime, yet somehow has an anime pfp.',
     portrait: art('team-david'),
   },
   {

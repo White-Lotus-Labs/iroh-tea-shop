@@ -780,7 +780,10 @@ export function Tanzaku({ reduced }: { reduced: boolean }) {
   const last = useRef(0);
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 1000px)');
+    // Matches the stacked rules in Tanzaku.css; tall screens stack too.
+    const media = window.matchMedia(
+      '(min-width: 1000px) and (min-aspect-ratio: 1/1)',
+    );
     const apply = () => setWide(media.matches);
     apply();
     media.addEventListener('change', apply);
