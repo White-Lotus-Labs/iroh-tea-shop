@@ -13,7 +13,12 @@ import {
   sampleNumber,
   solveTwoBone,
 } from '../src/scene/irohMotion';
-import { patchHairShell, patchHostBody } from '../src/scene/IrohModel';
+import {
+  patchHairShell,
+  patchHostBody,
+  stepActivity,
+} from '../src/scene/IrohModel';
+import { ACTIONS } from '../src/scene/irohMotion';
 
 function arm() {
   const root = new Group();
@@ -107,5 +112,31 @@ describe('Iroh motion', () => {
     } as unknown as WebGLProgramParametersWithUniforms;
     patchHairShell({})(shell);
     expect(shell.vertexShader).toContain('shell * shellLength');
+  });
+});
+
+describe('Iroh activity scheduler', () => {
+  const sipping = () => ({
+    activity: 'idle' as const,
+    index: 1,
+    action: 'sip' as const,
+    start: 0,
+  });
+  const end = ACTIONS.sip.length + 0.1;
+
+  it('drops a change that reverts before the action ends', () => {
+    const m = sipping();
+    stepActivity(m, 'researching', 1);
+    stepActivity(m, 'idle', 2);
+    stepActivity(m, 'idle', end);
+    expect(m).toMatchObject({ activity: 'idle', index: 2, action: 'rest' });
+  });
+
+  it('plays a change that holds once the action ends', () => {
+    const m = sipping();
+    stepActivity(m, 'researching', 1);
+    expect(m.action).toBe('sip');
+    stepActivity(m, 'researching', end);
+    expect(m).toMatchObject({ activity: 'researching', action: 'pour' });
   });
 });
