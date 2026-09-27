@@ -79,6 +79,13 @@ export function hideBodyHead(headMap: Texture) {
  * Integrates hand-painted anime/Ghibli art direction with physical 3D curvature,
  * neck-pivoted parallax animation, and dynamic scene lighting response.
  */
+const HOST_TEXTURES = [
+  '/images/tea-host-diorama-body.5c7c91.webp',
+  '/images/tea-host-diorama-body-normal.07c541.webp',
+  '/images/tea-host-diorama-head.47063b.webp',
+  '/images/tea-host-diorama-head-normal.79d02a.webp',
+];
+
 export function TeaHost3D({
   reduced,
   activity = 'idle',
@@ -90,14 +97,9 @@ export function TeaHost3D({
   position?: Point;
   rotation?: Point;
 }) {
-  const bodyTexture = useTexture('/images/tea-host-diorama-body.5c7c91.webp');
-  const bodyNormal = useTexture(
-    '/images/tea-host-diorama-body-normal.07c541.webp',
-  );
-  const headTexture = useTexture('/images/tea-host-diorama-head.47063b.webp');
-  const headNormal = useTexture(
-    '/images/tea-host-diorama-head-normal.79d02a.webp',
-  );
+  // One call: separate useTexture calls suspend one after another.
+  const [bodyTexture, bodyNormal, headTexture, headNormal] =
+    useTexture(HOST_TEXTURES);
   bodyTexture.colorSpace = SRGBColorSpace;
   headTexture.colorSpace = SRGBColorSpace;
   bodyNormal.colorSpace = LinearSRGBColorSpace;

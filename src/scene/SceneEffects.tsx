@@ -9,21 +9,97 @@ import {
 } from 'react';
 import { useFrame, useThree, type RootState } from '@react-three/fiber';
 import {
+  Color,
+  CubeCamera,
+  DoubleSide,
+  HalfFloatType,
+  Mesh,
+  MeshBasicMaterial,
+  PlaneGeometry,
+  RingGeometry,
+  Scene,
+  WebGLCubeRenderTarget,
   type Group,
   type Material,
-  type Mesh,
   type Object3D,
   type ShaderMaterial,
 } from 'three';
 import { Atmosphere } from './props/Atmosphere';
 
-/** Fog and shafts stay on the first frame. Reflections, AO, and bloom arrive
- *  with ScenePolish after the guest steps inside, so the entrance does not
- *  download or compile them. */
+type Former = [
+  form: 'rect' | 'circle',
+  color: string,
+  intensity: number,
+  position: [number, number, number],
+  scale: number | [number, number],
+  rotation?: [number, number, number],
+];
+
+// Warm window and doorway panels, two lanterns, dim timber above and below.
+const FORMERS: Former[] = [
+  ['rect', '#ff9a5c', 3.2, [-3.1, 1.2, -6], [1.8, 2.6]],
+  ['rect', '#ffd9a3', 2.4, [-0.4, 1.9, -6], [2.2, 2.8]],
+  ['rect', '#ffd7a0', 2, [4, 2.1, -0.3], [2, 2.4]],
+  ['circle', '#ffc070', 9, [2.3, 2.72, -3.1], 0.5],
+  ['circle', '#ffc070', 9, [-1.05, 2.45, -2.6], 0.55],
+  ['rect', '#ffcf96', 0.7, [0, 1.6, 8], [3.5, 3]],
+  ['rect', '#5a3b25', 0.35, [0, 4, -1.5], [8, 10], [Math.PI / 2, 0, 0]],
+  ['rect', '#7a4c2c', 0.4, [0, -1.2, -1.5], [8, 10], [-Math.PI / 2, 0, 0]],
+  ['rect', '#4a3222', 0.3, [-4.5, 1.8, -1.5], [10, 3.7]],
+];
+
+/** Procedural room reflections, rendered once into a cube map. */
+function RoomEnvironment() {
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
+  useLayoutEffect(() => {
+    const room = new Scene();
+    room.background = new Color('#140d09');
+    const rect = new PlaneGeometry(1, 1);
+    const circle = new RingGeometry(0, 0.5, 64);
+    const materials = FORMERS.map(
+      ([form, color, intensity, position, scale, rotation]) => {
+        const material = new MeshBasicMaterial({
+          color: new Color(color).multiplyScalar(intensity),
+          side: DoubleSide,
+          toneMapped: false,
+        });
+        const mesh = new Mesh(form === 'circle' ? circle : rect, material);
+        mesh.position.set(...position);
+        if (Array.isArray(scale)) mesh.scale.set(scale[0], scale[1], 1);
+        else mesh.scale.setScalar(scale);
+        if (rotation) mesh.rotation.set(...rotation);
+        else mesh.lookAt(0, 0, 0);
+        room.add(mesh);
+        return material;
+      },
+    );
+    const target = new WebGLCubeRenderTarget(256);
+    target.texture.type = HalfFloatType;
+    const autoClear = gl.autoClear;
+    gl.autoClear = true;
+    new CubeCamera(0.1, 1000, target).update(gl, room);
+    gl.autoClear = autoClear;
+    scene.environment = target.texture;
+    scene.environmentIntensity = 0.55;
+    return () => {
+      scene.environment = null;
+      scene.environmentIntensity = 1;
+      target.dispose();
+      rect.dispose();
+      circle.dispose();
+      materials.forEach((material) => material.dispose());
+    };
+  }, [gl, scene]);
+  return null;
+}
+
+/** Fog, reflections and light shafts belong to the lit shell: adding them later recompiles every program. */
 export function SceneLighting({ reduced }: { reduced: boolean }) {
   return (
     <>
       <fogExp2 attach="fog" args={['#5c3c26', 0.045]} />
+      <RoomEnvironment />
       <Atmosphere reduced={reduced} />
     </>
   );
@@ -83,16 +159,18 @@ const settle = (work: Promise<unknown>) =>
  * work. Its priority-1 frame slot keeps R3F from rendering until the composer (inside
  * `children`) takes over, so no program is ever built for the unused on-screen variant.
  * Once every child has resolved, with the frame loop paused, it runs `precompile` for
- * the final look and again for the fade, then fades the new detail in.
+ * the final look and again for the fade, then fades the new detail in and calls `onReady`.
  */
 export function Staged({
   children,
   reduced,
   precompile,
+  onReady,
 }: {
   children: ReactNode;
   reduced: boolean;
   precompile: (state: RootState) => Promise<unknown>;
+  onReady?: () => void;
 }) {
   const [mounted, setMounted] = useState(false);
   const group = useRef<Group>(null);
@@ -102,6 +180,8 @@ export function Staged({
   const get = useThree((state) => state.get);
   const compile = useRef(precompile);
   compile.current = precompile;
+  const ready = useRef(onReady);
+  ready.current = onReady;
   const reveal = useCallback(() => {
     const list = (fades.current ??= collectFades(group.current!));
     const { setFrameloop } = get();
@@ -118,6 +198,7 @@ export function Staged({
       if (!live) return;
       setFrameloop('always');
       progress.current = 0;
+      ready.current?.();
     });
     return () => {
       live = false;

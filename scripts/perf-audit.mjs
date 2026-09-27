@@ -1,11 +1,18 @@
 #!/usr/bin/env node
-// Production perf budget: next start + headless Chromium.
+// Production load audit: headless Chromium against `next start`.
 //
-//   node scripts/perf-audit.mjs [--port=3112] [--profiles=desktop,mobile]
-//       [--out=docs/perf-runs/latest.json]
+//   node scripts/perf-audit.mjs [--port=3161] [--profiles=desktop,mobile]
+//       [--runs=3] [--step=1] [--out=docs/perf-runs/latest.json]
 //
 // Expects `npm run build` already. Starts `next start` itself unless
-// PERF_AUDIT_EXTERNAL=1 (then only the base URL is used).
+// PERF_AUDIT_EXTERNAL=1 (then only --base / --port is used).
+//
+// Bytes are wire bytes from CDP `Network.loadingFinished.encodedDataLength`
+// (compressed body plus headers), so a gzip chunk counts at its gzip size.
+// "Ready" is the first moment `.app-shell` drops aria-busy with Step inside
+// enabled. "First-load JS" is every script the server HTML asks for, minus
+// `noModule` polyfills. With --step=1 the audit then clicks Step inside and
+// records what loads after it and the longest frame gap while the room opens.
 //
 // Does not rewrite docs/perf-budget.md. Prints a markdown table and writes JSON.
 import { chromium } from '@playwright/test';
@@ -21,10 +28,12 @@ const flag = (name, fallback) => {
   return hit ? hit.slice(name.length + 3) : fallback;
 };
 
-const port = flag('port', '3112');
+const port = flag('port', '3161');
 const base = flag('base', `http://127.0.0.1:${port}`);
 const external = process.env.PERF_AUDIT_EXTERNAL === '1';
 const outPath = resolve(repoRoot, flag('out', 'docs/perf-runs/latest.json'));
+const runsPerProfile = Number(flag('runs', '3'));
+const step = flag('step', '1') === '1';
 const profiles = flag('profiles', 'desktop,mobile')
   .split(',')
   .map((name) => name.trim())
@@ -40,12 +49,13 @@ const FAST_4G = {
 
 const PRESETS = {
   desktop: {
-    label: 'desktop',
+    label: 'desktop-1440x900',
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 2,
-    throttle: 'none',
+    throttle: null,
     cpuRate: 1,
-    settleMs: 2500,
+    settleMs: 3000,
+    stepMs: 6000,
   },
   mobile: {
     label: 'mobile-390x844-fast4g',
@@ -53,28 +63,35 @@ const PRESETS = {
     deviceScaleFactor: 2,
     isMobile: true,
     hasTouch: true,
-    throttle: 'fast4g',
+    throttle: FAST_4G,
     cpuRate: 4,
-    settleMs: 8000,
+    settleMs: 6000,
+    stepMs: 12000,
   },
 };
 
-function classify(resourceType, url) {
-  if (resourceType === 'stylesheet' || url.includes('.css')) return 'css';
-  if (resourceType === 'script' || url.includes('.js')) return 'js';
-  if (
-    resourceType === 'image' ||
-    /\.(png|jpe?g|webp|gif|svg|avif)(\?|$)/i.test(url)
-  )
+const TYPES = ['document', 'js', 'css', 'image', 'font', 'media', 'other'];
+
+function classify(type, url) {
+  if (type === 'Document') return 'document';
+  if (type === 'Script' || /\.m?js(\?|$)/.test(url)) return 'js';
+  if (type === 'Stylesheet' || /\.css(\?|$)/.test(url)) return 'css';
+  if (type === 'Image' || /\.(png|jpe?g|webp|gif|svg|avif)(\?|$)/i.test(url))
     return 'image';
-  if (resourceType === 'font' || /\.(woff2?|ttf|otf)(\?|$)/i.test(url))
-    return 'font';
-  if (resourceType === 'document') return 'document';
+  if (type === 'Font' || /\.(woff2?|ttf|otf)(\?|$)/i.test(url)) return 'font';
+  if (type === 'Media' || /\.(mp3|m4a|aac|ogg|opus|webm)(\?|$)/i.test(url))
+    return 'media';
   return 'other';
 }
 
-function emptyTypes() {
-  return { document: 0, js: 0, css: 0, image: 0, font: 0, other: 0 };
+function sumByType(requests) {
+  const out = Object.fromEntries(TYPES.map((type) => [type, 0]));
+  let total = 0;
+  for (const request of requests) {
+    out[request.kind] += request.bytes;
+    total += request.bytes;
+  }
+  return { ...out, total };
 }
 
 async function waitForServer(url, ms = 120000) {
@@ -91,155 +108,253 @@ async function waitForServer(url, ms = 120000) {
   throw new Error(`Server did not become ready at ${url}`);
 }
 
-function kb(n) {
-  return `${(n / 1024).toFixed(1)} KB`;
-}
+const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
+const median = (values) => {
+  const sorted = values
+    .filter((v) => typeof v === 'number')
+    .sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
 
-async function launchBrowser() {
-  const gpuArgs = [
-    '--enable-gpu',
-    '--ignore-gpu-blocklist',
-    '--enable-webgl',
-    '--use-gl=angle',
-  ];
-  // System Google Chrome. The bundled Playwright browser is not installed here,
-  // and `channel: 'chromium'` still downloads Playwright's headless shell.
-  return chromium.launch({
-    headless: true,
-    channel: 'chrome',
-    args: gpuArgs,
+// Runs in the page before any app code.
+function probe() {
+  const audit = (window.__audit = {
+    ready: null,
+    fcp: null,
+    lcp: null,
+    longTasks: [],
+    frames: null,
   });
+  const observe = (type, fn) => {
+    try {
+      new PerformanceObserver((list) => list.getEntries().forEach(fn)).observe({
+        type,
+        buffered: true,
+      });
+    } catch {
+      /* unsupported entry type */
+    }
+  };
+  observe('paint', (entry) => {
+    if (entry.name === 'first-contentful-paint') audit.fcp = entry.startTime;
+  });
+  observe('largest-contentful-paint', (entry) => {
+    audit.lcp = entry.startTime;
+  });
+  observe('longtask', (entry) => {
+    audit.longTasks.push([entry.startTime, entry.duration]);
+  });
+  const check = () => {
+    if (audit.ready !== null) return;
+    const shell = document.querySelector('.app-shell');
+    if (shell?.getAttribute('aria-busy') !== 'false') return;
+    const enter = [...document.querySelectorAll('button')].find((button) =>
+      button.textContent.includes('Step inside'),
+    );
+    if (enter && !enter.disabled) audit.ready = performance.now();
+  };
+  new MutationObserver(check).observe(document, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['aria-busy', 'disabled'],
+  });
+  // Frame gaps after Step inside: a long gap is a visible hitch.
+  audit.watchFrames = (ms) => {
+    const start = performance.now();
+    const frames = (audit.frames = { start, gaps: [] });
+    let last = start;
+    const tick = (now) => {
+      frames.gaps.push(now - last);
+      last = now;
+      if (now - start < ms) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
 }
 
 async function measure(browser, preset) {
-  const byType = emptyTypes();
-  const resources = [];
-  let totalBytes = 0;
   const context = await browser.newContext({
     viewport: preset.viewport,
     deviceScaleFactor: preset.deviceScaleFactor,
     isMobile: preset.isMobile ?? false,
     hasTouch: preset.hasTouch ?? false,
   });
+  await context.addInitScript(probe);
   const page = await context.newPage();
-  let throttleApplied = false;
-  let throttleError = null;
-  if (preset.throttle === 'fast4g' || preset.cpuRate > 1) {
-    try {
-      const client = await context.newCDPSession(page);
-      await client.send('Network.enable');
-      await client.send('Network.setCacheDisabled', { cacheDisabled: true });
-      if (preset.throttle === 'fast4g') {
-        await client.send('Network.emulateNetworkConditions', FAST_4G);
-        throttleApplied = true;
-      }
-      if (preset.cpuRate > 1) {
-        await client.send('Emulation.setCPUThrottlingRate', {
-          rate: preset.cpuRate,
-        });
-      }
-    } catch (error) {
-      throttleError = error instanceof Error ? error.message : String(error);
+  const client = await context.newCDPSession(page);
+  // A fresh context is a first visit; keep the cache so a repeat URL in the
+  // same visit costs what it costs a real guest.
+  await client.send('Network.enable');
+  if (preset.throttle)
+    await client.send('Network.emulateNetworkConditions', preset.throttle);
+  if (preset.cpuRate > 1)
+    await client.send('Emulation.setCPUThrottlingRate', {
+      rate: preset.cpuRate,
+    });
+
+  const requests = new Map();
+  let documentId = null;
+  let origin = null;
+  client.on('Network.requestWillBeSent', (event) => {
+    if (!event.request.url.startsWith('http')) return;
+    if (event.type === 'Document' && !documentId) {
+      documentId = event.requestId;
+      origin = event.timestamp;
+    }
+    requests.set(event.requestId, {
+      url: event.request.url.replace(base, ''),
+      type: event.type,
+      start: event.timestamp,
+      end: null,
+      bytes: 0,
+    });
+  });
+  client.on('Network.loadingFinished', (event) => {
+    const request = requests.get(event.requestId);
+    if (!request) return;
+    request.end = event.timestamp;
+    request.bytes = event.encodedDataLength;
+  });
+
+  await page.goto(base, { waitUntil: 'commit', timeout: 120000 });
+  const readyMs = await page
+    .waitForFunction(() => window.__audit.ready, null, {
+      timeout: 120000,
+      polling: 250,
+    })
+    .then((handle) => handle.jsonValue())
+    .catch(() => null);
+  await page.waitForTimeout(preset.settleMs);
+
+  const body = documentId
+    ? await client
+        .send('Network.getResponseBody', { requestId: documentId })
+        .then((r) => r.body)
+        .catch(() => '')
+    : '';
+  const nomodule = new Set(
+    [...body.matchAll(/<script[^>]*src="([^"]+)"[^>]*noModule/g)].map(
+      (m) => m[1],
+    ),
+  );
+  const firstLoadUrls = new Set(
+    [...body.matchAll(/\/_next\/static\/chunks\/[\w.~-]+\.js/g)]
+      .map((m) => m[0])
+      .filter((url) => !nomodule.has(url)),
+  );
+
+  const at = (seconds) => (seconds - origin) * 1000;
+  const finished = () =>
+    [...requests.entries()]
+      .filter(([, r]) => r.end !== null)
+      .map(([id, r]) => ({
+        id,
+        url: r.url,
+        kind: classify(r.type, r.url),
+        bytes: r.bytes,
+        startMs: Math.round(at(r.start)),
+        endMs: Math.round(at(r.end)),
+      }));
+
+  const settledList = finished();
+  const beforeReady = settledList.filter(
+    (r) => readyMs !== null && r.endMs <= readyMs,
+  );
+  const firstLoad = settledList.filter(
+    (r) => r.kind === 'js' && firstLoadUrls.has(r.url),
+  );
+  let threeChunk = null;
+  for (const r of settledList.filter((x) => x.kind === 'js')) {
+    const source = await client
+      .send('Network.getResponseBody', { requestId: r.id })
+      .then((x) => x.body)
+      .catch(() => '');
+    if (source.includes('THREE.WebGLRenderer')) {
+      threeChunk = {
+        url: r.url,
+        bytes: r.bytes,
+        endMs: r.endMs,
+        inFirstLoad: firstLoadUrls.has(r.url),
+      };
+      break;
     }
   }
 
-  page.on('response', async (response) => {
-    try {
-      const url = response.url();
-      if (!url.startsWith('http')) return;
-      const headers = response.headers();
-      let size = Number(headers['content-length'] || 0);
-      if (!size) {
-        try {
-          const body = await response.body();
-          size = body.byteLength;
-        } catch {
-          return;
-        }
-      }
-      const type = classify(response.request().resourceType(), url);
-      byType[type] += size;
-      totalBytes += size;
-      resources.push({
-        url: url.replace(base, ''),
-        type,
-        bytes: size,
-      });
-    } catch {
-      /* closed mid-flight */
-    }
-  });
+  const audit = await page.evaluate(() => ({
+    fcp: window.__audit.fcp,
+    lcp: window.__audit.lcp,
+    longTasks: window.__audit.longTasks,
+  }));
 
-  const navStart = Date.now();
-  await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 120000 });
-
-  const entranceMs = await (async () => {
-    const deadline = Date.now() + 120000;
-    while (Date.now() < deadline) {
-      const ready = await page
-        .evaluate(() => {
-          const shell = document.querySelector('.app-shell');
-          const hero = document.querySelector('.entrance-hero');
-          if (!shell || !hero) return false;
-          return shell.getAttribute('aria-busy') !== 'true';
-        })
-        .catch(() => false);
-      if (ready) return Date.now() - navStart;
-      await page.waitForTimeout(200);
-    }
-    return null;
-  })();
-
-  const loaderGoneMs = await page
-    .waitForFunction(() => !document.querySelector('.scene-loader'), {
-      timeout: 15000,
-    })
-    .then(() => Date.now() - navStart)
-    .catch(() => null);
-
-  const atEntrance = {
-    ...byType,
-    total: totalBytes,
-  };
-
-  await page.waitForTimeout(preset.settleMs);
-
-  const stepInsideEnabled = await page
-    .getByRole('button', { name: 'Step inside' })
-    .isEnabled()
-    .catch(() => false);
-
-  const wire = await page
-    .evaluate(() =>
-      performance.getEntriesByType('resource').reduce(
-        (sum, entry) => {
-          const timing = entry;
-          sum.transfer += timing.transferSize || 0;
-          sum.decoded += timing.decodedBodySize || 0;
-          return sum;
-        },
-        { transfer: 0, decoded: 0 },
-      ),
-    )
-    .catch(() => ({ transfer: 0, decoded: 0 }));
-
-  const top = [...resources].sort((a, b) => b.bytes - a.bytes).slice(0, 18);
+  let afterStep = null;
+  if (step && readyMs !== null) {
+    const enter = page.getByRole('button', { name: 'Step inside' });
+    const clickAt = await page.evaluate((ms) => {
+      window.__audit.watchFrames(ms);
+      return performance.now();
+    }, preset.stepMs);
+    await enter.click({ timeout: 10000 }).catch(() => null);
+    await page.waitForTimeout(preset.stepMs + 500);
+    const list = finished().filter((r) => r.startMs >= clickAt);
+    const after = await page.evaluate((from) => {
+      const { frames, longTasks } = window.__audit;
+      // Skip the first gap: it spans the click itself.
+      const gaps = frames?.gaps.slice(1) ?? [];
+      const tasks = longTasks.filter(([start]) => start >= from);
+      return {
+        frames: gaps.length,
+        maxGapMs: gaps.length ? Math.round(Math.max(...gaps)) : null,
+        gapsOver100: gaps.filter((g) => g > 100).length,
+        longTaskMaxMs: tasks.length
+          ? Math.round(Math.max(...tasks.map(([, d]) => d)))
+          : 0,
+        longTaskTotalMs: Math.round(tasks.reduce((s, [, d]) => s + d, 0)),
+      };
+    }, clickAt);
+    afterStep = {
+      ...after,
+      bytes: sumByType(list),
+      requests: list.map(({ url, kind, bytes, endMs }) => ({
+        url,
+        kind,
+        bytes,
+        msAfterClick: Math.round(endMs - clickAt),
+      })),
+    };
+  }
 
   const result = {
     profile: preset.label,
     viewport: preset.viewport,
     deviceScaleFactor: preset.deviceScaleFactor,
-    throttle: preset.throttle,
-    throttleApplied,
-    throttleError,
+    throttle: preset.throttle ? 'fast4g' : 'none',
     cpuRate: preset.cpuRate,
-    entranceMs,
-    loaderGoneMs,
-    stepInsideEnabled,
-    wire,
-    atEntrance,
-    settled: { ...byType, total: totalBytes },
-    top,
+    readyMs: readyMs === null ? null : Math.round(readyMs),
+    fcpMs: audit.fcp === null ? null : Math.round(audit.fcp),
+    lcpMs: audit.lcp === null ? null : Math.round(audit.lcp),
+    longTaskBeforeReadyMs: Math.round(
+      audit.longTasks
+        .filter(([start]) => readyMs === null || start < readyMs)
+        .reduce((s, [, d]) => s + d, 0),
+    ),
+    firstLoadJs: sumByType(firstLoad).js,
+    firstLoadScripts: firstLoad.length,
+    threeChunk,
+    atReady: sumByType(beforeReady),
+    settled: sumByType(settledList),
+    afterStep,
+    top: [...settledList]
+      .sort((a, b) => b.bytes - a.bytes)
+      .slice(0, 20)
+      .map(({ url, kind, bytes, startMs, endMs }) => ({
+        url,
+        kind,
+        bytes,
+        startMs,
+        endMs,
+      })),
   };
   await context.close();
   return result;
@@ -247,59 +362,98 @@ async function measure(browser, preset) {
 
 let server = null;
 if (!external) {
-  server = spawn(
-    'npx',
-    ['next', 'start', '--hostname', '127.0.0.1', '-p', port],
-    {
-      cwd: repoRoot,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, PORT: port },
-    },
-  );
+  // The next binary directly, not npx, so the kill below reaches the server.
+  const next = resolve(repoRoot, 'node_modules/.bin/next');
+  server = spawn(next, ['start', '--hostname', '127.0.0.1', '-p', port], {
+    cwd: repoRoot,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, PORT: port },
+  });
   server.stdout.on('data', (chunk) => process.stderr.write(chunk));
   server.stderr.on('data', (chunk) => process.stderr.write(chunk));
-  await waitForServer(base);
 }
+await waitForServer(base);
 
-const browser = await launchBrowser();
+const browser = await chromium.launch({
+  headless: true,
+  channel: 'chromium',
+  args: [
+    '--use-angle=metal',
+    '--enable-gpu',
+    '--ignore-gpu-blocklist',
+    '--enable-webgl',
+  ],
+});
 const runs = [];
 for (const name of profiles) {
   const preset = PRESETS[name];
   if (!preset) throw new Error(`Unknown profile ${name}`);
-  process.stderr.write(`\nMeasuring ${preset.label}…\n`);
-  runs.push(await measure(browser, preset));
+  for (let i = 0; i < runsPerProfile; i++) {
+    process.stderr.write(`Measuring ${preset.label} run ${i + 1}…\n`);
+    runs.push(await measure(browser, preset));
+  }
 }
 await browser.close();
 
-const report = {
-  measuredAt: new Date().toISOString(),
-  base,
-  runs,
-};
+const summary = profiles.map((name) => {
+  const label = PRESETS[name].label;
+  const mine = runs.filter((run) => run.profile === label);
+  const pick = (fn) => median(mine.map(fn));
+  return {
+    profile: label,
+    runs: mine.length,
+    readyMs: pick((r) => r.readyMs),
+    readyRuns: mine.map((r) => r.readyMs),
+    fcpMs: pick((r) => r.fcpMs),
+    lcpMs: pick((r) => r.lcpMs),
+    firstLoadJs: pick((r) => r.firstLoadJs),
+    threeInFirstLoad: mine.some((r) => r.threeChunk?.inFirstLoad),
+    atReady: Object.fromEntries(
+      [...TYPES, 'total'].map((t) => [t, pick((r) => r.atReady[t])]),
+    ),
+    settled: Object.fromEntries(
+      [...TYPES, 'total'].map((t) => [t, pick((r) => r.settled[t])]),
+    ),
+    afterStep: step
+      ? {
+          bytes: pick((r) => r.afterStep?.bytes.total),
+          maxGapMs: pick((r) => r.afterStep?.maxGapMs),
+          gapsOver100: pick((r) => r.afterStep?.gapsOver100),
+          longTaskMaxMs: pick((r) => r.afterStep?.longTaskMaxMs),
+        }
+      : null,
+  };
+});
 
+const report = { measuredAt: new Date().toISOString(), base, summary, runs };
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
 
-const lines = [`Measured ${report.measuredAt} against \`${base}\`.`, ''];
-for (const run of runs) {
+const lines = [
+  `Measured ${report.measuredAt} against \`${base}\` (medians).`,
+  '',
+];
+for (const s of summary) {
   lines.push(
-    `### ${run.profile}`,
-    '',
-    `Viewport ${run.viewport.width}×${run.viewport.height} @${run.deviceScaleFactor}x, throttle ${run.throttle} (applied: ${run.throttleApplied}), CPU ×${run.cpuRate}.`,
+    `### ${s.profile} (${s.runs} runs)`,
     '',
     '| Metric | Value |',
     '| --- | ---: |',
-    `| Entrance visible | ${run.entranceMs ?? 'timeout'} ms |`,
-    `| Scene loader gone | ${run.loaderGoneMs ?? 'n/a'} ms |`,
-    `| Step inside enabled | ${run.stepInsideEnabled} |`,
-    `| Wire transfer (Resource Timing) | ${kb(run.wire?.transfer ?? 0)} |`,
-    `| Transfer at entrance | ${kb(run.atEntrance.total)} |`,
-    `| Transfer after settle | ${kb(run.settled.total)} |`,
-    `| JS | ${kb(run.settled.js)} |`,
-    `| CSS | ${kb(run.settled.css)} |`,
-    `| Images | ${kb(run.settled.image)} |`,
-    `| Fonts | ${kb(run.settled.font)} |`,
-    `| Document | ${kb(run.settled.document)} |`,
+    `| Ready (Step inside enabled) | ${s.readyMs ?? 'timeout'} ms (${s.readyRuns.join(', ')}) |`,
+    `| FCP / LCP | ${s.fcpMs} / ${s.lcpMs} ms |`,
+    `| First-load JS | ${kb(s.firstLoadJs ?? 0)} |`,
+    `| three.js in first load | ${s.threeInFirstLoad} |`,
+    `| Wire at ready | ${kb(s.atReady.total ?? 0)} |`,
+    `| Wire after settle | ${kb(s.settled.total ?? 0)} |`,
+    ...TYPES.map((t) => `| · ${t} (settled) | ${kb(s.settled[t] ?? 0)} |`),
+    ...(s.afterStep
+      ? [
+          `| Wire after Step inside | ${kb(s.afterStep.bytes ?? 0)} |`,
+          `| Longest frame gap after Step inside | ${s.afterStep.maxGapMs} ms |`,
+          `| Frames over 100 ms after Step inside | ${s.afterStep.gapsOver100} |`,
+          `| Longest task after Step inside | ${s.afterStep.longTaskMaxMs} ms |`,
+        ]
+      : []),
     '',
   );
 }
