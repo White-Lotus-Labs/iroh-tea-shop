@@ -222,6 +222,55 @@ Changes: a second calligraphy scroll, 一期一会 (one time, one meeting), on t
 | Mood/color grade             | 8     | No change.                                                                                                   |
 | Prop and architecture detail | 9     | Every station now shows sculpted, purposeful objects with real text; the wide views read as a lived-in shop. |
 
+## Round 13: draw-call batching
+
+A per-frame WebGL draw-call counter showed about 2,600 calls on the wide views. The scene had 738 meshes, 438 of them shadow casters, and the AO pass redraws the scene for normals. A new `Timber` helper in `craft.tsx` merges static timber boxes into one wood mesh. It now draws the doorway (about 55 boxes), the andon frame, the waiting-room shoji, the room beams and posts, and the right-wall and back-wall timber. Draw calls per frame went from 2,627 to 2,293 on `room-wide`, from 2,854 to 2,412 on `counter`, and from 2,428 to 2,140 on `tea-table`. The shots show no visible change.
+
+## Final summary
+
+Final shots: `_scratch/shots/final` (11 shots, headless Metal, 1600×900 at 2x). Build: `npm run typecheck`, `npm test` (93 tests) and `npm run build` pass. There are no console errors on any station.
+
+### Final scores
+
+| Part                         | Round 0 | Round 7 | Final | Main change since round 7                                                                  |
+| ---------------------------- | ------- | ------- | ----- | ------------------------------------------------------------------------------------------ |
+| Lighting and shadows         | 4       | 8       | 8     | No change.                                                                                 |
+| Environment/atmosphere       | 3       | 8       | 8     | No change; the incense wisp adds motion when reduced motion is off.                        |
+| Walls/architecture           | 4       | 7       | 8     | Framed, panelled walls in both rooms, nail covers, plaster grime, ranma, coffered ceiling. |
+| Floor and table              | 4       | 8       | 8     | A fifth tatami row, guest and spare zabuton, a flower stand, a waiting bench.              |
+| Tea set and steam            | 4       | 8       | 8     | The temae set around the brazier supports the still life.                                  |
+| Orrery                       | 5       | 8       | 8     | No change.                                                                                 |
+| Mood/color grade             | 4       | 8       | 8     | The gold byobu and the red mōsen add accents to the warm palette.                          |
+| Prop and architecture detail | 4 (R3)  | 7       | 9     | Real text everywhere, temae utensils, counter scale, bell and tea cakes, plaques, scrolls. |
+
+### Final frame rate
+
+The machine was shared with other agents' headless browsers during the final run (load average 65 to 82). The round 7 build ran on the same stations right after, for a fair comparison.
+
+| Shot            | Round 7 build | Final build |
+| --------------- | ------------- | ----------- |
+| `room-wide`     | 55.7 fps      | 52.5 fps    |
+| `counter`       | 50.0 fps      | 52.7 fps    |
+| `tea-table`     | 55.9 fps      | 62.9 fps    |
+| `host-full`     | 66.7 fps      | 65.2 fps    |
+| `host-face`     | 80.4 fps      | 82.9 fps    |
+| `host-hands`    | 63.3 fps      | 73.5 fps    |
+| `tea-set`       | 52.1 fps      | 56.8 fps    |
+| `observatorium` | 80.1 fps      | 84.9 fps    |
+| `shelf`         | 59.4 fps      | 66.0 fps    |
+| Mean (9 shots)  | 62.6 fps      | 66.4 fps    |
+
+The two new review shots ran at 59.0 fps (`brazier`) and 56.2 fps (`entrance`). Every station stays at or above the 50 fps floor, even under this load. On an idle machine, round 7 ran at a mean of 86 fps, so the final build has more headroom than these numbers show.
+
+### What remains
+
+- The upper plaster bands above the nageshi stay plain. This is correct for the style, but it is the calmest area in the wide view.
+- Small props in the waiting room read well at the entrance, but the counter station still frames only the counter end of the room.
+
 ## Proposed
 
 Items that need an off-limits file, a dependency, or a big architecture change.
+
+- Thread the shell's in-app reduced-motion setting down to `ChamberDressing`. The incense wisp now reads the OS setting once, so the in-app toggle does not stop it. This needs a prop through `TeaRoom.tsx`.
+- Merge static parts of the orrery (151 meshes) and of `TeaShelf.tsx` (86 meshes, Lane E). They are now the largest draw-call groups. Each mesh draws up to three times: main pass, shadow pass and AO normal pass.
+- Bundle a small subset of a Japanese serif font (only the 40 or so glyphs the scene uses) for the canvas text. The text now uses the system mincho face (Hiragino, Yu Mincho, Noto Serif JP or MS Mincho), so the brush shapes vary a little by operating system.

@@ -182,7 +182,7 @@ for (const shot of shots) {
   await page.waitForTimeout(FULL_MOTION_SHOTS.has(shot) ? 2600 : 1400);
   const frames = summarize(await sampleFrames());
   const file = join(outDir, `${shot}.png`);
-  await page.screenshot({ path: file });
+  await page.screenshot({ path: file, timeout: 120_000 });
   report.shots[shot] = frames;
   console.log(
     `${shot.padEnd(14)} ${frames.fps} fps (p95 ${frames.p95Ms} ms) -> ${file}`,
