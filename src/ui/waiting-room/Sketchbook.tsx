@@ -1,0 +1,577 @@
+'use client';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
+import dynamic from 'next/dynamic';
+import type { PetalArea } from './SakuraPetals';
+import { SKETCH_PAGES, SPREAD_TITLES } from './sketchbookPages';
+import './Sketchbook.css';
+
+// Page curl after the Meng To sketchbook: a leaf is a chain of nested strips
+// whose tangent sweeps through an arc, so paper bends instead of pivoting.
+const N = 18;
+const BETA = 0.6;
+const TILT_X = 3.5;
+const TILT_Y = 6;
+const DEG = 180 / Math.PI;
+const SINGLE_QUERY = '(max-width: 720px)';
+// A handful of petals between the book and the eye, soft with depth of field.
+const NEAR_PETALS: PetalArea = { x: 12, y: 9, near: 9, far: 5 };
+
+const PetalCanvas = dynamic(
+  () => import('./SakuraPetals').then((m) => m.PetalCanvas),
+  { ssr: false },
+);
+
+type Mode = 'spread' | 'single';
+type Dir = 'next' | 'prev';
+type Turn = { dir: Dir; from: number; to: number };
+type Spring = {
+  target: number;
+  v: number;
+  k: number;
+  c: number;
+  done: () => void;
+};
+type Drag = {
+  x0: number;
+  w: number;
+  side: number;
+  moved: number;
+  dir: Dir | null;
+  vel: number;
+  at: number;
+};
+
+/** Which pages sit under the leaf, and which faces the leaf carries. */
+function leafOf(mode: Mode, turn: Turn) {
+  const { dir, from, to } = turn;
+  if (mode === 'single')
+    return dir === 'next'
+      ? { cls: 'single', under: [to], front: from, reversed: false }
+      : { cls: 'single', under: [from], front: to, reversed: true };
+  return dir === 'next'
+    ? {
+        cls: 'next',
+        under: [2 * from, 2 * to + 1],
+        front: 2 * from + 1,
+        back: 2 * to,
+        reversed: false,
+      }
+    : {
+        cls: 'prev',
+        under: [2 * to, 2 * from + 1],
+        front: 2 * from,
+        back: 2 * to + 1,
+        reversed: false,
+      };
+}
+
+function PageView({
+  index,
+  side,
+  live,
+}: {
+  index: number;
+  side: 'left' | 'right';
+  live: boolean;
+}) {
+  return (
+    <div
+      className={`sb-page is-${side}`}
+      inert={!live || undefined}
+      aria-hidden={!live || undefined}
+    >
+      {SKETCH_PAGES[index].render(live)}
+    </div>
+  );
+}
+
+function Leaf({
+  cls,
+  front,
+  back,
+  mode,
+  bind,
+}: {
+  cls: string;
+  front: number;
+  back?: number;
+  mode: Mode;
+  bind: (i: number) => (el: HTMLDivElement | null) => void;
+}) {
+  // prev leaves hang from the gutter's left edge, so their faces swap sides.
+  const frontSide = cls === 'prev' ? 'left' : 'right';
+  const backSide = cls === 'prev' ? 'right' : 'left';
+  let chain: ReactNode = null;
+  for (let i = N - 1; i >= 0; i--)
+    chain = (
+      <div
+        key={i}
+        ref={bind(i)}
+        className={`strip${i === N - 1 ? ' edge' : ''}`}
+        style={{ '--i': i } as CSSProperties}
+      >
+        <div className="face front">
+          <div className={`face-page as-${frontSide}`}>
+            <PageView
+              index={front}
+              side={mode === 'single' ? 'right' : frontSide}
+              live={false}
+            />
+          </div>
+          <span className="sh" />
+          <span className="gl" />
+        </div>
+        <div className="face back">
+          <div className={`face-page as-${backSide}`}>
+            {back === undefined ? (
+              <div className="sb-page is-left sb-verso" />
+            ) : (
+              <PageView index={back} side={backSide} live={false} />
+            )}
+          </div>
+          <span className="sh" />
+          <span className="gl" />
+        </div>
+        {chain}
+      </div>
+    );
+  return (
+    <div className={`curl ${cls}`} aria-hidden="true">
+      {chain}
+    </div>
+  );
+}
+
+export function Sketchbook({ reduced }: { reduced: boolean }) {
+  const [mode, setMode] = useState<Mode>('spread');
+  const [view, setView] = useState(0);
+  const [turn, setTurn] = useState<Turn | null>(null);
+  const [turned, setTurned] = useState(false);
+  const stage = useRef<HTMLDivElement>(null);
+  const book = useRef<HTMLDivElement>(null);
+  const strips = useRef<(HTMLDivElement | null)[]>([]);
+  const progress = useRef(0);
+  const spring = useRef<Spring | null>(null);
+  const drag = useRef<Drag | null>(null);
+  const tilt = useRef({ rx: 0, ry: 0, tx: 0, ty: 0 });
+  const live = useRef({ mode, view, turn, reduced });
+  live.current = { mode, view, turn, reduced };
+
+  const count =
+    mode === 'spread' ? SKETCH_PAGES.length / 2 : SKETCH_PAGES.length;
+  const bind = useCallback(
+    (i: number) => (el: HTMLDivElement | null) => {
+      strips.current[i] = el;
+    },
+    [],
+  );
+
+  const paint = useCallback(() => {
+    const el = stage.current;
+    const { mode, turn } = live.current;
+    if (!el || !turn) return;
+    const p = progress.current;
+    const t = leafOf(mode, turn).reversed ? 1 - p : p;
+    const beta = BETA * Math.sin(Math.PI * t);
+    const tt = Math.PI * t + beta;
+    const td = (2 * beta) / N;
+    el.style.setProperty('--tt', `${(tt * DEG).toFixed(2)}deg`);
+    el.style.setProperty('--td', `${(td * DEG).toFixed(3)}deg`);
+    el.style.setProperty('--shade', Math.sin(Math.PI * t).toFixed(3));
+    strips.current.forEach((strip, i) => {
+      if (!strip) return;
+      const l1 = Math.abs(Math.cos(tt - i * td));
+      const l2 = Math.abs(Math.cos(tt - (i + 1) * td));
+      strip.style.setProperty('--lit', l1.toFixed(3));
+      strip.style.setProperty('--a1', ((1 - l1) * 0.62).toFixed(3));
+      strip.style.setProperty('--a2', ((1 - l2) * 0.62).toFixed(3));
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (turn) paint();
+    else stage.current?.style.setProperty('--shade', '0');
+  }, [turn, mode, paint]);
+
+  useEffect(() => {
+    const media = window.matchMedia(SINGLE_QUERY);
+    const apply = () => {
+      const next: Mode = media.matches ? 'single' : 'spread';
+      if (next === live.current.mode) return;
+      spring.current = null;
+      setTurn(null);
+      setView((v) => (next === 'single' ? v * 2 : Math.floor(v / 2)));
+      setMode(next);
+    };
+    apply();
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, []);
+
+  useEffect(() => {
+    const el = book.current;
+    if (!el) return;
+    const size = () =>
+      stage.current?.style.setProperty('--bw', `${el.clientWidth}px`);
+    size();
+    const observer = new ResizeObserver(size);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const settle = useCallback(() => {
+    const s = spring.current;
+    if (!s) return;
+    spring.current = null;
+    progress.current = s.target;
+    s.done();
+  }, []);
+
+  const begin = useCallback(
+    (dir: Dir, quiet = false) => {
+      settle();
+      const { view, mode } = live.current;
+      const last =
+        (mode === 'spread' ? SKETCH_PAGES.length / 2 : SKETCH_PAGES.length) - 1;
+      const to = dir === 'next' ? view + 1 : view - 1;
+      if (to < 0 || to > last) return false;
+      progress.current = 0;
+      const next = { dir, from: view, to };
+      live.current.turn = next;
+      setTurn(next);
+      if (!quiet) setTurned(true);
+      return true;
+    },
+    [settle],
+  );
+
+  const release = useCallback((complete: boolean) => {
+    const turn = live.current.turn;
+    if (!turn) return;
+    const done = () => {
+      if (complete) setView(turn.to);
+      live.current.turn = null;
+      setTurn(null);
+    };
+    if (live.current.reduced) {
+      progress.current = complete ? 1 : 0;
+      done();
+      return;
+    }
+    spring.current = complete
+      ? { target: 1, v: 0, k: 170, c: 26, done }
+      : { target: 0, v: 0, k: 150, c: 24, done };
+  }, []);
+
+  const step = useCallback(
+    (dir: Dir) => {
+      if (begin(dir)) release(true);
+    },
+    [begin, release],
+  );
+
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      const s = spring.current;
+      if (s) {
+        s.v += (-s.k * (progress.current - s.target) - s.c * s.v) * dt;
+        progress.current += s.v * dt;
+        if (
+          Math.abs(progress.current - s.target) < 0.002 &&
+          Math.abs(s.v) < 0.02
+        ) {
+          spring.current = null;
+          progress.current = s.target;
+          paint();
+          s.done();
+        } else paint();
+      }
+      const tl = tilt.current;
+      const dx = tl.tx - tl.rx;
+      const dy = tl.ty - tl.ry;
+      if (Math.abs(dx) + Math.abs(dy) > 0.001) {
+        tl.rx += dx * 0.12;
+        tl.ry += dy * 0.12;
+        stage.current?.style.setProperty('--rx', `${tl.rx.toFixed(2)}deg`);
+        stage.current?.style.setProperty('--ry', `${tl.ry.toFixed(2)}deg`);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paint]);
+
+  useEffect(() => {
+    if (reduced) return;
+    const lean = (event: PointerEvent) => {
+      if (event.pointerType === 'touch' || drag.current) return;
+      const r = book.current?.getBoundingClientRect();
+      if (!r?.width) return;
+      const nx = Math.max(
+        -1,
+        Math.min(
+          1,
+          (event.clientX - (r.left + r.width / 2)) / (r.width * 0.62),
+        ),
+      );
+      const ny = Math.max(
+        -1,
+        Math.min(
+          1,
+          (event.clientY - (r.top + r.height / 2)) / (r.height * 0.9),
+        ),
+      );
+      tilt.current.tx = -ny * TILT_X;
+      tilt.current.ty = nx * TILT_Y;
+    };
+    const rest = () => {
+      tilt.current.tx = 0;
+      tilt.current.ty = 0;
+    };
+    window.addEventListener('pointermove', lean, { passive: true });
+    document.documentElement.addEventListener('pointerleave', rest);
+    return () => {
+      window.removeEventListener('pointermove', lean);
+      document.documentElement.removeEventListener('pointerleave', rest);
+    };
+  }, [reduced]);
+
+  // Shortly after arrival the right page lifts at its corner and settles back:
+  // enough to show that paper can be picked up.
+  useEffect(() => {
+    if (reduced || turned) return;
+    const timer = window.setTimeout(() => {
+      if (live.current.turn || drag.current || !begin('next', true)) return;
+      spring.current = {
+        target: 0.14,
+        v: 0,
+        k: 55,
+        c: 10,
+        done: () => release(false),
+      };
+    }, 2600);
+    return () => window.clearTimeout(timer);
+  }, [reduced, turned, begin, release]);
+
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable]')) return;
+      event.preventDefault();
+      step(event.key === 'ArrowRight' ? 'next' : 'prev');
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [step]);
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    if ((event.target as HTMLElement).closest('a, button')) return;
+    const r = book.current?.getBoundingClientRect();
+    if (!r) return;
+    settle();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = {
+      x0: event.clientX,
+      w: r.width,
+      side: (event.clientX - r.left) / r.width,
+      moved: 0,
+      dir: null,
+      vel: 0,
+      at: performance.now(),
+    };
+  };
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = event.clientX - d.x0;
+    d.moved = Math.max(d.moved, Math.abs(dx));
+    if (!d.dir) {
+      if (Math.abs(dx) < 6) return;
+      const dir: Dir =
+        live.current.mode === 'spread'
+          ? d.side > 0.5
+            ? 'next'
+            : 'prev'
+          : dx < 0
+            ? 'next'
+            : 'prev';
+      if (!begin(dir)) {
+        drag.current = null;
+        return;
+      }
+      d.dir = dir;
+    }
+    const reach = d.w * (live.current.mode === 'spread' ? 0.62 : 0.85);
+    const next = Math.max(
+      0,
+      Math.min(1, (d.dir === 'next' ? -dx : dx) / reach),
+    );
+    const now = performance.now();
+    d.vel = (next - progress.current) / Math.max(0.001, (now - d.at) / 1000);
+    d.at = now;
+    progress.current = next;
+    paint();
+  };
+  const onPointerUp = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d) return;
+    if (!d.dir) {
+      if (d.moved < 6)
+        step(
+          d.side > (live.current.mode === 'spread' ? 0.5 : 0.4)
+            ? 'next'
+            : 'prev',
+        );
+      return;
+    }
+    release(progress.current > 0.42 || d.vel > 1.1);
+  };
+
+  const leaf = turn ? leafOf(mode, turn) : null;
+  const shown = view;
+  return (
+    <div className="sb" data-mode={mode}>
+      <div className="sb-stage">
+        <button
+          type="button"
+          className="sb-arrow is-prev"
+          aria-label="Previous page"
+          disabled={view === 0 && !turn}
+          onClick={() => step('prev')}
+        >
+          <svg viewBox="0 0 14 44" aria-hidden="true">
+            <polyline points="11,3 3,22 11,41" />
+          </svg>
+        </button>
+        <div
+          ref={stage}
+          className="sb-3d"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          <div className="sb-tilt">
+            <span className="sb-cast" aria-hidden="true" />
+            <div
+              ref={book}
+              className="sb-book"
+              role="group"
+              aria-roledescription="sketchbook"
+              aria-label={`${SPREAD_TITLES[mode === 'spread' ? shown : Math.floor(shown / 2)]}, ${mode === 'spread' ? 'spread' : 'page'} ${shown + 1} of ${count}`}
+            >
+              <span className="sb-cover" aria-hidden="true" />
+              {mode === 'spread' ? (
+                <>
+                  <div className="sb-half is-left">
+                    <PageView
+                      index={leaf ? leaf.under[0] : 2 * view}
+                      side="left"
+                      live={!turn}
+                    />
+                    <span className="gutter-shade" aria-hidden="true" />
+                  </div>
+                  <div className="sb-half is-right">
+                    <PageView
+                      index={leaf ? leaf.under[1] : 2 * view + 1}
+                      side="right"
+                      live={!turn}
+                    />
+                    <span className="gutter-shade" aria-hidden="true" />
+                  </div>
+                </>
+              ) : (
+                <div className="sb-half is-right">
+                  <PageView
+                    index={leaf ? leaf.under[0] : view}
+                    side="right"
+                    live={!turn}
+                  />
+                  <span className="gutter-shade" aria-hidden="true" />
+                </div>
+              )}
+              <span className="sb-ribbon" aria-hidden="true" />
+              {leaf && (
+                <Leaf
+                  key={`${turn!.dir}-${turn!.from}`}
+                  cls={leaf.cls}
+                  front={leaf.front}
+                  back={'back' in leaf ? leaf.back : undefined}
+                  mode={mode}
+                  bind={bind}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="sb-arrow is-next"
+          aria-label="Next page"
+          disabled={view === count - 1 && !turn}
+          onClick={() => step('next')}
+        >
+          <svg viewBox="0 0 14 44" aria-hidden="true">
+            <polyline points="3,3 11,22 3,41" />
+          </svg>
+        </button>
+      </div>
+      <nav className="sb-index" aria-label="Sketchbook pages">
+        {SPREAD_TITLES.map((title, i) => {
+          const target = mode === 'spread' ? i : i * 2;
+          const current =
+            mode === 'spread' ? shown === i : Math.floor(shown / 2) === i;
+          return (
+            <button
+              key={title}
+              type="button"
+              aria-current={current ? 'page' : undefined}
+              onClick={() => {
+                if (current) return;
+                const { view } = live.current;
+                if (Math.abs(target - view) === 1)
+                  step(target > view ? 'next' : 'prev');
+                else {
+                  settle();
+                  setTurn(null);
+                  setView(target);
+                }
+              }}
+            >
+              {title}
+            </button>
+          );
+        })}
+      </nav>
+      <PetalCanvas
+        className="sb-front-petals"
+        count={9}
+        size={1.4}
+        seed={0x2c1f}
+        area={NEAR_PETALS}
+        reduced={reduced}
+      />
+      <p className={`sb-hint${turned ? ' is-gone' : ''}`} aria-hidden="true">
+        <span className="on-mouse">Drag a page to turn · or use ← →</span>
+        <span className="on-touch">Swipe the page to turn</span>
+      </p>
+    </div>
+  );
+}
