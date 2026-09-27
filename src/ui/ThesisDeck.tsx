@@ -26,7 +26,9 @@ import {
   accumulatingLine,
   buildUncleDraft,
   convictionSentence,
+  convictionTitle,
   formatRelative,
+  netLabel,
   readFollowed,
   shareText,
   thesisLink,
@@ -251,7 +253,7 @@ export function ThesisDeck({
       <header className="deck-head">
         <h1 className="deck-title">
           Thesis <em>Desk</em>
-          <span className="deck-kicker">three scrolls</span>
+          <span className="deck-kicker">Three theses · Nansen signals</span>
         </h1>
         <div className="deck-head-actions">
           <DeckStatus deck={deck} now={now} />
@@ -263,7 +265,7 @@ export function ThesisDeck({
             <span className="deck-discuss-seal" aria-hidden="true">
               茶
             </span>
-            Discuss your own thesis with Uncle
+            Ask Uncle about your own thesis
           </button>
         </div>
       </header>
@@ -321,7 +323,7 @@ function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
     return (
       <p className="deck-status" data-state="loading" role="status">
         <span className="deck-status-dot" aria-hidden="true" />
-        Reading Nansen…
+        Loading Nansen data…
       </p>
     );
   if (deck.status === 'offline')
@@ -334,7 +336,7 @@ function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
   return (
     <p className="deck-status" data-state="live">
       <span className="deck-status-dot" aria-hidden="true" />
-      Live · Nansen · updated {formatRelative(deck.snapshot.fetchedAt, now)}
+      Live Nansen data · updated {formatRelative(deck.snapshot.fetchedAt, now)}
       {deck.snapshot.stale && <span className="deck-stale">Stale</span>}
     </p>
   );
@@ -348,7 +350,7 @@ function sealWords(
   if (deck.status === 'loading') return 'Conviction loading.';
   if (!summary) return 'Conviction offline.';
   const { conviction } = summary;
-  return `Conviction ${LEVEL_LABEL[conviction.level]}, ${accumulatingLine(conviction, thesis.tickers.length)}, net 7-day smart money flow ${formatMoney(conviction.netFlowUsd, true)}.`;
+  return `${convictionTitle(conviction.level)}, ${accumulatingLine(conviction, thesis.tickers.length)}, ${formatMoney(conviction.netFlowUsd, true)} ${netLabel(summary)}.`;
 }
 
 function ThesisBook({
@@ -497,7 +499,8 @@ function ThesisBook({
                 {accumulatingLine(summary.conviction, thesis.tickers.length)}
               </span>
               <span className="plaque-flow">
-                {formatMoney(summary.conviction.netFlowUsd, true)} net · 7d
+                {formatMoney(summary.conviction.netFlowUsd, true)}{' '}
+                {netLabel(summary, true)}
               </span>
             </span>
           </>
@@ -508,7 +511,7 @@ function ThesisBook({
             </span>
             <span className="plaque-text">
               <span className="plaque-level">Offline</span>
-              <span className="plaque-meta">Seal returns with Nansen</span>
+              <span className="plaque-meta">No Nansen data</span>
             </span>
           </>
         )}
@@ -555,8 +558,8 @@ function Meter({
         <div className="meter-copy">
           <p className="meter-level">Conviction offline</p>
           <p className="meter-line">
-            {deck.status === 'offline' ? deck.reason : 'No reading yet.'} The
-            thesis still reads; the live seal returns when Nansen answers.
+            {deck.status === 'offline' ? deck.reason : 'No data yet.'} The
+            signal shows again when Nansen responds.
           </p>
         </div>
       </div>
@@ -577,12 +580,12 @@ function Meter({
       </span>
       <div className="meter-copy">
         <p className="meter-level">
-          {LEVEL_LABEL[conviction.level]} conviction
+          {convictionTitle(conviction.level)}
           <span className="meter-flow">
-            {formatMoney(conviction.netFlowUsd, true)} net · 7 days
+            {formatMoney(conviction.netFlowUsd, true)} {netLabel(summary)}
           </span>
         </p>
-        <ol className="meter-leaves" aria-label="Accumulation by leaf">
+        <ol className="meter-leaves" aria-label="Accumulation by asset">
           {thesis.tickers.map((ticker) => {
             const signal = summary.tickers.find(
               (s) => s.symbol === ticker.symbol,
@@ -745,7 +748,7 @@ function ThesisReading({
               className="scroll-action scroll-action--primary"
               onClick={() => onTalkToUncle(buildUncleDraft(thesis, summary))}
             >
-              Talk to Uncle
+              Ask Uncle about this thesis
             </button>
             <a
               className="scroll-action"
@@ -753,11 +756,11 @@ function ThesisReading({
               target="_blank"
               rel="noopener noreferrer"
             >
-              Share the thesis on X
+              Share this thesis on X
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
             <button type="button" className="scroll-action" onClick={copyLink}>
-              Copy link
+              Copy thesis link
             </button>
             {canShare && (
               <button
@@ -791,7 +794,7 @@ function ThesisReading({
           style={{ '--i': 6 } as CSSProperties}
         >
           <h3 id={`${titleId}-leaves`} className="scroll-section-title">
-            Four leaves in the pot
+            Four assets behind the signal
           </h3>
           <ul className="leaf-list-root">
             {thesis.tickers.map((ticker) => (

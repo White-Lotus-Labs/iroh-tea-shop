@@ -15,14 +15,6 @@ const PetalCanvas = dynamic(
 // Long enough for the push through the doorway to read before the room shows.
 const LEAVE_MS = 1100;
 
-function lineFor(percent: number, ready: boolean) {
-  if (ready) return 'The doors are open.';
-  if (percent < 30) return 'Warming the water…';
-  if (percent < 60) return 'Lighting the lanterns…';
-  if (percent < 90) return 'Setting out the cups…';
-  return 'The room is almost ready.';
-}
-
 export function WaitingRoom({
   open,
   ready,
@@ -118,7 +110,7 @@ export function WaitingRoom({
       <footer className="waiting-entry">
         <div className="waiting-status">
           <p role="status" aria-live="polite">
-            {lineFor(percent, ready)}
+            {ready ? 'The tea is ready.' : 'Preparing the tea room…'}
           </p>
           <div
             className="waiting-progress"

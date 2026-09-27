@@ -11,7 +11,7 @@ export const STATIONS: {
   {
     id: 'Entrance',
     label: 'Waiting room',
-    purpose: 'Arrive',
+    purpose: 'About the shop',
     position: [0.7, 1.7, 10.15],
     target: [-2.8, 1.25, 6.7],
     hotspot: [0, 0.2, 10.1],
@@ -19,7 +19,7 @@ export const STATIONS: {
   {
     id: 'Counter',
     label: 'Counter',
-    purpose: 'Pour',
+    purpose: 'Thesis Desk',
     position: [0.15, 1.67, 7.65],
     target: [-1.43, 1.37, 2.92],
     hotspot: [-0.95, 1.5, 6.07],
@@ -27,7 +27,7 @@ export const STATIONS: {
   {
     id: 'TeaTable',
     label: 'Observatorium',
-    purpose: 'The flows of chains',
+    purpose: 'Wind the orrery',
     position: [-1.2, 1.45, -1.4],
     target: [-2.85, 0.8, -3.15],
     hotspot: [-2.85, 1.3, -3.15],
@@ -35,7 +35,7 @@ export const STATIONS: {
   {
     id: 'AvatarSeat',
     label: 'Host',
-    purpose: 'Reflect',
+    purpose: 'Ask Uncle',
     position: [0.35, 1.48, 0.45],
     target: [1.25, 1.05, -3.55],
     hotspot: [0.74, 0.84, -2.86],
@@ -43,7 +43,7 @@ export const STATIONS: {
   {
     id: 'Shelf',
     label: 'Shelf',
-    purpose: 'Observe',
+    purpose: 'Top traders',
     position: [0.4, 1.55, -4.8],
     target: [3.1, 1.45, -4.55],
     hotspot: [3.25, 1.43, -4.55],

@@ -16,10 +16,30 @@ export type DeckState =
 
 export const LEVEL_LABEL: Record<ConvictionLevel, string> = {
   weak: 'Weak',
-  steeping: 'Steeping',
+  steeping: 'Building',
   strong: 'Strong',
-  unknown: 'Unread',
+  unknown: 'No signal',
 };
+
+export function convictionTitle(level: ConvictionLevel): string {
+  return level === 'unknown'
+    ? 'No conviction signal'
+    : `${LEVEL_LABEL[level]} conviction`;
+}
+
+// ponytail: a thesis that mixes flow and position tickers reads as 7-day flow.
+// Split the net figure by source if a mixed thesis is ever added.
+/**
+ * Position signals are open Hyperliquid perps right now; flow signals cover
+ * the last 7 days.
+ */
+export function netLabel(summary: ThesisSummary, short = false): string {
+  const open = summary.tickers.every(
+    (t) => t.source === 'position-intelligence',
+  );
+  if (open) return short ? 'net long · now' : 'net long · open perps';
+  return short ? 'net · 7d' : 'net · 7 days';
+}
 
 /** Tea strength glyphs for the conviction seal: light, steeping, strong. */
 export const LEVEL_GLYPH: Record<ConvictionLevel, string> = {
@@ -53,10 +73,10 @@ export function convictionSentence(
   conviction: Conviction,
   total: number,
 ): string {
-  const leaves = total === 1 ? 'leaf' : 'leaves';
+  const assets = total === 1 ? 'asset' : 'assets';
   const gap =
     conviction.measured < total ? ` (${conviction.measured} with data)` : '';
-  return `Nansen smart money is accumulating ${conviction.accumulating} of ${total} ${leaves} this week${gap}`;
+  return `Smart money is accumulating ${conviction.accumulating} of ${total} ${assets}${gap}`;
 }
 
 export function measuredSignals(tickers: TickerSignal[]) {
@@ -79,9 +99,11 @@ export function buildUncleDraft(
   thesis: Thesis,
   summary: ThesisSummary | null,
 ): string {
-  const premise = summary
-    ? `Nansen rates “${thesis.title}” ${LEVEL_LABEL[summary.conviction.level].toLowerCase()}.`
-    : `test “${thesis.title}” with Nansen.`;
+  const level = summary?.conviction.level ?? 'unknown';
+  const premise =
+    level === 'unknown'
+      ? `test “${thesis.title}” with Nansen.`
+      : `conviction on “${thesis.title}” is ${LEVEL_LABEL[level].toLowerCase()}.`;
   return `Uncle, ${premise} What could disprove it?`.slice(
     0,
     MAX_QUESTION_LENGTH,
@@ -104,7 +126,7 @@ export function shareText(
 ): string {
   const line = summary
     ? `${convictionSentence(summary.conviction, thesis.tickers.length)}.`
-    : 'Reading the smart money flows.';
+    : 'Checking smart-money activity on Nansen.';
   return `Thesis: ${thesis.title}. ${line} Data by @nansen_ai`;
 }
 

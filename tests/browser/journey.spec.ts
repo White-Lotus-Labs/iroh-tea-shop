@@ -33,17 +33,17 @@ test('Entrance to Counter shows the thesis desk placeholder', async ({
   );
   await beginVisit(page);
   await expect(page.locator('main')).toHaveAttribute('data-station', 'Counter');
-  await page.getByRole('button', { name: 'Open Counter' }).click({
+  await page.getByRole('button', { name: 'Open the Thesis Desk' }).click({
     timeout: 20000,
   });
   await expect(
     page.getByRole('heading', { name: 'Thesis Desk' }),
   ).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Robinhood Chain tokenization' }),
+    page.getByRole('button', { name: 'Robinhood Chain Tokenization' }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: 'Discuss your own thesis with Uncle' })
+    .getByRole('button', { name: 'Ask Uncle about your own thesis' })
     .click();
   await expect(page.locator('main')).toHaveAttribute(
     'data-station',
@@ -51,7 +51,7 @@ test('Entrance to Counter shows the thesis desk placeholder', async ({
   );
   await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
   await expect(
-    page.getByRole('textbox', { name: 'Ask Uncle a research question' }),
+    page.getByRole('textbox', { name: 'Ask an onchain research question' }),
   ).toHaveValue('Uncle, test my thesis: ');
   expect(errors).toEqual([]);
 });
@@ -73,7 +73,7 @@ test('dock navigation keeps panels closed until Open is used', async ({
   await expect(page.getByRole('heading', { name: 'Thesis Desk' })).toHaveCount(
     0,
   );
-  await page.getByRole('button', { name: 'Open Counter' }).click({
+  await page.getByRole('button', { name: 'Open the Thesis Desk' }).click({
     timeout: 20000,
   });
   await expect(
@@ -116,10 +116,10 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
     .click();
-  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
+  await page.getByRole('button', { name: 'See the top traders' }).click();
   await expect(
     page.getByRole('heading', {
-      name: /Top 10 (?:Hyperliquid|HL) Leaderboard/,
+      name: /Top Hyperliquid Traders by 30-Day PnL/,
     }),
   ).toBeVisible();
   expect(

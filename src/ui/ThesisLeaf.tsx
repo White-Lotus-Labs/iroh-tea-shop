@@ -54,19 +54,19 @@ function Figure({
     return (
       <span className="leaf-figure" data-dir="none">
         <span className="leaf-amount">Offline</span>
-        <span className="leaf-unit">no live reading</span>
+        <span className="leaf-unit">no Nansen data</span>
       </span>
     );
   if (signal.status !== 'ok' || signal.smartMoneyNetFlowUsd === null)
     return (
       <span className="leaf-figure" data-dir="none">
         <span className="leaf-amount">
-          {signal.status === 'error' ? 'No reading' : 'Quiet'}
+          {signal.status === 'error' ? 'No data' : 'Quiet'}
         </span>
         <span className="leaf-unit">
           {signal.status === 'error'
-            ? 'Nansen did not answer'
-            : 'no smart money flow'}
+            ? 'Nansen did not respond'
+            : 'no smart-money activity'}
         </span>
       </span>
     );
@@ -82,8 +82,8 @@ function Figure({
       </span>
       <span className="leaf-unit">
         {signal.source === 'position-intelligence'
-          ? '7d smart net long'
-          : '7d smart money flow'}
+          ? 'smart-money net long · open perps'
+          : 'smart-money net flow · 7d'}
       </span>
     </span>
   );
@@ -118,9 +118,7 @@ function DetailSection<T>({
       {section.status === 'ok' ? (
         children(section.data)
       ) : section.status === 'empty' ? (
-        <p className="leaf-quiet">
-          Smart money is quiet on this leaf this week.
-        </p>
+        <p className="leaf-quiet">Nansen has no smart-money data here.</p>
       ) : (
         <p className="leaf-unavailable">Unavailable · {section.reason}</p>
       )}
@@ -143,12 +141,12 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
     <>
       <p className="leaf-live">
         <span className="leaf-live-dot" aria-hidden="true" />
-        Live · Nansen · updated {formatRelative(detail.fetchedAt, now)}
+        Live Nansen data · updated {formatRelative(detail.fetchedAt, now)}
         {detail.stale && <span className="deck-stale">Stale</span>}
       </p>
       <div className="leaf-sections">
         <DetailSection
-          title="Smart money moves"
+          title="Who is buying and selling"
           section={detail.movements}
           wide
         >
@@ -158,7 +156,7 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
             const recent = moves.recent.filter((t) => !isDust(t.valueUsd));
             return !buyers.length && !sellers.length && !recent.length ? (
               <p className="leaf-quiet">
-                Smart money is quiet on this leaf this week.
+                No smart-money buys or sells in the last 7 days.
               </p>
             ) : (
               <>
@@ -179,7 +177,9 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
                         ))}
                       </ul>
                     ) : (
-                      <p className="leaf-none">No smart buyers.</p>
+                      <p className="leaf-none">
+                        No smart-money buyers in the last 7 days.
+                      </p>
                     )}
                   </div>
                   <div>
@@ -198,13 +198,15 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
                         ))}
                       </ul>
                     ) : (
-                      <p className="leaf-none">No smart sellers.</p>
+                      <p className="leaf-none">
+                        No smart-money sellers in the last 7 days.
+                      </p>
                     )}
                   </div>
                 </div>
                 {recent.length > 0 && (
                   <>
-                    <p className="leaf-sub">Recent smart trades</p>
+                    <p className="leaf-sub">Recent smart-money trades</p>
                     <ul className="leaf-list leaf-trades">
                       {recent.map((t, i) => (
                         <li key={`${t.txHash ?? t.trader}-${i}`}>
@@ -228,7 +230,7 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
           }}
         </DetailSection>
 
-        <DetailSection title="Holders" section={detail.holders}>
+        <DetailSection title="Smart-money holders" section={detail.holders}>
           {({ totalHolders, smartMoney }) => (
             <>
               <p className="leaf-stat">
@@ -241,7 +243,7 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
               </p>
               {smartMoney.length ? (
                 <>
-                  <p className="leaf-sub">Top smart money holders</p>
+                  <p className="leaf-sub">Top smart-money holders</p>
                   <ul className="leaf-list">
                     {smartMoney.map((h) => (
                       <li key={h.address}>
@@ -263,7 +265,7 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
                   </ul>
                 </>
               ) : (
-                <p className="leaf-none">No smart money holders on record.</p>
+                <p className="leaf-none">No smart-money holders on record.</p>
               )}
             </>
           )}
@@ -299,7 +301,7 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
           }
         </DetailSection>
 
-        <DetailSection title="Perps positioning" section={detail.perps}>
+        <DetailSection title="Perpetuals positioning" section={detail.perps}>
           {({ smartLongUsd, smartShortUsd, recent }) => {
             const trades = recent.filter((t) => !isDust(t.valueUsd));
             const long = Math.max(0, smartLongUsd ?? 0);
@@ -430,7 +432,7 @@ export function ThesisLeaf({
             <span className="plaque-shimmer" />
             <span className="plaque-shimmer plaque-shimmer--short" />
             <span className="sr-only">
-              Reading {ticker.symbol} from Nansen…
+              Asking Nansen for {ticker.symbol}’s latest smart-money activity…
             </span>
           </div>
         ) : state.status === 'error' ? (

@@ -38,7 +38,7 @@ test('?thesis=ai lands on Counter, opens the panel, and scrolls the AI thesis', 
     timeout: 45000,
   });
   const scroll = page.getByRole('dialog', {
-    name: 'AI taking over the world',
+    name: 'AI Taking Over the World',
   });
   await expect(scroll).toBeVisible({ timeout: 45000 });
 });

@@ -1,6 +1,10 @@
 # Iroh's Tea Shop
 
-**Iroh's Tea Shop** is a 3D tea shop for the Nansen Meridian Buildathon. A wise tea master, Uncle, hosts the room (code identifiers still say Iroh; visible copy says Uncle). Guests move through a locked scroll dock: Waiting room, Counter (Thesis Desk), Host, Shelf, and Observatorium. Panels are ancient Chinese hanging scrolls, closed by default, with incense-ring halos and ink teasers. Stack: Next.js 16, React 19, React Three Fiber, Prisma/SQLite.
+**Choose a crypto thesis. See whether smart money supports it.**
+
+Iroh's Tea Shop is a 3D tea shop for the Nansen Meridian Buildathon. Open curated market theses, check live Nansen conviction and asset evidence, follow top Hyperliquid traders, and ask Uncle—a host backed by Nansen's Research Agent. Stack: Next.js 16, React 19, React Three Fiber, Prisma/SQLite.
+
+Live demo: <https://iroh-tea-shop.up.railway.app>
 
 ![Room from the entrance toward the counter](docs/screenshots/room-wide.webp)
 ![Thesis Desk with three books](docs/screenshots/thesis-desk.webp)
@@ -35,17 +39,19 @@ Open <http://127.0.0.1:3000>. Keep `NANSEN_API_KEY` server-side only (never `NEX
 | Thesis deck summary | `tgm/flow-intelligence`, `tgm/position-intelligence`                                                       |
 | Ticker detail       | `tgm/who-bought-sold`, `tgm/dex-trades`, `tgm/holders`, `tgm/token-information`, `smart-money/perp-trades` |
 
-**Conviction** (per thesis): measured tickers have a finite 7-day smart money figure (`flow-intelligence` `smart_trader_net_flow_usd`, or for native assets with a perp, `position-intelligence` smart longs minus shorts). Accumulating = positive figure. Level = **strong** if accumulating/measured ≥ 0.75, **steeping** if ≥ 0.5, **weak** otherwise, **unknown** if none measured.
+**Conviction** (per thesis): measured tickers have a finite smart-money figure from `flow-intelligence` (`smart_trader_net_flow_usd` over 7 days) or, for native assets with a perp, from `position-intelligence` (open smart longs minus shorts—not a 7-day window). Accumulating = positive figure. Level = **strong** if accumulating/measured ≥ 0.75, **building** if ≥ 0.5, **weak** otherwise, **no signal** if none measured.
+
+The three thesis narratives are curated. Conviction seals, asset evidence, the Shelf leaderboard, and Uncle's answers use live Nansen data.
 
 **Caching and credits:** deck summary TTL 10 minutes; ticker detail TTL 15 minutes; stale fallback on refresh failure; concurrency cap 4; one retry; keep-the-better-snapshot when a fresh deck has more ticker errors. Cold deck ≈ 12 credits; one ticker detail up to ≈ 15 credits.
 
 ## Stations
 
-1. **Waiting room** — arrive; Begin opens the dock.
-2. **Counter (Thesis Desk)** — three 3D books for Robinhood Chain tokenization, Crypto Bullrun, and AI taking over the world. Each shows a live Nansen Conviction seal. Opening a book shows the thesis scroll with 12 tickers. Rows expand into smart money moves, holders, supply not yet circulating, and perps positioning. Actions: Talk to Uncle, Share on X, Follow.
-3. **Host** — chat with Uncle through the Nansen Research Agent (Uncle persona). Guests keep memory for the page; signed-in users get persistent chats.
-4. **Shelf** — overview of hanging papers (Ten Spirits cast). **Approach the Shelf** (or click the shelf) focuses the camera and unrolls the parchment leaderboard of top 10 Smart HL Perps Traders over 30 days. Rank identities are visual cast names, not claims about wallet owners.
-5. **Observatorium** — brass orrery; wind it in place (no panel).
+1. **Waiting room** — sketchbook intro; enter the tea room to open the dock.
+2. **Counter (Thesis Desk)** — three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. Each shows a live Nansen conviction seal. Opening a book shows the thesis and four assets. Rows expand into buyers/sellers, holders, supply not yet circulating, and perpetuals positioning. Actions: Ask Uncle, Share on X, Follow.
+3. **Host** — chat with Uncle through the Nansen Research Agent. Guests keep memory for the page; signed-in users get persistent chats.
+4. **Shelf** — overview of hanging papers (Ten Spirits cast). **See the top traders** focuses the camera and unrolls the parchment leaderboard of top Smart HL Perps Traders over 30 days. Rank identities are visual cast names, not claims about wallet owners.
+5. **Observatorium** — brass orrery; wind it in place (no panel, no market data).
 
 ## Architecture
 
@@ -74,7 +80,6 @@ Unit tests cover conviction, thesis routes, Nansen streaming, Shelf data, auth, 
 ## Known limits
 
 - The Host 3D model is a teammate’s work in progress; visible copy says Uncle while the mesh still resembles Iroh.
-- Railway deploy is pending. SQLite and the in-process caches suit one Node process, not multi-instance hosts without shared storage.
+- Deployed on Railway at the URL above. SQLite and the in-process caches suit one Node process, not multi-instance hosts without shared storage.
 - The Research Agent's per-IP daily call cap is process-local, trusts the deployment proxy's forwarding headers, and resets at midnight UTC or on a server restart.
 - Automated Nansen tests mock upstream; live plan entitlements and credits are not asserted in CI.
-- Branch `feature/waiting-room-invitation` is separate work and is not part of this deck PR.

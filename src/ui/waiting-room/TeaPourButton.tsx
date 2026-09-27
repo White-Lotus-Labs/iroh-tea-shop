@@ -300,7 +300,8 @@ export function TeaPourButton({
       if (Math.hypot(x, y) < 0.95) add(x, y);
     };
     const key = (event: KeyboardEvent) => {
-      if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) add(0, 0);
+      if ((event.key === 'Enter' || event.key === ' ') && !event.repeat)
+        add(0, 0);
     };
     // ponytail: a lost context is not restored; the CSS bowl takes over until
     // the next mount. Handle webglcontextrestored if that ever matters.
@@ -435,7 +436,7 @@ export function TeaPourButton({
         <span className="waiting-enter-tea" />
       </span>
       <canvas ref={canvas} className="waiting-enter-gl" aria-hidden="true" />
-      <span className="waiting-enter-label">Step inside</span>
+      <span className="waiting-enter-label">Enter the tea room</span>
     </button>
   );
 }
