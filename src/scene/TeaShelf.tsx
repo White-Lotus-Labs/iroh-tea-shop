@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import {
   CatmullRomCurve3,
   CylinderGeometry,
@@ -208,13 +209,16 @@ export function TeaShelf({
         onSelect();
       }}
     >
-      {posters && (
-        <HangingPaper
-          reduced={reduced}
-          emphasized={revealed}
-          onSelect={onSelect}
-        />
-      )}
+      {/* Own boundary: suspending here must not hide the staged room. */}
+      <Suspense fallback={null}>
+        {posters && (
+          <HangingPaper
+            reduced={reduced}
+            emphasized={revealed}
+            onSelect={onSelect}
+          />
+        )}
+      </Suspense>
       <group scale={[0.82, 0.86, 0.76]}>
         <Timber items={TIMBER} />
         <mesh geometry={goods.glaze} castShadow receiveShadow>

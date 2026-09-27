@@ -1,7 +1,11 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  BACKGROUND_MUSIC,
   BACKGROUND_MUSIC_KEY,
-  BACKGROUND_MUSIC_SRC,
+  backgroundMusicSources,
+  loopBounds,
   readBackgroundMusic,
   writeBackgroundMusic,
 } from '../src/ui/backgroundMusic';
@@ -27,10 +31,6 @@ describe('background music preference', () => {
     expect(readBackgroundMusic(storage)).toBe(false);
   });
 
-  it('points at the ambience file the guest can drop in later', () => {
-    expect(BACKGROUND_MUSIC_SRC).toBe('/audio/tea-ambience.mp3');
-  });
-
   it('ignores storage that throws', () => {
     const storage = {
       getItem: () => {
@@ -42,5 +42,26 @@ describe('background music preference', () => {
     };
     expect(readBackgroundMusic(storage)).toBe(false);
     expect(() => writeBackgroundMusic(storage, true)).not.toThrow();
+  });
+});
+
+describe('background music file', () => {
+  it('ships every source', () => {
+    for (const { src } of BACKGROUND_MUSIC)
+      expect(existsSync(join(__dirname, '../public', src)), src).toBe(true);
+  });
+
+  it('prefers Opus and keeps MP3 as the fallback', () => {
+    const [opus, mp3] = BACKGROUND_MUSIC.map(({ src }) => src);
+    expect(backgroundMusicSources(() => 'probably')).toEqual([opus, mp3]);
+    expect(
+      backgroundMusicSources((type) => (type.includes('opus') ? '' : 'maybe')),
+    ).toEqual([mp3]);
+    expect(backgroundMusicSources(() => '')).toEqual([mp3]);
+  });
+
+  it('loops past decoder padding at both ends', () => {
+    const samples = new Float32Array([0, 0, 0.2, -0.1, 0.3, 0.00001, 0]);
+    expect(loopBounds(samples, 1)).toEqual({ start: 2, end: 5 });
   });
 });
