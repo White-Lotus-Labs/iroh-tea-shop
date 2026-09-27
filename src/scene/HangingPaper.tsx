@@ -26,6 +26,7 @@ const SH = 0.48;
 const SWAY_PERIOD = 6.2;
 const TIME_SCALE = 1.2;
 const REDUCED_TIME = 2.4;
+const HOVER_DEPTH = 0.25;
 
 const ART = [
   '/images/shelf/spirit-1.webp',
@@ -111,7 +112,8 @@ const FRAGMENT_OUT = /* glsl */ `
   vec3 toLight = uHoverPos - vSheetPos;
   float dist2 = dot(toLight, toLight);
   float lambert = abs(dot(normalize(vSheetN), toLight * inversesqrt(max(dist2, 1e-6))));
-  outgoingLight += diffuseColor.rgb * uHoverCol * lambert * uHover / (1.0 + dist2 * 22.0);
+  float glow = uHover * lambert / (1.0 + dist2 * 6.0);
+  outgoingLight = outgoingLight * (1.0 + 0.9 * glow) + diffuseColor.rgb * uHoverCol * glow * 0.8;
   outgoingLight += fres * uRim * uRimCol * (1.0 + 0.6 * uHover);
   gl_FragColor = vec4(outgoingLight, clamp(diffuseColor.a + fres * uRimA, 0.0, 1.0));
 `;
@@ -192,12 +194,12 @@ export function HangingPaper() {
     const sheetUniforms: SheetUniforms[] = SHEETS.map((s) => ({
       uPhase: { value: s.phase },
       uHover: { value: 0 },
-      uHoverPos: { value: new Vector3(0, 0, 0.12) },
+      uHoverPos: { value: new Vector3(0, 0, HOVER_DEPTH) },
     }));
     const materials = SHEETS.map((s, index) => {
       const material = new MeshPhysicalMaterial({
         map: textures[s.art],
-        color: '#cdbfa6',
+        color: '#a9a191',
         side: DoubleSide,
         roughness: 0.74,
         metalness: 0,
@@ -284,7 +286,7 @@ export function HangingPaper() {
     sheetUniforms[index].uHoverPos.value.set(
       (event.uv.x - 0.5) * SW,
       (event.uv.y - 0.5) * SH,
-      0.12,
+      HOVER_DEPTH,
     );
   };
 
