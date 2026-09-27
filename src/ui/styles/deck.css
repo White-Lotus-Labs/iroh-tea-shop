@@ -1590,7 +1590,8 @@
   padding-top: 16px;
 }
 
-.scroll-actions > .scroll-action:not(.scroll-action--primary, .scroll-action--seal) {
+.scroll-actions
+  > .scroll-action:not(.scroll-action--primary, .scroll-action--seal) {
   padding: 0 14px;
 }
 
