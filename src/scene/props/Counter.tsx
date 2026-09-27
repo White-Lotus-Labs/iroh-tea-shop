@@ -21,8 +21,7 @@ import {
   block,
   boxUv,
   canvasTexture,
-  glyph,
-  inkStroke,
+  brushText,
   merge,
   paint,
   paper,
@@ -371,67 +370,62 @@ function buildCaddy() {
   ]);
 }
 
+const TEAS: [string, string][] = [
+  ['煎茶', '五百'],
+  ['玉露', '八百'],
+  ['抹茶', '七百'],
+  ['番茶', '四百'],
+];
+
 function drawSign(ctx: CanvasRenderingContext2D) {
   const random = createRandom(733);
   ctx.fillStyle = '#3a2416';
-  ctx.fillRect(0, 0, 512, 160);
-  for (let i = 0; i < 260; i++) {
-    const y = random() * 160;
+  ctx.fillRect(0, 0, 1024, 320);
+  for (let i = 0; i < 420; i++) {
+    const y = random() * 320;
     ctx.fillStyle = `rgba(${random() > 0.5 ? '90,60,38' : '24,14,8'},${0.12 + random() * 0.2})`;
-    ctx.fillRect(0, y, 512, 0.6 + random() * 1.6);
+    ctx.fillRect(0, y, 1024, 0.8 + random() * 3);
   }
-  ctx.strokeStyle = 'rgba(214,176,112,.55)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(12, 12, 488, 136);
-  for (let i = 0; i < 4; i++)
-    glyph(ctx, 380 - i * 108, 26, 104, random, '226,196,138');
+  ctx.strokeStyle = 'rgba(14,8,4,.8)';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(26, 26, 972, 268);
+  ctx.strokeStyle = 'rgba(214,176,112,.6)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(22, 22, 972, 268);
+  for (const side of [-1, 1])
+    for (let line = 0; line < 3; line++) {
+      const x = 512 + side * (190 + line * 26);
+      ctx.fillStyle = 'rgba(214,176,112,.45)';
+      ctx.fillRect(x - 2, 110 + line * 14, 4, 100 - line * 28);
+    }
+  brushText(ctx, '茶', 518, 50, 236, '10,6,3');
+  brushText(ctx, '茶', 512, 44, 236, '228,190,118');
   ctx.fillStyle = '#9e2f1e';
-  ctx.fillRect(40, 104, 22, 22);
+  ctx.fillRect(900, 216, 44, 44);
+  brushText(ctx, '閑', 922, 219, 38, '236,214,180');
 }
 
 function drawMenu(ctx: CanvasRenderingContext2D) {
   const random = createRandom(4242);
-  paper(ctx, 0, 0, 256, 352, '#e8dbbb', random);
+  paper(ctx, 0, 0, 512, 704, '#e8dbbb', random);
   ctx.strokeStyle = 'rgba(60,38,20,.45)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(10, 10, 236, 332);
-  glyph(ctx, 184, 22, 58, random);
-  glyph(ctx, 184, 88, 58, random);
+  ctx.lineWidth = 4;
+  ctx.strokeRect(20, 20, 472, 664);
+  brushText(ctx, '御品書', 424, 50, 80);
   ctx.fillStyle = '#a3321f';
-  ctx.fillRect(196, 160, 26, 26);
-  ctx.fillStyle = '#e8dbbb';
-  ctx.fillRect(202, 166, 6, 14);
-  ctx.fillRect(211, 171, 7, 5);
-  for (let column = 0; column < 4; column++) {
-    const x = 138 - column * 40;
+  ctx.fillRect(398, 330, 52, 52);
+  brushText(ctx, '茶', 424, 334, 44, '232,219,187');
+  TEAS.forEach(([name, price], column) => {
+    const x = 316 - column * 80;
     ctx.fillStyle = 'rgba(60,38,20,.25)';
-    ctx.fillRect(x + 34, 26, 1, 300);
-    glyph(ctx, x, 30, 32, random);
-    glyph(ctx, x, 66, 32, random);
-    for (let dot = 0; dot < 7; dot++) {
+    ctx.fillRect(x + 40, 52, 2, 600);
+    brushText(ctx, name, x, 60, 56);
+    for (let dot = 0; dot < 6; dot++) {
       ctx.fillStyle = 'rgba(24,17,12,.55)';
-      ctx.fillRect(x + 15, 112 + dot * 16, 2.5, 2.5);
+      ctx.fillRect(x - 2.5, 200 + dot * 34, 5, 5);
     }
-    inkStroke(
-      ctx,
-      [
-        [x + 8, 250],
-        [x + 26, 252 + random() * 4],
-      ],
-      4,
-      random,
-    );
-    inkStroke(
-      ctx,
-      [
-        [x + 10, 270],
-        [x + 24, 290],
-      ],
-      4,
-      random,
-      '150,40,26',
-    );
-  }
+    brushText(ctx, price, x, 420, 48, '120,34,22');
+  });
 }
 
 // Faces both the counter camera and the lantern, so the paper is lit from the front.
@@ -473,8 +467,8 @@ export function Counter() {
       bamboo = merge(buildWhisk().map((g) => place(g, [-1.95, TOP_Y, 5.92]))),
       ceramics = merge(buildCeramics()),
       caddy = buildCaddy(),
-      menu = canvasTexture(256, 352, drawMenu),
-      sign = canvasTexture(512, 160, drawSign);
+      menu = canvasTexture(512, 704, drawMenu),
+      sign = canvasTexture(1024, 320, drawSign);
     return {
       top,
       wood,

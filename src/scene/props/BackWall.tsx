@@ -19,6 +19,7 @@ import {
 } from '../Surfaces';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
+import { brushText } from './craft';
 import { ShojiWindow } from './Shoji';
 
 const timber = '#3a2419';
@@ -303,60 +304,7 @@ function Veranda() {
   );
 }
 
-type Stroke = { points: [number, number][]; width: number; dry: number };
-const STROKES: Stroke[] = [
-  {
-    points: [
-      [0.5, 0.1],
-      [0.52, 0.3],
-      [0.5, 0.55],
-      [0.47, 0.72],
-      [0.4, 0.78],
-    ],
-    width: 0.1,
-    dry: 0.7,
-  },
-  {
-    points: [
-      [0.24, 0.24],
-      [0.42, 0.26],
-      [0.66, 0.22],
-      [0.78, 0.27],
-    ],
-    width: 0.06,
-    dry: 0.5,
-  },
-  {
-    points: [
-      [0.3, 0.44],
-      [0.4, 0.47],
-      [0.56, 0.46],
-    ],
-    width: 0.05,
-    dry: 0.35,
-  },
-  {
-    points: [
-      [0.55, 0.5],
-      [0.64, 0.6],
-      [0.74, 0.7],
-      [0.84, 0.74],
-    ],
-    width: 0.075,
-    dry: 0.8,
-  },
-  {
-    points: [
-      [0.36, 0.58],
-      [0.3, 0.66],
-      [0.22, 0.7],
-    ],
-    width: 0.045,
-    dry: 0.6,
-  },
-];
-
-/** Abstract dry-brush strokes and a seal on aged paper; deliberately not a legible character. */
+/** 和敬清寂 (harmony, respect, purity, tranquility) brushed on aged paper, with a signature and seal. */
 function drawCalligraphy(ctx: CanvasRenderingContext2D) {
   const w = 256,
     h = 640,
@@ -379,66 +327,11 @@ function drawCalligraphy(ctx: CanvasRenderingContext2D) {
   spot.addColorStop(1, 'rgba(150,110,60,0)');
   ctx.fillStyle = spot;
   ctx.fillRect(0, 0, w, h);
-  for (const stroke of STROKES) {
-    const curve = new CatmullRomCurve3(
-      stroke.points.map(([x, y]) => new Vector3(x * w, y * h, 0)),
-    );
-    const samples = curve.getSpacedPoints(90);
-    const bristles = 34,
-      maxWidth = stroke.width * w;
-    for (let b = 0; b < bristles; b++) {
-      const o = (b / (bristles - 1) - 0.5) * 2;
-      const alpha = 0.35 + random() * 0.45;
-      ctx.strokeStyle = `rgba(18,13,10,${alpha})`;
-      ctx.lineWidth = 1 + random() * 1.6;
-      ctx.beginPath();
-      let pen = false;
-      for (let i = 1; i < samples.length; i++) {
-        const t = i / (samples.length - 1);
-        const p = samples[i],
-          q = samples[i - 1];
-        const nx = -(p.y - q.y),
-          ny = p.x - q.x,
-          nl = Math.hypot(nx, ny) || 1;
-        const press =
-          Math.sin(Math.PI * Math.min(1, t * 1.6 + 0.12)) * 0.8 + 0.2;
-        const half = (maxWidth * press) / 2;
-        const x = p.x + (nx / nl) * o * half,
-          y = p.y + (ny / nl) * o * half;
-        const dry =
-          t > 1 - stroke.dry &&
-          random() < (t - (1 - stroke.dry)) * Math.abs(o) * 2.4;
-        if (dry) {
-          pen = false;
-          continue;
-        }
-        if (!pen) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-        pen = true;
-      }
-      ctx.stroke();
-    }
-  }
-  ctx.fillStyle = 'rgba(18,13,10,.75)';
-  for (let i = 0; i < 5; i++) {
-    ctx.beginPath();
-    ctx.ellipse(
-      w * 0.82,
-      h * (0.34 + i * 0.045),
-      4 + random() * 3,
-      5,
-      random(),
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-  }
+  brushText(ctx, '和敬清寂', w * 0.46, 40, 118, '18,13,10');
+  brushText(ctx, '閑人', w * 0.86, h * 0.72, 22, '18,13,10');
   ctx.fillStyle = '#9e2f1c';
-  ctx.fillRect(w * 0.76, h * 0.62, 24, 24);
-  ctx.fillStyle = '#e6d9bd';
-  ctx.fillRect(w * 0.76 + 5, h * 0.62 + 5, 14, 3);
-  ctx.fillRect(w * 0.76 + 5, h * 0.62 + 11, 3, 8);
-  ctx.fillRect(w * 0.76 + 13, h * 0.62 + 12, 6, 3);
+  ctx.fillRect(w * 0.86 - 12, h * 0.8, 24, 24);
+  brushText(ctx, '閑', w * 0.86, h * 0.8 + 2, 20, '230,217,189');
 }
 
 /** A kakejiku: brocade mount, gold ichimonji bands, futai streamers, rod, roller and cord. */

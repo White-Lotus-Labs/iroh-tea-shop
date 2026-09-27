@@ -3,6 +3,7 @@ import { CatmullRomCurve3, Vector2, Vector3 } from 'three';
 import { Solid } from '../Surfaces';
 import type { Point } from '../stations';
 import { ShojiWindow } from './Shoji';
+import { WallTrim } from './WallDetail';
 
 const timber = '#3a2419';
 const face = 4.005;
@@ -176,6 +177,13 @@ export function RightWall() {
         seed={17}
       />
       <Kakehanaire position={[3.83, 1.36, -1.372]} />
+      <WallTrim
+        face={face}
+        from={from}
+        to={to}
+        posts={[-5.94, -1.53, post, 3.17]}
+        window={[jamb, post]}
+      />
       {[
         [from, jamb],
         [post + 0.085, to],

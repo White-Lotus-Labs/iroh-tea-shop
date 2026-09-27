@@ -38,7 +38,7 @@ export type Surface =
 const TILE: Record<Surface, [number, number]> = {
   wood: [1.6, 0.4],
   floor: [3.2, 0.96],
-  plaster: [1.4, 1.4],
+  plaster: [2, 2],
   paper: [0.7, 0.7],
   shoji: [0.7, 0.7],
   cloth: [0.35, 0.35],
@@ -192,15 +192,15 @@ function sampler(kind: Surface): (s: number, t: number) => Texel {
     case 'plaster':
       return (s, t) => {
         const mottle = fbm(n1, s * 2, t * 2, 2, 2, 5);
-        const cloud = fbm(n4, s * 6, t * 6, 6, 6, 3);
-        const trowel = fbm(n2, (s + t) * 6, (s - t) * 14, 6, 14, 3);
-        const sand = n3(s * 240, t * 240, 240, 240);
+        const cloud = fbm(n4, s * 4, t * 4, 4, 4, 4);
+        const trowel = fbm(n2, (s + t) * 9, (s - t) * 20, 9, 20, 3);
+        const sand = n3(s * 340, t * 340, 340, 340);
         const speck = Math.max(0, sand - 0.88) * 5;
-        const straw = Math.max(0, n4(s * 160, t * 14, 160, 14) - 0.8) * 3;
+        const straw = Math.max(0, n4(s * 230, t * 20, 230, 20) - 0.8) * 3;
         return [
           0.9 +
-            (mottle - 0.5) * 0.12 +
-            (cloud - 0.5) * 0.06 +
+            (mottle - 0.5) * 0.22 +
+            (cloud - 0.5) * 0.1 +
             (trowel - 0.5) * 0.04 +
             (sand - 0.5) * 0.05 -
             speck * 0.12 +

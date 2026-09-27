@@ -224,38 +224,25 @@ export function inkStroke(
   }
 }
 
-/** An abstract calligraphic mark of 2-4 brush strokes inside a square cell; not a real script. */
-export function glyph(
+const BRUSH_FONT =
+  '"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP","MS Mincho",serif';
+
+/** Real Japanese text written top to bottom, centred on x, in a heavy mincho face. */
+export function brushText(
   ctx: CanvasRenderingContext2D,
+  text: string,
   x: number,
   y: number,
   size: number,
-  random: () => number,
-  ink?: string,
+  ink = '24,17,12',
 ) {
-  const strokes = 2 + Math.floor(random() * 3);
-  for (let s = 0; s < strokes; s++) {
-    const kind = random(),
-      x0 = x + size * (0.15 + random() * 0.5),
-      y0 = y + size * (0.1 + random() * 0.5),
-      steps = 6,
-      path: [number, number][] = [];
-    const [dx, dy] =
-      kind < 0.35
-        ? [size * (0.4 + random() * 0.3), size * (random() - 0.5) * 0.12]
-        : kind < 0.7
-          ? [size * (random() - 0.5) * 0.12, size * (0.35 + random() * 0.35)]
-          : [size * (random() - 0.5) * 0.6, size * (0.25 + random() * 0.3)];
-    const bend = (random() - 0.5) * size * 0.15;
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      path.push([
-        x0 + dx * t + Math.sin(t * Math.PI) * bend,
-        y0 + dy * t - Math.sin(t * Math.PI) * bend * 0.5,
-      ]);
-    }
-    inkStroke(ctx, path, size * (0.07 + random() * 0.07), random, ink);
-  }
+  ctx.save();
+  ctx.font = `600 ${size}px ${BRUSH_FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = `rgba(${ink},.9)`;
+  [...text].forEach((char, i) => ctx.fillText(char, x, y + i * size * 1.04));
+  ctx.restore();
 }
 
 /** Speckled handmade-paper fill. */

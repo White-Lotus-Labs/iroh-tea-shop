@@ -10,8 +10,7 @@ import { createRandom } from '../motion/dynamics';
 import { useSurfaceMaps } from '../Surfaces';
 import {
   canvasTexture,
-  glyph,
-  inkStroke,
+  brushText,
   merge,
   paper,
   place,
@@ -245,7 +244,17 @@ const LABEL_PAPER = [
   '#e6dcc4',
   '#3c3a31',
 ];
-/** Eight tall paper labels with abstract brush marks and seals, side by side. */
+const LABEL_TEAS = [
+  '煎茶',
+  '玉露',
+  '抹茶',
+  '番茶',
+  '焙茶',
+  '玄米',
+  '白茶',
+  '烏龍',
+];
+/** Eight tall paper labels, each naming a tea in brush script, with a red seal. */
 function drawLabels(ctx: CanvasRenderingContext2D) {
   const random = createRandom(2718);
   LABEL_PAPER.forEach((tone, cell) => {
@@ -257,27 +266,12 @@ function drawLabels(ctx: CanvasRenderingContext2D) {
     ctx.strokeStyle = dark ? 'rgba(220,200,160,.5)' : 'rgba(60,40,24,.35)';
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 10, 12, 108, 232);
-    const marks = 2 + (cell % 2);
-    for (let g = 0; g < marks; g++)
-      glyph(ctx, x + 24, 26 + g * 66, 70, random, ink);
+    brushText(ctx, LABEL_TEAS[cell], x + 64, 30, 72, ink);
     if (!red) {
       ctx.fillStyle = '#a3321f';
-      ctx.fillRect(x + 82, 206, 22, 22);
-      ctx.fillStyle = tone;
-      ctx.fillRect(x + 87, 211, 5, 12);
-      ctx.fillRect(x + 94, 216, 6, 4);
+      ctx.fillRect(x + 82, 206, 24, 24);
+      brushText(ctx, '閑', x + 94, 208, 20, '240,226,200');
     }
-    for (let line = 0; line < 3; line++)
-      inkStroke(
-        ctx,
-        [
-          [x + 26, 212 + line * 9],
-          [x + 58 + random() * 12, 212 + line * 9],
-        ],
-        2.4,
-        random,
-        ink,
-      );
   });
 }
 

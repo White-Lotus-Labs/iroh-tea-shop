@@ -9,6 +9,8 @@ import { ChamberDressing, WaitingDressing } from './props/Dressing';
 import { TeaTable } from './props/TeaTable';
 import { BackWall } from './props/BackWall';
 import { RightWall } from './props/RightWall';
+import { WallShelf, WallTrim } from './props/WallDetail';
+import { block, merge, useBuilt, WoodMaterial } from './props/craft';
 
 const timber = '#3a2419';
 const plaster = '#8a7862';
@@ -90,6 +92,18 @@ export function PaperLantern({
       <mesh position={[0, half + drop / 2, 0]}>
         <cylinderGeometry args={[0.004, 0.004, drop, 6]} />
         <meshStandardMaterial color="#1a110b" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, half + 0.045, 0]}>
+        <torusGeometry args={[0.014, 0.0025, 6, 14]} />
+        <meshStandardMaterial color="#6a5028" metalness={0.8} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, half + drop - 0.012, 0]}>
+        <cylinderGeometry args={[0.035, 0.042, 0.018, 16]} />
+        <meshStandardMaterial
+          color="#5a4424"
+          metalness={0.8}
+          roughness={0.45}
+        />
       </mesh>
       {light !== undefined && (
         <pointLight color="#ffc68f" intensity={light} distance={6} />
@@ -338,24 +352,39 @@ function Floor({ center, length }: { center: number; length: number }) {
   );
 }
 
+/** Plank boards on a sao-buchi grid: long battens, cross battens every 0.9 m and a perimeter molding. */
 function Ceiling({ center, length }: { center: number; length: number }) {
+  const grid = useBuilt(() => {
+    const z0 = center - length / 2,
+      parts = Array.from({ length: 17 }, (_, i) =>
+        block(
+          [0.034, 0.032, length],
+          [-3.84 + i * 0.48, 3.684, center],
+          '#2a1a11',
+        ),
+      );
+    for (let z = z0 + 0.45; z < z0 + length - 0.2; z += 0.9)
+      parts.push(block([8.1, 0.026, 0.03], [0, 3.674, z], '#24160e'));
+    for (const x of [-1, 1])
+      parts.push(
+        block([0.07, 0.06, length], [x * 4.0, 3.67, center], '#2a1a11'),
+        block([0.03, 0.02, length], [x * 3.955, 3.632, center], '#1e120b'),
+      );
+    return merge(parts);
+  });
   return (
     <group>
       <Solid
         position={[0, 3.72, center]}
         size={[8.2, 0.04, length]}
-        color="#4a3020"
+        color="#56382a"
+        surface="floor"
+        grain={0}
         cast={false}
       />
-      {Array.from({ length: 17 }, (_, index) => (
-        <Beam
-          key={index}
-          position={[-3.84 + index * 0.48, 3.684, center]}
-          size={[0.034, 0.032, length]}
-          color="#2a1a11"
-          cast={false}
-        />
-      ))}
+      <mesh geometry={grid}>
+        <WoodMaterial />
+      </mesh>
     </group>
   );
 }
@@ -398,6 +427,7 @@ function FramedWall({
           color="#1f140d"
         />
       ))}
+      <WallTrim face={face} from={from} to={to} posts={posts} />
     </group>
   );
 }
@@ -712,6 +742,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
       <Scroll position={[-3.99, 1.62, -4.62]} />
       <Scroll position={[-3.99, 1.62, 0.4]} paint={drawBamboo} />
       <Andon position={[-3.5, 0, -1.95]} />
+      <WallShelf position={[-3.865, 1.42, -2.25]} />
       <RightWall />
       {[-5.94, -1.53, 3.17].map((z) => (
         <Beam key={z} position={[3.91, 1.85, z]} size={[0.17, 3.7, 0.17]} />
