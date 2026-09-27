@@ -1,5 +1,6 @@
 import { NansenError } from '../nansen/client';
 import { managedNansenPost } from '../nansen/managed-client';
+import { REFRESH_SLACK_MS, SLOW_REFRESH_MS } from '../nansen/snapshot-store';
 import { computeConviction } from './conviction';
 import { THESES, findThesis, findTicker } from './deck';
 import type {
@@ -337,9 +338,16 @@ export const deckFailed = (fresh: { theses: ThesisSummary[] }) =>
     thesis.tickers.every((ticker) => ticker.status === 'error'),
   );
 
-/** Every section is unavailable: the fresh page holds no usable reading. */
-export const detailFailed = (fresh: TickerDetail) =>
-  countUnavailable(fresh) === DETAIL_SECTIONS.length;
+/**
+ * Every section this run asked for is unavailable: the fresh page holds no new
+ * reading. Holders and supply reused from the saved page do not count.
+ */
+export const detailFailed = (fresh: TickerDetail) => {
+  const reused =
+    !!fresh.metaFetchedAt && fresh.metaFetchedAt !== fresh.fetchedAt;
+  const asked = reused ? (['movements', 'perps'] as const) : DETAIL_SECTIONS;
+  return asked.every((section) => fresh[section].status === 'unavailable');
+};
 
 async function fetchTickerSignal(
   ticker: Ticker,
@@ -562,12 +570,20 @@ export async function loadTickerDetail(
   symbol: string,
   apiKey: string,
   now: number = Date.now(),
+  previous: TickerDetail | null = null,
 ): Promise<TickerDetail | null> {
   const thesis = findThesis(thesisId);
   const ticker = findTicker(thesisId, symbol);
   if (!thesis || !ticker) return null;
 
-  const needsSpotMeta = !!ticker.token && !isSolana(ticker);
+  // Holders and supply move slowly: reuse the saved ones until they are due.
+  const reuse =
+    !!previous?.metaFetchedAt &&
+    now - Date.parse(previous.metaFetchedAt) <
+      SLOW_REFRESH_MS - REFRESH_SLACK_MS &&
+    previous.holders.status !== 'unavailable' &&
+    previous.supply.status !== 'unavailable';
+  const needsSpotMeta = !reuse && !!ticker.token && !isSolana(ticker);
 
   const [movements, holdersResult, infoResult, perps] = await Promise.all([
     loadMovements(ticker, apiKey, now),
@@ -610,9 +626,14 @@ export async function loadTickerDetail(
     fetchedAt: new Date(now).toISOString(),
     stale: false,
     movements,
-    holders: buildHoldersSection(holdersResult, infoResult),
-    supply: buildSupplySection(ticker, infoResult),
+    holders: reuse
+      ? previous!.holders
+      : buildHoldersSection(holdersResult, infoResult),
+    supply: reuse ? previous!.supply : buildSupplySection(ticker, infoResult),
     perps,
+    metaFetchedAt: reuse
+      ? previous!.metaFetchedAt
+      : new Date(now).toISOString(),
   };
 }
 

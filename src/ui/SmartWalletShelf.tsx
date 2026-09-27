@@ -208,13 +208,10 @@ const SpiritCard = forwardRef<
             {entry.entity && (
               <span
                 className="wallet-chain"
-                title="Nansen entity total across its Solana and EVM wallets"
+                title="A Nansen entity that trades on Solana and EVM"
               >
                 Entity
-                <span className="sr-only">
-                  {' '}
-                  total across Solana and EVM wallets, so no win rate or ROI
-                </span>
+                <span className="sr-only"> that trades on Solana and EVM</span>
               </span>
             )}
           </p>
@@ -320,6 +317,49 @@ const SpiritCard = forwardRef<
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {entry.entityTotal && (
+          <div className="wallet-positions">
+            <p className="wallet-positions-head">
+              {entry.entity} · all wallets and chains
+            </p>
+            <dl className="wallet-hero-trading">
+              <div>
+                <dt>Realized</dt>
+                <dd
+                  className={`wallet-tone-${tone(entry.entityTotal.realizedPnl)}`}
+                >
+                  {formatMoney(entry.entityTotal.realizedPnl, true)}
+                </dd>
+              </div>
+              <div>
+                <dt>Tokens traded</dt>
+                <dd>{formatCount(entry.entityTotal.tokens)}</dd>
+              </div>
+              <div>
+                <dt>Trades</dt>
+                <dd>{formatCount(entry.entityTotal.trades)}</dd>
+              </div>
+            </dl>
+            {entry.entityTotal.topTokens.length > 0 && (
+              <ul>
+                {entry.entityTotal.topTokens.map((token) => (
+                  <li key={`${token.symbol}:${token.chain}`}>
+                    <strong>{token.symbol}</strong>
+                    <span className="wallet-position-value">
+                      {chainLabel(token.chain)}
+                    </span>
+                    <span
+                      className={`wallet-position-pnl wallet-tone-${tone(token.pnl)}`}
+                    >
+                      <span className="sr-only">Realized PnL </span>
+                      {formatMoney(token.pnl, true)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         <div className="wallet-hero-address">
@@ -429,11 +469,11 @@ function FreshnessPopover({
       </div>
       <p>
         {board === 'meme'
-          ? "Rankings use Nansen's 30-day Smart Money PnL leaderboard, sorted by realized PnL and filtered here to wallets that trade mostly memecoins. Entity rows use Nansen's entity totals."
+          ? "Rankings use Nansen's 30-day Smart Money PnL leaderboard, sorted by realized PnL and filtered here to wallets that trade mostly memecoins. Every row ranks on its own wallet's numbers; an entity card also shows that entity's total across its Solana and EVM wallets."
           : `Rankings use Nansen's 30-day ${BOARD_SOURCE[board]} leaderboard (${BOARD_BLURB[board]}).`}{' '}
         Illustrated names are visual aliases—not claims about wallet owners.
       </p>
-      <p>The shop saves this ranking and refreshes it about once an hour.</p>
+      <p>The shop saves this ranking and refreshes it about every 4 hours.</p>
       <p className="leaderboard-freshness-age">
         {snapshot ? `Snapshot updated ${updated}.` : 'Loading…'}
       </p>

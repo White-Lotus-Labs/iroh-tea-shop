@@ -174,8 +174,10 @@ function memeRow(row: Record<string, unknown>): PoolRow | null {
 }
 
 /**
- * The entity total replaces the wallet row when it adds the other chain group:
- * a Solana wallet needs a non-Solana chain, an EVM wallet needs Solana.
+ * Tags a wallet with its entity total when the entity adds the other chain
+ * group: a Solana wallet needs a non-Solana chain, an EVM wallet needs Solana.
+ * The row keeps its own leaderboard numbers, so every row ranks on one source;
+ * the entity total is shown in the card only.
  */
 function entityRow(
   entry: SmartWalletLeaderboardEntry,
@@ -195,25 +197,22 @@ function entityRow(
     ? chains.includes('solana')
     : chains.some((chain) => chain !== 'solana');
   if (!addsOtherGroup) return null;
-  // Win rate, ROI and unrealized PnL use other definitions here, so leave them out.
   return {
     ...entry,
-    pnl: realized,
-    realizedPnl: realized,
-    roi: null,
-    winRate: null,
-    unrealizedPnl: null,
     chains: [...new Set([...(entry.chains ?? []), ...chains])],
-    trades,
-    tokens: numberOrNull(summary?.traded_token_count),
-    topTokens: topThree(top5),
     entity: entry.displayName,
+    entityTotal: {
+      realizedPnl: realized,
+      trades,
+      tokens: numberOrNull(summary?.traded_token_count),
+      topTokens: topThree(top5),
+    },
   };
 }
 
 /**
  * Smart Money wallets on all 18 chains, ranked by 30-day realized PnL, kept
- * when they trade mostly memes, with entity totals merged in. Throws a
+ * when they trade mostly memes, with entity totals attached. Throws a
  * LeaderboardError when the leaderboard call fails. A failed entity lookup
  * keeps the wallet row.
  */
@@ -282,8 +281,9 @@ export async function fetchMemePool(
   });
   const byName = new Map(names.map((name, index) => [name, summaries[index]]));
 
-  // The highest-ranked wallet of an entity decides once. If it became the
-  // entity total, the other wallets are already inside it. If not, they stay.
+  // The highest-ranked wallet of an entity decides once. If it carries the
+  // entity total, the entity's other wallets drop out, so one person shows
+  // once. If not, they stay.
   const merged = new Map<string, boolean>();
   return pool.flatMap(({ entry, person }) => {
     const name = entry.displayName;

@@ -17,7 +17,14 @@ const dir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/nansen');
 const load = (name: string) =>
   JSON.parse(readFileSync(join(dir, name), 'utf8')) as Record<string, unknown>;
 
-type Row = { address: string; address_label: string };
+type Row = {
+  address: string;
+  address_label: string;
+  realized_pnl_usd: number;
+  avg_trade_roi: number;
+  win_rate: number;
+  n_trades: number;
+};
 const leaderboard = load('smart-money-pnl-leaderboard.json') as {
   data: Row[];
 };
@@ -207,7 +214,7 @@ describe('meme ranking', () => {
 });
 
 describe('entity rows', () => {
-  test('an entity on both chain groups replaces its wallet row once', async () => {
+  test('an entity on both chain groups tags its wallet row once', async () => {
     const ogleRow = leaderboard.data.find((row) =>
       row.address.startsWith('0x0cc7ce'),
     )!;
@@ -225,23 +232,26 @@ describe('entity rows', () => {
     );
     const rows = pool.filter((entry) => entry.displayName === 'ogle');
     expect(rows).toHaveLength(1);
+    // The row keeps the wallet's own leaderboard numbers, so it ranks on the
+    // same source as every other row. The entity total rides along for the card.
     expect(rows[0]).toMatchObject({
       address: ogleRow.address,
       entity: 'ogle',
-      pnl: 2381278.116041062,
-      realizedPnl: 2381278.116041062,
-      roi: null,
-      winRate: null,
-      unrealizedPnl: null,
-      trades: 3787,
-      tokens: 163,
+      pnl: ogleRow.realized_pnl_usd,
+      realizedPnl: ogleRow.realized_pnl_usd,
+      roi: ogleRow.avg_trade_roi,
+      winRate: ogleRow.win_rate,
+      trades: ogleRow.n_trades,
       chains: ['robinhood', 'solana'],
+      entityTotal: {
+        realizedPnl: 2381278.116041062,
+        trades: 3787,
+        tokens: 163,
+      },
     });
-    expect(rows[0]!.topTokens?.map((token) => token.symbol)).toEqual([
-      'PONS',
-      'QUOTRON',
-      'INDEX',
-    ]);
+    expect(
+      rows[0]!.entityTotal?.topTokens.map((token) => token.symbol),
+    ).toEqual(['PONS', 'QUOTRON', 'INDEX']);
     expect(new Set(pool.map((entry) => entry.address)).size).toBe(pool.length);
     // Cooker's Solana token lost money, but it still shows the entity trades there.
     const cookerRow = byAddress(pool, '0xb86f49');

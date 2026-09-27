@@ -22,13 +22,23 @@ export interface SmartWalletLeaderboardEntry {
   positions?: WalletPosition[];
   /** Meme board only. Nansen chain ids ('solana', 'robinhood', 'bsc', ...). Absent means Hyperliquid. */
   chains?: string[];
-  /** 0..1 from the leaderboard. Null on entity rows: the entity win rate uses another definition. */
+  /** 0..1 from the leaderboard. */
   winRate?: number | null;
   tokens?: number | null;
   /** At most 3, largest PnL first. */
   topTokens?: { symbol: string; chain: string; pnl: number | null }[];
-  /** Nansen entity name when the row is the entity's total across Solana and EVM. */
+  /** Nansen entity name when this wallet's entity also trades on the other chain group. */
   entity?: string;
+  /**
+   * That entity's 30-day total across all its wallets and chains (profiler
+   * pnl-summary). Shown in the card; ranking uses the wallet's own numbers.
+   */
+  entityTotal?: {
+    realizedPnl: number;
+    trades: number | null;
+    tokens: number | null;
+    topTokens: { symbol: string; chain: string; pnl: number | null }[];
+  };
 }
 
 export type SmartWalletLeaderboardSnapshot = {

@@ -22,7 +22,7 @@ Each book shows a conviction seal. The seal is a summary of smart-money numbers,
 
 **Shelf.** Ten spirits stand in for the wallets on a saved Nansen leaderboard. The scroll has four boards: Perps Traders, Smart Wallets, and Whales (accounts worth $10M or more) on Hyperliquid, and Meme Traders. The default sort is 30-day PnL. Rank 1 is open by default. Clicking another rank opens it in place with realized and unrealized PnL, 30-day volume, trade count, and its three largest open positions. That detail comes back with the same leaderboard call, so it adds no Nansen requests. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. Clicking through opens that address in Nansen's profiler.
 
-Meme Traders uses Nansen's Smart Money PnL leaderboard on 18 chains, with Solana and EVM wallets in one list. Nansen has no meme filter, so the app keeps a wallet when at least half of its top-token profit is memecoins. Majors, staked and wrapped tokens, tokenized stocks, and the PUMP token do not count. The board sorts by realized PnL or by average trade ROI. Its cards show win rate, chains, tokens traded, and top tokens in place of account value, volume, and open positions. When a named person has wallets on both Solana and EVM, the row shows Nansen's entity total, marked Entity. That total uses another win-rate definition, so the row shows a dash for win rate.
+Meme Traders uses Nansen's Smart Money PnL leaderboard on 18 chains, with Solana and EVM wallets in one list. Nansen has no meme filter, so the app keeps a wallet when at least half of its top-token profit is memecoins. Majors, staked and wrapped tokens, tokenized stocks, and the PUMP token do not count. The board sorts by realized PnL or by average trade ROI. Its cards show win rate, chains, tokens traded, and top tokens in place of account value, volume, and open positions. Every row ranks on its own wallet's leaderboard numbers. When a named person also trades on the other chain group (Solana or EVM), the row is marked Entity, and its card adds Nansen's entity total across all their wallets and chains. The entity's other wallets drop out, so one person shows once.
 
 **Observatorium.** A brass orrery you can wind. It is not connected to market data.
 
@@ -34,7 +34,7 @@ Nansen is the only market source. The app never invents a conviction number or a
 
 Visitors do not trigger the deck, the asset pages, or the shelf. Those are saved in SQLite (`NansenSnapshot` rows) and served from there.
 
-The server fills that table when it starts, then about once an hour. One fill is up to 103 Nansen requests: 12 for the thesis seals, 67 for the twelve asset pages, 15 for the Hyperliquid boards, and up to 9 for Meme Traders (one leaderboard call and up to 8 entity lookups). The README has the split. Solana skips the spot endpoints. If a fill fails, the last good row stays on screen and can be marked stale.
+The server fills that table when it starts, then checks every hour. Fast readings refresh hourly: the thesis seals and each asset page's buyers, sellers, recent trades, and perp book (57 requests). Slow readings refresh every 4 hours: holders and token info, and every Shelf board. A full fill is up to 103 Nansen requests: 12 for the thesis seals, 67 for the twelve asset pages, 15 for the Hyperliquid boards, and up to 9 for Meme Traders (one leaderboard call and up to 8 entity lookups). A restart skips rows that are not due. The README has the split. Solana skips the spot endpoints. If a fill fails, the last good row stays on screen and can be marked stale.
 
 Until the first fill finishes, the desk and the shelf say the readings are still being saved.
 
@@ -64,7 +64,7 @@ Visual scores, the perf budget, and the Nansen request-manager note are still us
 
 ## Honest limits
 
-- Several server copies would each keep their own SQLite file and each call Nansen every hour. Ship one web process.
+- Several server copies would each keep their own SQLite file and each run their own refresh schedule. Ship one web process.
 - Uncle's daily cap resets if that process restarts.
 - The 3D host is still being finished. The copy says Uncle.
 - Tests use a fake Nansen. They check that pages read the database and that the hourly save is the thing that calls out. They do not check a live Nansen plan or a credit balance.

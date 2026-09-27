@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { boardCacheKey } from '../src/leaderboard/boards';
 import { memeCallPlan } from '../src/leaderboard/meme';
 import { nansenCallPlan } from '../src/nansen/call-plan';
-import { NANSEN_REFRESH_MS } from '../src/nansen/snapshot-store';
+import {
+  NANSEN_REFRESH_MS,
+  SLOW_REFRESH_MS,
+  refreshIntervalMs,
+} from '../src/nansen/snapshot-store';
 import { openTempDb } from './temp-sqlite';
 
 const flowOk = {
@@ -84,6 +88,7 @@ describe('Nansen call plan', () => {
       endpoint: 'perp-leaderboard',
       thesisId: null,
       symbol: null,
+      tier: 'slow',
     });
     expect(plan.leaderboard.slice(15).map((call) => call.endpoint)).toEqual(
       memeCallPlan(),
@@ -91,10 +96,24 @@ describe('Nansen call plan', () => {
     expect(memeCallPlan()).toHaveLength(9);
     expect(plan.details).toHaveLength(67);
     expect(plan.backgroundCount).toBe(103);
+    // Hourly: the deck, movements and perps. Every 4 hours also: holders,
+    // token information, and every Shelf board.
+    const slowDetails = plan.details.filter((call) => call.tier === 'slow');
+    expect(new Set(slowDetails.map((call) => call.endpoint))).toEqual(
+      new Set(['tgm/holders', 'tgm/token-information']),
+    );
+    expect(plan.leaderboard.every((call) => call.tier === 'slow')).toBe(true);
+    expect(plan.hourlyCount).toBe(103 - 24 - slowDetails.length);
     expect(plan.uncleEndpoint).toBe('agent/fast');
     expect(NANSEN_REFRESH_MS).toBe(60 * 60 * 1000);
+    expect(SLOW_REFRESH_MS).toBe(4 * NANSEN_REFRESH_MS);
+    expect(refreshIntervalMs(boardCacheKey('perps', 'wins'))).toBe(
+      SLOW_REFRESH_MS,
+    );
+    expect(refreshIntervalMs('thesis-deck:v1')).toBe(NANSEN_REFRESH_MS);
     const readme = readFileSync('README.md', 'utf8');
     expect(readme).toContain('103 Nansen requests');
+    expect(readme).toContain(`${plan.hourlyCount} Nansen requests`);
     expect(readme).toContain('agent/fast');
     // The Prisma CLI reads DATABASE_URL only from .env.
     expect(readme).toMatch(/cp \.env\.example \.env\r?\n/);
@@ -181,6 +200,56 @@ describe('saved Nansen readings', () => {
     }
   });
 
+  test('hourly runs skip the 4-hour tier, and a restart skips rows that are not due', async () => {
+    const temp = openTempDb();
+    const called: string[] = [];
+    mockNansen((path) => {
+      called.push(path);
+      if (path === 'tgm/position-intelligence') return positionOk;
+      if (path === 'tgm/flow-intelligence') return flowOk;
+      if (path === 'smart-money/pnl-leaderboard') return memeBoard;
+      if (path === 'profiler/address/pnl-summary')
+        return { traded_times: 0, top5_tokens: [] };
+      return { data: [] };
+    });
+    const slow = new Set([
+      'tgm/holders',
+      'tgm/token-information',
+      'perp-leaderboard',
+      'smart-money/pnl-leaderboard',
+      'profiler/address/pnl-summary',
+    ]);
+    try {
+      const { refreshSavedNansenData } = await import('../src/nansen/refresh');
+      const plan = nansenCallPlan();
+      const now = Date.parse('2026-09-27T12:00:00Z');
+      const run = async (at: number) => {
+        called.length = 0;
+        return refreshSavedNansenData(temp.db, 'key', at);
+      };
+      await run(now);
+      // A deploy restart ten minutes later finds every row fresh.
+      const restart = await run(now + 10 * 60 * 1000);
+      expect(called).toEqual([]);
+      expect(restart.fresh).toHaveLength(30);
+      for (const hour of [1, 2, 3]) {
+        const report = await run(now + hour * NANSEN_REFRESH_MS);
+        expect(called.filter((path) => slow.has(path))).toEqual([]);
+        expect(report.fresh).toHaveLength(17);
+      }
+      // Holders and token information come back on the hourly page untouched.
+      expect(called.length).toBeLessThanOrEqual(plan.hourlyCount);
+      await run(now + SLOW_REFRESH_MS);
+      expect(called.filter((path) => path === 'perp-leaderboard')).toHaveLength(
+        15,
+      );
+      expect(called).toContain('tgm/holders');
+      expect(called).toContain('smart-money/pnl-leaderboard');
+    } finally {
+      await temp.close();
+    }
+  });
+
   test('keeps the previous row when a later refresh fails', async () => {
     const temp = openTempDb();
     let failBoard = false;
@@ -214,15 +283,22 @@ describe('saved Nansen readings', () => {
       const now = Date.parse('2026-09-27T12:00:00Z');
       await refreshSavedNansenData(temp.db, 'key', now);
       failBoard = true;
-      const again = await refreshSavedNansenData(
+      // Shelf boards wait for their 4-hour interval before asking again.
+      const hourLater = await refreshSavedNansenData(
         temp.db,
         'key',
         now + NANSEN_REFRESH_MS,
       );
+      expect(hourLater.fresh).toContain(LEADERBOARD_CACHE_KEY);
+      const again = await refreshSavedNansenData(
+        temp.db,
+        'key',
+        now + SLOW_REFRESH_MS,
+      );
       expect(again.kept).toContain(LEADERBOARD_CACHE_KEY);
       const board = await readNansenSnapshot<{
         entries: { displayName: string }[];
-      }>(temp.db, LEADERBOARD_CACHE_KEY, now + NANSEN_REFRESH_MS);
+      }>(temp.db, LEADERBOARD_CACHE_KEY, now + SLOW_REFRESH_MS);
       expect(board?.stale).toBe(true);
       expect(board?.entries[0]?.displayName).toBe('First Trader');
       expect(board?.fetchedAt).toBe('2026-09-27T12:00:00.000Z');
@@ -252,7 +328,7 @@ describe('saved Nansen readings', () => {
       const now = Date.parse('2026-09-27T12:00:00Z');
       await refreshSavedNansenData(temp.db, 'key', now);
       failMeme = true;
-      const later = now + NANSEN_REFRESH_MS;
+      const later = now + SLOW_REFRESH_MS;
       const again = await refreshSavedNansenData(temp.db, 'key', later);
       expect(again.kept).toEqual(MEME_KEYS);
       for (const key of MEME_KEYS) {
