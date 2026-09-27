@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ContactShadows } from '@react-three/drei';
-import { DoubleSide, Vector2 } from 'three';
+import { DoubleSide, Vector2, type BufferGeometry } from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Solid, SurfaceMaterial, useCanvasTexture } from './Surfaces';
 import type { Point } from './stations';
 import { createRandom } from './motion/dynamics';
@@ -10,7 +11,15 @@ import { TeaTable } from './props/TeaTable';
 import { BackWall } from './props/BackWall';
 import { RightWall } from './props/RightWall';
 import { WallShelf, WallTrim } from './props/WallDetail';
-import { block, brushText, merge, useBuilt, WoodMaterial } from './props/craft';
+import {
+  block,
+  boxUv,
+  brushText,
+  merge,
+  place,
+  useBuilt,
+  WoodMaterial,
+} from './props/craft';
 
 const timber = '#3a2419';
 const plaster = '#8a7862';
@@ -425,80 +434,77 @@ function FramedWall({
     length = to - from,
     center = (from + to) / 2,
     at = (depth: number) => face - side * depth;
+  const frame = useBuilt(() =>
+    merge([
+      ...posts.map((z) =>
+        block([0.13, 3.7, 0.14], [at(0.06), 1.85, z], timber),
+      ),
+      block([0.09, 0.12, length], [at(0.045), 2.32, center], timber),
+      block([0.07, 0.07, length], [at(0.035), 3.3, center], timber),
+      block([0.04, 0.94, length], [at(0.02), 0.47, center], '#4a2e1d'),
+      block([0.07, 0.05, length], [at(0.04), 0.96, center], timber),
+      block([0.07, 0.07, length], [at(0.04), 0.035, center], timber),
+      ...[0.33, 0.64].map((y) =>
+        block([0.004, 0.006, length], [at(0.041), y, center], '#1f140d'),
+      ),
+    ]),
+  );
   return (
     <group>
-      {posts.map((z) => (
-        <Beam
-          cast={cast}
-          key={z}
-          position={[at(0.06), 1.85, z]}
-          size={[0.13, 3.7, 0.14]}
-        />
-      ))}
-      <Beam
-        cast={cast}
-        position={[at(0.045), 2.32, center]}
-        size={[0.09, 0.12, length]}
-      />
-      <Beam
-        cast={cast}
-        position={[at(0.035), 3.3, center]}
-        size={[0.07, 0.07, length]}
-      />
-      <Solid
-        cast={cast}
-        position={[at(0.02), 0.47, center]}
-        size={[0.04, 0.94, length]}
-        color="#4a2e1d"
-      />
-      <Beam
-        cast={cast}
-        position={[at(0.04), 0.96, center]}
-        size={[0.07, 0.05, length]}
-      />
-      <Beam
-        cast={cast}
-        position={[at(0.04), 0.035, center]}
-        size={[0.07, 0.07, length]}
-      />
-      {[0.33, 0.64].map((y) => (
-        <Beam
-          key={y}
-          position={[at(0.041), y, center]}
-          size={[0.004, 0.006, length]}
-          color="#1f140d"
-        />
-      ))}
+      <mesh geometry={frame} castShadow={cast} receiveShadow>
+        <WoodMaterial />
+      </mesh>
       <WallTrim face={face} from={from} to={to} posts={posts} />
     </group>
   );
 }
 
+const matBox = (size: Point, position: Point, tile: number) =>
+  place(
+    boxUv(new RoundedBoxGeometry(...size, 2, 0.012), 0, position[2], [
+      tile,
+      tile,
+    ]),
+    position,
+  );
+
+/** Ten mats with cloth borders, as two merged meshes; UVs keep the weave at real scale. */
 function Tatami({ center }: { center: Point }) {
   const [cx, , cz] = center;
+  const built = useBuilt(() => {
+    const mats: BufferGeometry[] = [],
+      borders: BufferGeometry[] = [];
+    for (const x of [-0.9, 0.9])
+      for (const z of [-1.35, -0.45, 0.45, 1.35, 2.25]) {
+        mats.push(matBox([1.79, 0.052, 0.885], [cx + x, 0.026, cz + z], 0.45));
+        for (const edge of [-1, 1])
+          borders.push(
+            matBox(
+              [1.792, 0.054, 0.036],
+              [cx + x, 0.027, cz + z + edge * 0.425],
+              0.35,
+            ),
+          );
+      }
+    const mat = merge(mats),
+      border = merge(borders);
+    return {
+      mat,
+      border,
+      dispose() {
+        mat.dispose();
+        border.dispose();
+      },
+    };
+  });
   return (
     <group>
-      {[-0.9, 0.9].flatMap((x) =>
-        [-1.35, -0.45, 0.45, 1.35, 2.25].map((z) => (
-          <group key={`${x}${z}`}>
-            <Solid
-              position={[cx + x, 0.026, cz + z]}
-              size={[1.79, 0.052, 0.885]}
-              color="#a28f62"
-              surface="tatami"
-            />
-            {[-1, 1].map((edge) => (
-              <Solid
-                key={edge}
-                position={[cx + x, 0.027, cz + z + edge * 0.425]}
-                size={[1.792, 0.054, 0.036]}
-                color="#26302a"
-                surface="cloth"
-              />
-            ))}
-          </group>
-        )),
-      )}
+      <mesh geometry={built.mat} castShadow receiveShadow>
+        <SurfaceMaterial surface="tatami" color="#a28f62" />
+      </mesh>
+      <mesh geometry={built.border} castShadow receiveShadow>
+        <SurfaceMaterial surface="cloth" color="#26302a" />
+      </mesh>
     </group>
   );
 }
@@ -770,6 +776,7 @@ export function WaitingRoom() {
       <Shoji x={3.95} z={6.8} width={2.15} />
       <Counter />
       <WaitingDressing />
+      <Scroll position={[-3.99, 1.72, 9.05]} paint={drawBamboo} />
       <PaperLantern position={[-2.3, 2.5, 5.55]} drop={0.92} light={7} />
       <PaperLantern position={[-1.2, 2.62, 7.35]} drop={0.8} light={5} />
     </group>

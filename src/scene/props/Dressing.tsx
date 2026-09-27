@@ -6,9 +6,11 @@ import {
   TubeGeometry,
   Vector3,
 } from 'three';
-import { SurfaceMaterial } from '../Surfaces';
+import { Solid, SurfaceMaterial } from '../Surfaces';
 import type { Point } from '../stations';
-import { merge, place, useBuilt } from './craft';
+import { Cup } from '../Ceramics';
+import { block, merge, place, useBuilt, WoodMaterial } from './craft';
+import { MenuPlaques } from './CounterDetail';
 import { BambooPot, Bonsai } from './Plants';
 import { Byobu, FlowerStand, TemaeSet } from './Temae';
 
@@ -143,11 +145,54 @@ export function ChamberDressing() {
   );
 }
 
+const SEAT = 0.44;
+/** A waiting bench (koshikake) with a red felt mōsen and a cup of tea set down on it. */
+function Bench({ position }: { position: Point }) {
+  const wood = useBuilt(() =>
+    merge([
+      block([0.46, 0.05, 1.8], [0, SEAT - 0.025, 0], '#5b3a24'),
+      ...[-1, 1].flatMap((x) =>
+        [-0.8, 0.8].map((z) =>
+          block(
+            [0.05, SEAT - 0.05, 0.05],
+            [x * 0.18, (SEAT - 0.05) / 2, z],
+            '#3a2416',
+          ),
+        ),
+      ),
+      ...[-1, 1].map((x) =>
+        block([0.03, 0.05, 1.6], [x * 0.18, 0.1, 0], '#3a2416'),
+      ),
+      ...[-0.8, 0.8].map((z) =>
+        block([0.36, 0.05, 0.03], [0, SEAT - 0.08, z], '#3a2416'),
+      ),
+    ]),
+  );
+  return (
+    <group position={position}>
+      <mesh geometry={wood} castShadow receiveShadow>
+        <WoodMaterial clearcoat={0.3} />
+      </mesh>
+      <Solid
+        position={[0, SEAT + 0.004, 0.1]}
+        size={[0.5, 0.008, 1.2]}
+        color="#8e1f1c"
+        surface="cloth"
+      />
+      <group position={[0.05, SEAT + 0.008, -0.35]} scale={0.62}>
+        <Cup position={[0, 0, 0]} color="#6f7a68" />
+      </group>
+    </group>
+  );
+}
+
 /** Loose props in the waiting room. */
 export function WaitingDressing() {
   return (
     <group>
       <BambooPot position={[3.35, 0, 4.0]} />
+      <MenuPlaques />
+      <Bench position={[-3.62, 0, 9.05]} />
     </group>
   );
 }

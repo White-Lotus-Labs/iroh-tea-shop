@@ -1,6 +1,7 @@
 import {
   CylinderGeometry,
   LatheGeometry,
+  PlaneGeometry,
   SphereGeometry,
   Vector2,
 } from 'three';
@@ -98,19 +99,34 @@ export function WallTrim({
         '#b08a48',
       ),
     ]);
+    const edges = [...new Set([from, ...posts, to])].sort((a, b) => a - b);
+    const bays = edges.slice(1).flatMap((z1, i) => {
+      const z0 = edges[i] + 0.07,
+        width = z1 - 0.07 - z0,
+        mid = (z0 + z1) / 2;
+      if (width < 0.1) return [];
+      return BANDS.filter(
+        (_, band) => band > 0 || !window || mid < window[0] || mid > window[1],
+      ).map(([y0, y1]) =>
+        place(
+          new PlaneGeometry(width, y1 - y0),
+          [at(0.004), (y0 + y1) / 2, (z0 + z1 - 0.07) / 2],
+          [0, side < 0 ? Math.PI / 2 : -Math.PI / 2, 0],
+        ),
+      );
+    });
     const wood = merge(stiles),
-      bronze = merge(covers);
+      bronze = merge(covers),
+      grime = merge(bays);
     return {
       wood,
       bronze,
+      grime,
       dispose() {
-        wood.dispose();
-        bronze.dispose();
+        [wood, bronze, grime].forEach((g) => g.dispose());
       },
     };
   });
-  const edges = [...new Set([from, ...posts, to])].sort((a, b) => a - b);
-  const map = wearTexture();
   return (
     <group>
       <mesh geometry={built.wood} receiveShadow>
@@ -119,30 +135,14 @@ export function WallTrim({
       <mesh geometry={built.bronze}>
         <meshStandardMaterial vertexColors metalness={0.85} roughness={0.38} />
       </mesh>
-      {edges.slice(1).flatMap((z1, i) => {
-        const z0 = edges[i] + 0.07,
-          width = z1 - 0.07 - z0;
-        const mid = (z0 + z1) / 2;
-        if (width < 0.1) return [];
-        return BANDS.filter(
-          (_, band) =>
-            band > 0 || !window || mid < window[0] || mid > window[1],
-        ).map(([y0, y1]) => (
-          <mesh
-            key={`${z0}${y0}`}
-            position={[at(0.004), (y0 + y1) / 2, (z0 + z1 - 0.07) / 2]}
-            rotation={[0, side < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
-          >
-            <planeGeometry args={[width, y1 - y0]} />
-            <meshBasicMaterial
-              color="#000"
-              map={map}
-              transparent
-              depthWrite={false}
-            />
-          </mesh>
-        ));
-      })}
+      <mesh geometry={built.grime}>
+        <meshBasicMaterial
+          color="#000"
+          map={wearTexture()}
+          transparent
+          depthWrite={false}
+        />
+      </mesh>
     </group>
   );
 }
@@ -162,20 +162,16 @@ const VASE = [
 export function WallShelf({ position }: { position: Point }) {
   const built = useBuilt(() => {
     const wood = merge([
-      block([0.2, 0.024, 0.56], [0, 0, 0.1], '#4a2c1a'),
-      block([0.2, 0.024, 0.48], [0, 0.26, -0.14], '#4a2c1a'),
-      block([0.2, 0.28, 0.022], [0, 0.13, -0.02], '#3a2215'),
-      block([0.012, 0.03, 0.56], [0.1, -0.006, 0.1], '#24150c'),
-      block([0.012, 0.03, 0.48], [0.1, 0.254, -0.14], '#24150c'),
-      block([0.03, 0.12, 0.03], [-0.085, -0.07, 0.34], timber, {
-        rotation: [0.6, 0, 0],
-      }),
-      block([0.03, 0.12, 0.03], [-0.085, 0.19, -0.34], timber, {
-        rotation: [-0.6, 0, 0],
-      }),
+      block([0.22, 0.026, 0.72], [0, 0, 0.14], '#7a5236'),
+      block([0.22, 0.026, 0.6], [0, 0.3, -0.2], '#7a5236'),
+      block([0.22, 0.326, 0.024], [0, 0.15, -0.02], '#5e3d26'),
+      block([0.014, 0.034, 0.72], [0.104, -0.004, 0.14], '#2a180e'),
+      block([0.014, 0.034, 0.6], [0.104, 0.296, -0.2], '#2a180e'),
+      block([0.03, 0.05, 0.72], [-0.095, -0.036, 0.14], '#3a2215'),
+      block([0.03, 0.05, 0.6], [-0.095, 0.264, -0.2], '#3a2215'),
     ]);
     const ceramic = merge([
-      paint(place(new LatheGeometry(VASE, 20), [0.02, 0.012, 0.26]), '#2f3a34'),
+      paint(place(new LatheGeometry(VASE, 20), [0.02, 0.012, 0.37]), '#2f3a34'),
       paint(
         place(
           new CylinderGeometry(0.035, 0.035, 0.03, 20),
@@ -213,11 +209,11 @@ export function WallShelf({ position }: { position: Point }) {
           clearcoatRoughness={0.15}
         />
       </mesh>
-      <mesh position={[0.02, 0.2, 0.25]} rotation={[0.2, 0, -0.15]}>
+      <mesh position={[0.02, 0.2, 0.36]} rotation={[0.2, 0, -0.15]}>
         <cylinderGeometry args={[0.0018, 0.0018, 0.16, 4]} />
         <meshStandardMaterial color="#3a4a26" roughness={0.8} />
       </mesh>
-      <mesh position={[0.008, 0.28, 0.238]} scale={[0.018, 0.022, 0.018]}>
+      <mesh position={[0.008, 0.28, 0.348]} scale={[0.018, 0.022, 0.018]}>
         <sphereGeometry args={[1, 10, 8]} />
         <meshStandardMaterial color="#f2ece0" roughness={0.6} />
       </mesh>

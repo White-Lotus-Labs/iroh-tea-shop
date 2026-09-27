@@ -2,6 +2,7 @@ import {
   CylinderGeometry,
   LatheGeometry,
   LineCurve3,
+  PlaneGeometry,
   SphereGeometry,
   TubeGeometry,
   Vector2,
@@ -188,6 +189,75 @@ export function CounterDetail({ top }: { top: number }) {
       </mesh>
       <mesh geometry={built.cakes} castShadow receiveShadow>
         <meshStandardMaterial map={built.wrapper} roughness={0.85} />
+      </mesh>
+    </group>
+  );
+}
+
+const PLAQUES: [string, string][] = [
+  ['煎茶', '五百'],
+  ['玉露', '八百'],
+  ['抹茶', '七百'],
+  ['番茶', '四百'],
+  ['焙茶', '四百'],
+  ['玄米茶', '四百'],
+  ['白茶', '九百'],
+];
+
+/** Wooden menu plaques (fuda): one tea name per plaque, price in red below. */
+function drawPlaques(ctx: CanvasRenderingContext2D) {
+  const random = createRandom(77);
+  PLAQUES.forEach(([name, price], i) => {
+    const x = i * 128;
+    ctx.fillStyle = i % 2 ? '#c7a878' : '#d2b486';
+    ctx.fillRect(x, 0, 128, 512);
+    for (let k = 0; k < 90; k++) {
+      ctx.fillStyle = `rgba(110,70,36,${0.05 + random() * 0.12})`;
+      ctx.fillRect(x + random() * 128, 0, 0.8 + random() * 1.6, 512);
+    }
+    brushText(ctx, name, x + 64, 40, name.length > 2 ? 72 : 84);
+    brushText(ctx, price, x + 64, 330, 52, '150,34,24');
+  });
+}
+
+/** A row of menu plaques hung from the nageshi on the waiting room's left wall. */
+export function MenuPlaques() {
+  const built = useBuilt(() => {
+    const art = canvasTexture(128 * PLAQUES.length, 512, drawPlaques);
+    const faces = PLAQUES.map((_, i) => {
+      const face = new PlaneGeometry(0.12, 0.48);
+      const uv = face.attributes.uv;
+      for (let k = 0; k < uv.count; k++)
+        uv.setX(k, (i + uv.getX(k)) / PLAQUES.length);
+      return place(face, [-3.972, 1.98, 5.62 + i * 0.24], [0, Math.PI / 2, 0]);
+    });
+    const face = merge(faces),
+      wood = merge(
+        PLAQUES.flatMap((_, i) => [
+          block([0.012, 0.5, 0.135], [-3.98, 1.98, 5.62 + i * 0.24], '#3a2215'),
+          block(
+            [0.004, 0.1, 0.004],
+            [-3.975, 2.27, 5.62 + i * 0.24],
+            '#1c100a',
+          ),
+        ]),
+      );
+    return {
+      art,
+      face,
+      wood,
+      dispose() {
+        [art, face, wood].forEach((item) => item.dispose());
+      },
+    };
+  });
+  return (
+    <group name="menu-plaques">
+      <mesh geometry={built.wood} castShadow>
+        <WoodMaterial />
+      </mesh>
+      <mesh geometry={built.face}>
+        <meshStandardMaterial map={built.art} roughness={0.8} />
       </mesh>
     </group>
   );
