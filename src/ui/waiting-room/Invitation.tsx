@@ -183,14 +183,16 @@ function Sheet({
   reduced,
   reserve,
   onSide,
-  flip,
+  flips,
   focus,
 }: {
   focus: RefObject<number | null>;
   reduced: boolean;
   reserve: typeof WIDE_RESERVE;
   onSide: (side: Side) => void;
-  flip: RefObject<() => void>;
+  // Counts presses of the turn button, so a press before the sheet mounts
+  // still turns it on the first frame.
+  flips: RefObject<number>;
 }) {
   const { gl, scene, camera, size } = useThree();
   const place = useRef<Group>(null);
@@ -210,6 +212,7 @@ function Sheet({
     hover: 0,
     over: false,
     flipTo: null as number | null,
+    flips: 0,
     intro: reduced ? 1 : 0,
     lean: 1,
     side: 'front' as Side,
@@ -341,17 +344,6 @@ function Sheet({
   );
 
   useEffect(() => {
-    flip.current = () => {
-      const st = s.current;
-      const base = Math.round(st.yaw / Math.PI) * Math.PI;
-      const to = base + (Math.cos(st.yaw) >= 0 ? Math.PI : -Math.PI);
-      if (reduced) st.yaw = to;
-      else st.flipTo = to;
-      st.velYaw = 0;
-    };
-  }, [flip, reduced]);
-
-  useEffect(() => {
     const el = gl.domElement;
     const move = (e: PointerEvent) => {
       const st = s.current;
@@ -395,6 +387,15 @@ function Sheet({
 
     st.intro += (1 - st.intro) * Math.min(1, dt * 1.7);
     material.opacity = st.intro;
+
+    if (st.flips !== flips.current) {
+      st.flips = flips.current;
+      const base = Math.round(st.yaw / Math.PI) * Math.PI;
+      const to = base + (Math.cos(st.yaw) >= 0 ? Math.PI : -Math.PI);
+      if (reduced) st.yaw = to;
+      else st.flipTo = to;
+      st.velYaw = 0;
+    }
 
     if (st.dragging) {
       const k = Math.min(1, dt * 14);
@@ -565,7 +566,7 @@ function Sheet({
 export function Invitation({ reduced }: { reduced: boolean }) {
   const [side, setSide] = useState<Side>('front');
   const [wide, setWide] = useState(true);
-  const flip = useRef<() => void>(() => {});
+  const flips = useRef(0);
   const focus = useRef<number | null>(null);
   useEffect(() => {
     const media = window.matchMedia(WIDE_QUERY);
@@ -591,7 +592,7 @@ export function Invitation({ reduced }: { reduced: boolean }) {
           reduced={reduced}
           reserve={wide ? WIDE_RESERVE : NARROW_RESERVE}
           onSide={setSide}
-          flip={flip}
+          flips={flips}
           focus={focus}
         />
         <group scale={0.3} position={[0, 0, 0.4]}>
@@ -623,7 +624,9 @@ export function Invitation({ reduced }: { reduced: boolean }) {
         <button
           type="button"
           className="inv-flip"
-          onClick={() => flip.current()}
+          onClick={() => {
+            flips.current += 1;
+          }}
           aria-pressed={side === 'back'}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
