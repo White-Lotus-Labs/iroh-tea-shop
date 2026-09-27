@@ -442,7 +442,7 @@ export default function TeaRoomShell({
                       : 'status-value'
                   }
                 >
-                  {nansen === 'configured' ? 'Live Nansen' : 'Offline'}
+                  {nansen === 'configured' ? 'Saved hourly' : 'Offline'}
                 </span>
               </div>
 

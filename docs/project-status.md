@@ -1,39 +1,68 @@
-# Project status
+# How the tea shop works
 
-**Updated:** 25 September 2026
+**Updated:** 27 September 2026
 
-**Phase:** PASS A thesis demo with a separate live Iroh research chat
+This is a guide to the app as it is, written so a person can read it without already knowing the code.
 
-**Review state:** Local feature branch `feature/iroh-nansen-chat`. The site has not been deployed.
+The live site is <https://iroh-tea-shop.up.railway.app>. Setup steps are in the [README](../README.md).
 
-Iroh's Tea Shop demonstrates the complete intended _room journey_ with synthetic thesis-review data. Iroh at the Host has a separate live Nansen Research Agent chat when `NANSEN_API_KEY` is configured. The thesis review is not a live analysis service. Optional nickname/password accounts and SQLite-backed sessions provide stable identity; guests can also use the room and Iroh chat. There is no public sharing service.
+## The visit
 
-## What is implemented
+You arrive in a waiting room that looks like a sketchbook. Entering the tea room opens a dock with four stops.
 
-- **Five-stage visitor journey.** The site opens at the counter in a waiting room. Visitors can also visit the waiting-room introduction, then move to the tea table, host, and shelf. A valid pour moves the camera through the doorway into the tea room; visitors can revisit stations and reset the view.
-- **Cinematic 3D setting.** Two connected Japanese tea-shop rooms fill the browser window. The counter, doorway, floor, tea table, teapot, cups, rug, seated 3D grandfather, and decorated right-wall shelf are rendered in one Three.js scene. Locally bundled wall and character textures provide the room's visual detail. The host's face, beard, robe, and body are curved or volumetric 3D surfaces, with restrained breathing motion.
-- **Tea and camera motion.** Authored camera positions frame each station. Room-to-room travel uses eased motion through the actual doorway. A pour briefly tips the teapot, shows a stream and steam, and changes the room's light. Motion can follow the operating system preference, be reduced, or be explicitly enabled.
-- **Thesis and review flow.** Visitors enter 80–6,000 characters, confirm a symbol and review window, and can load the prepared ETH sample. The sample at 24 hours receives a fixed synthetic **NOTICED / CUT / ONE BREATH** review and an inspectable evidence receipt. Other valid input is explicitly marked **unknown / unassessed** with no linked evidence. Every result is labeled **DEMO DATA**.
-- **Reflection and card preview.** The host presents a one-breath question. The shelf shows a card containing only application-owned reflection text and demo provenance; it does not copy the complete thesis or wallet details. The card is a preview, not an export or a public post.
-- **Optional accounts.** Guests enter the room directly. Login and signup are available from the top-right corner; signed-in users see their nickname there and can log out. Account identity persists across refreshes, while guest activity remains in browser memory.
-- **Iroh research chat.** Ask Iroh opens a Host-only chat. The browser calls a server route that uses the server-side Nansen key and streams Research Agent fast-mode events. A returned conversation ID links follow-ups. Stop and New conversation control the in-memory session. Nansen failure produces an error, never a synthetic answer.
-- **Resilience and accessibility.** Duplicate pours are blocked. Cancellation, validation errors, retries, rapid navigation, and stale responses preserve the user's writing and keep the active result consistent. Keyboard navigation, accessible form labels, an evidence dialog, reduced motion, a responsive mobile layout, and a WebGL fallback keep the core journey usable without the 3D view.
-- **Current panel layout.** On desktop, the thesis reading panels use about 72% of viewport width. The narrower Iroh chat sits to the right of the visible host; mobile uses a readable, scrollable chat panel.
+**Counter.** Three books the team wrote:
 
-## Verification snapshot
+- Robinhood Chain Tokenization (NetNet, Mushroom, Arbitrum, Uniswap)
+- The Crypto Bull Market (Bitcoin, Ether, Hyperliquid, Solana)
+- AI Taking Over the World (Venice, SanDisk, NVIDIA, Micron)
 
-The prior PASS A verification covered typecheck, formatting, unit tests, Chromium browser journeys, and build. Iroh adds route, SSE, session, and browser-flow tests. Automated checks use a simulated Nansen HTTP upstream; a real-key live call still requires local manual verification. These checks are not a claim of production performance or cross-browser certification.
+Each book shows a conviction seal. The seal is a summary of smart-money numbers, not a promise that the thesis is right. Open a book to read the essay. Open an asset to see the evidence we saved: who has been buying and selling, holders, how much supply is not circulating yet, and perp positioning when that asset trades as a perp.
 
-## Current boundaries
+**Host.** Uncle answers in a chat. He uses Nansen's Research Agent. This part is live. Sending a message calls Nansen at that moment. Guests keep the thread until they reload. If you sign in, your chats are kept in the database and you can reopen them.
 
-- The prepared ETH evidence is an invented, fixed teaching fixture dated **22 September 2026 at 18:00 UTC**. It is not current market activity. PASS A does not analyze arbitrary theses or resolve symbols against a live registry.
-- Input and results live only in browser memory and disappear on reload. Iroh's Nansen conversation ID also remains only in memory. Only accounts and sessions persist in the local SQLite database; reviews and Iroh conversations are not saved. There is no analytics or chat history.
-- The grandfather is a sculpted 3D model (generated with Tripo, then rigged in Blender by `scripts/host-model/`) with an upper-body skeleton only: he sips, pours, nods, and looks around, but his legs and face do not deform, and his mouth does not move when he speaks. Before the visitor steps inside, the painted diorama stands in for him. Visitors can make small local camera adjustments but cannot freely walk around the rooms.
-- Performance depends on the device's GPU. The automated browser checks use Chromium; Safari and Firefox have not been separately verified.
-- The card has no image, clipboard, or social export. No public site has been deployed.
+**Shelf.** Ten spirits stand in for the ten Smart HL Perps Traders with the best 30-day PnL. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. The numbers under them are the saved leaderboard. Clicking through opens that address in Nansen's profiler.
 
-## Work remaining for a live product
+**Observatorium.** A brass orrery you can wind. It is not connected to market data.
 
-PASS B would need live evidence for the thesis review, live symbol resolution, grounded claim extraction, explicit partial-data handling, and a truthful distinction between sourced findings and unknowns. Persistent review and chat history, full card export, hosting, broader browser/performance checks, and release work are also outside the current demo. The existing `ReviewAdapter` contract is the seam for replacing the mock review without rebuilding the room journey; Iroh chat is a separate capability.
+You can look around the 3D room, walk the camera between stops, and pour tea. If the browser cannot run WebGL, the written panels still work.
 
-For setup and a detailed walkthrough, see the [README](../README.md). The scene lives in `src/scene/`, user interface in `src/ui/`, review behavior in `src/review/`, and synthetic fixture in `src/fixtures/`.
+## Where the numbers come from
+
+Nansen is the only market source. The app never invents a conviction number or a trader row when Nansen did not return one. Empty and failed sections say so.
+
+Visitors do not trigger the deck, the asset pages, or the shelf. Those are saved in SQLite (`NansenSnapshot` rows) and served from there.
+
+The server fills that table when it starts, then about once an hour. One fill is 80 Nansen requests: 12 for the thesis seals, 67 for the twelve asset pages, and 1 for the shelf. The README has the split. Solana skips the spot endpoints. If a fill fails, the last good row stays on screen and can be marked stale.
+
+Until the first fill finishes, the desk and the shelf say the readings are still being saved.
+
+Uncle is the exception. His route is `POST /api/nansen-agent`, which calls `agent/fast`. That is one live request per message. The default limit is one message per IP per UTC day (`NANSEN_AGENT_DAILY_LIMIT`). Chat text for signed-in people is stored. The Nansen call is not replaced by the hourly save, because every question is different.
+
+The API key lives only on the server (`NANSEN_API_KEY`). The browser never sees it.
+
+## Accounts
+
+Sign-in is optional. A nickname and a password create a user and a session cookie. Passwords are hashed. The session token stored in the database is a hash, not the cookie itself. Guests can use the room and talk to Uncle without an account. Their chat is not kept after they leave.
+
+## What is stored in SQLite
+
+One file, `prisma/dev.db` on a single Node process:
+
+- users and sessions
+- Uncle's chats and messages, for signed-in people
+- saved Nansen readings (the deck, each asset page, the shelf)
+
+Railway runs migrations before the server starts. A new checkout needs `npm run db:migrate` before sign-in or the hourly save can write.
+
+## What you can ignore
+
+`docs/handoff/` and some older notes describe earlier shapes of the product, including a time when the thesis review was fake sample data and the site was not deployed. That is not the current app. The README and this file are the ones to trust.
+
+Visual scores, the perf budget, and the Nansen request-manager note are still useful if you are changing the scene or the rate limits. The request manager paces the hourly save and Uncle's live calls. It does not decide what gets saved.
+
+## Honest limits
+
+- Several server copies would each keep their own SQLite file and each call Nansen every hour. Ship one web process.
+- Uncle's daily cap resets if that process restarts.
+- The 3D host is still being finished. The copy says Uncle.
+- Tests use a fake Nansen. They check that pages read the database and that the hourly save is the thing that calls out. They do not check a live Nansen plan or a credit balance.

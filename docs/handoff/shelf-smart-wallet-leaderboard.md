@@ -1,5 +1,7 @@
 # Smart Wallet Shelf handoff
 
+> Historical note from an earlier pass. The Shelf now reads a saved ranking that refreshes about once an hour. For how the app works today, read the [README](../../README.md) and [How the tea shop works](../project-status.md).
+
 ## Purpose
 
 Replace the static tea shelf with a parchment-style Hyperliquid Smart Wallet leaderboard backed by Nansen data.

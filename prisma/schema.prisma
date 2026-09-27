@@ -54,3 +54,13 @@ model Message {
 
   @@index([chatId, id])
 }
+
+/// Saved Nansen readings. Visitors read these rows. A background refresh rewrites them.
+model NansenSnapshot {
+  key          String   @id
+  payload      String
+  fetchedAt    DateTime
+  stale        Boolean  @default(false)
+  refreshError String?
+  updatedAt    DateTime @updatedAt
+}

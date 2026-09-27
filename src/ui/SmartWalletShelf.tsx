@@ -304,7 +304,7 @@ function FreshnessPopover({
         Smart HL Perps Traders. Illustrated names are visual aliases—not claims
         about wallet owners.
       </p>
-      <p>Server snapshot refreshes every 30 minutes.</p>
+      <p>The shop saves this ranking and refreshes it about once an hour.</p>
       <p className="leaderboard-freshness-age">
         {snapshot
           ? `Snapshot updated ${age === 0 ? 'just now' : `${age} min ago`}.`
@@ -421,7 +421,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                 spirit is a visual alias—not a claim about the wallet owner.
               </p>
               <div className="leaderboard-meta">
-                <span>30-day performance · Live Nansen data</span>
+                <span>30-day performance · Saved Nansen readings</span>
                 <span className="leaderboard-attribution">
                   <span>
                     Powered by <strong>Nansen</strong>
@@ -450,7 +450,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
         </header>
         {snapshot?.stale && (
           <p className="leaderboard-stale" role="status">
-            Last updated {age} min ago · live refresh temporarily unavailable.
+            Last updated {age} min ago · showing the last saved copy.
           </p>
         )}
         {leader ? (

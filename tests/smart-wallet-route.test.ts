@@ -1,15 +1,25 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
+import type { PrismaClient } from '@prisma/client';
+import { NANSEN_WARMING_MESSAGE } from '../src/nansen/snapshot-store';
+import { openTempDb } from './temp-sqlite';
+
+let temp: ReturnType<typeof openTempDb>;
 
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv('NANSEN_API_KEY', 'server-only-secret');
+  temp = openTempDb();
+  const db: PrismaClient = temp.db;
+  vi.doMock('../src/auth/db', () => ({ db }));
 });
-afterEach(() => {
+afterEach(async () => {
+  vi.doUnmock('../src/auth/db');
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  await temp.close();
 });
 
-test('GET keeps the key server-side and reuses the same real snapshot on another request', async () => {
+test('GET reads the saved leaderboard and does not call Nansen', async () => {
   const upstream = vi.fn().mockResolvedValue(
     Response.json({
       data: [
@@ -24,15 +34,35 @@ test('GET keeps the key server-side and reuses the same real snapshot on another
     }),
   );
   vi.stubGlobal('fetch', upstream);
+  const { writeNansenSnapshot } = await import('../src/nansen/snapshot-store');
+  const { LEADERBOARD_CACHE_KEY } = await import('../src/leaderboard/snapshot');
+  const saved = await writeNansenSnapshot(
+    temp.db,
+    LEADERBOARD_CACHE_KEY,
+    {
+      entries: [
+        {
+          rank: 1,
+          address: `0x${'1'.repeat(40)}`,
+          displayName: 'Observed Trader',
+          pnl: 4200,
+          roi: 0.12,
+          accountValue: null,
+        },
+      ],
+    },
+    Date.parse('2026-09-27T12:00:00Z'),
+  );
   const { GET } = await import('../src/app/api/smart-wallet-leaderboard/route');
   const first = await GET();
   const second = await GET();
   expect(first.status).toBe(200);
   expect(second.status).toBe(200);
-  expect(upstream).toHaveBeenCalledTimes(1);
+  expect(upstream).not.toHaveBeenCalled();
   const body = await first.text();
   expect(await second.text()).toBe(body);
   expect(body).not.toContain('server-only-secret');
+  expect(body).toContain(saved.fetchedAt);
   expect(first.headers.get('cache-control')).toBe('no-store');
 });
 
@@ -46,5 +76,15 @@ test('GET returns a safe error when no key exists and never calls Nansen', async
   expect(await response.json()).toEqual({
     error: 'Nansen API is not configured.',
   });
+  expect(upstream).not.toHaveBeenCalled();
+});
+
+test('GET says readings are still being saved when the database is empty', async () => {
+  const upstream = vi.fn();
+  vi.stubGlobal('fetch', upstream);
+  const { GET } = await import('../src/app/api/smart-wallet-leaderboard/route');
+  const response = await GET();
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({ error: NANSEN_WARMING_MESSAGE });
   expect(upstream).not.toHaveBeenCalled();
 });

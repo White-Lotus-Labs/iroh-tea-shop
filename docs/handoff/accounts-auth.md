@@ -1,5 +1,7 @@
 # Accounts and sessions handoff
 
+> Historical note from an earlier pass. Accounts still work as described here. For how the app works today, read the [README](../../README.md) and [How the tea shop works](../project-status.md).
+
 ## Purpose
 
 Provide optional nickname/password accounts and persistent identity for Iroh's Tea Shop while keeping the room usable by guests.
