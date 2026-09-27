@@ -14,10 +14,12 @@ export function IrohChat({
   session,
   user,
   nansen,
+  draft: draftPrefill = null,
 }: {
   session: IrohSession;
   user: PublicUser | null;
   nansen: NansenAvailability;
+  draft?: { text: string; key: number } | null;
 }) {
   const chat = useSyncExternalStore(
     session.subscribe,
@@ -151,6 +153,15 @@ export function IrohChat({
   useEffect(() => {
     input.current?.focus();
   }, []);
+  useEffect(() => {
+    if (!draftPrefill) return;
+    setDraft(draftPrefill.text);
+    const field = input.current;
+    if (!field) return;
+    field.focus();
+    const end = draftPrefill.text.length;
+    field.setSelectionRange(end, end);
+  }, [draftPrefill?.key]);
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [chat.messages.at(-1)?.content, chat.error]);
