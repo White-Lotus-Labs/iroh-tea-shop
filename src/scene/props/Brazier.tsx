@@ -1,17 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
-  CanvasTexture,
   CatmullRomCurve3,
   InstancedMesh,
   MeshStandardMaterial,
   Object3D,
-  SRGBColorSpace,
   Vector2,
   Vector3,
 } from 'three';
 import { createRandom } from '../motion/dynamics';
-import { Solid } from '../Surfaces';
+import { canvasTexture, once, Solid } from '../Surfaces';
 import type { Point } from '../stations';
 
 // Rim clears the table's breadboard end (x 1.29) by 6 cm; the box stays on the tatami (x < 1.795).
@@ -105,6 +103,8 @@ function drawEmbers(ctx: CanvasRenderingContext2D) {
   }
 }
 
+const emberMap = once(() => canvasTexture(128, 128, drawEmbers));
+
 /** A wooden hibachi with ash, live charcoal and an iron kettle. */
 export function Brazier({ reduced }: { reduced: boolean }) {
   const iron = useMemo(
@@ -116,23 +116,10 @@ export function Brazier({ reduced }: { reduced: boolean }) {
       }),
     [],
   );
-  const embers = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 128;
-    drawEmbers(canvas.getContext('2d')!);
-    const texture = new CanvasTexture(canvas);
-    texture.colorSpace = SRGBColorSpace;
-    return texture;
-  }, []);
+  const embers = emberMap();
   const coal = useRef<MeshStandardMaterial>(null),
     time = useRef(0);
-  useEffect(
-    () => () => {
-      iron.dispose();
-      embers.dispose();
-    },
-    [iron, embers],
-  );
+  useEffect(() => () => iron.dispose(), [iron]);
   useFrame((_, delta) => {
     if (reduced || !coal.current) return;
     time.current += Math.min(delta, 0.05);

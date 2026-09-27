@@ -8,6 +8,7 @@ import {
 import type { CanvasTexture } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
+import { once } from '../Surfaces';
 import {
   block,
   brushText,
@@ -245,6 +246,7 @@ function drawHengaku(ctx: CanvasRenderingContext2D) {
   ctx.fillRect(40, 236, 40, 40);
   brushText(ctx, '閑', 60, 239, 34, '236,214,180');
 }
+const hengakuArt = once(() => canvasTexture(1024, 320, drawHengaku));
 
 /** A framed calligraphy board (hengaku) hung above the nageshi, its top tilted into the room. */
 export function Hengaku({ position }: { position: Point }) {
@@ -258,15 +260,13 @@ export function Hengaku({ position }: { position: Point }) {
       block([0.05, h + 0.08, 0.05], [-w / 2 - 0.015, 0, 0], '#1c100a'),
       block([w, h, 0.02], [0, 0, -0.012], '#24150c'),
     ]);
-    const art = canvasTexture(1024, 320, drawHengaku);
     return {
       frame,
-      art,
+      art: hengakuArt(),
       w,
       h,
       dispose() {
         frame.dispose();
-        art.dispose();
       },
     };
   });

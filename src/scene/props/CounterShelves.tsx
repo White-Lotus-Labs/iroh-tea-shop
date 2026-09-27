@@ -1,7 +1,7 @@
 import { BufferGeometry, PlaneGeometry, TorusGeometry } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { Solid } from '../Surfaces';
+import { once, Solid } from '../Surfaces';
 import {
   block,
   brushText,
@@ -81,17 +81,18 @@ function buildLabels() {
       [0, Math.PI / 2, 0],
     );
   });
-  const geometry = merge(faces),
-    map = canvasTexture(64 * KIRI.length, 160, drawBoxLabels);
+  const geometry = merge(faces);
   return {
     geometry,
-    map,
+    map: boxLabels(),
     dispose() {
       geometry.dispose();
-      map.dispose();
     },
   };
 }
+const boxLabels = once(() =>
+  canvasTexture(64 * KIRI.length, 160, drawBoxLabels),
+);
 
 function buildCase() {
   const random = createRandom(512),

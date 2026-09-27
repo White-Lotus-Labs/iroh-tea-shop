@@ -16,7 +16,7 @@ import {
 import { Cup } from '../Ceramics';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { Solid } from '../Surfaces';
+import { once, Solid } from '../Surfaces';
 import {
   block,
   boxUv,
@@ -460,6 +460,10 @@ const CANISTERS: JarSpec[] = [
     label: 3,
   },
 ];
+const counterArt = once(() => ({
+  menu: canvasTexture(512, 704, drawMenu),
+  sign: canvasTexture(1024, 320, drawSign),
+}));
 
 /** The waiting-room serving counter, its back-wall shelving and what sits on it. */
 export function Counter() {
@@ -468,21 +472,16 @@ export function Counter() {
       wood = merge([...buildBody(), ...buildFittings()]),
       bamboo = merge(buildWhisk().map((g) => place(g, [-1.95, TOP_Y, 5.92]))),
       ceramics = merge(buildCeramics()),
-      caddy = buildCaddy(),
-      menu = canvasTexture(512, 704, drawMenu),
-      sign = canvasTexture(1024, 320, drawSign);
+      caddy = buildCaddy();
     return {
       top,
       wood,
       bamboo,
       ceramics,
       caddy,
-      menu,
-      sign,
+      ...counterArt(),
       dispose() {
-        [top, wood, bamboo, ceramics, caddy, menu, sign].forEach((item) =>
-          item.dispose(),
-        );
+        [top, wood, bamboo, ceramics, caddy].forEach((item) => item.dispose());
       },
     };
   });

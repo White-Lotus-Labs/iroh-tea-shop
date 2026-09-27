@@ -280,17 +280,22 @@ export function canvasTexture(
   texture.anisotropy = 8;
   return texture;
 }
-/** A canvas texture painted once by a module-level `draw`, disposed on unmount. */
-export function useCanvasTexture(
-  width: number,
-  height: number,
-  draw: (ctx: CanvasRenderingContext2D) => void,
-) {
-  const texture = useMemo(
-    () => canvasTexture(width, height, draw),
-    [width, height, draw],
-  );
-  useEffect(() => () => texture.dispose(), [texture]);
+/**
+ * Builds on first call and keeps the result for the page's lifetime, so remounts, Strict
+ * Mode and Suspense retries reuse procedural textures instead of repainting them.
+ */
+export function once<T>(make: () => T) {
+  let value: T | undefined;
+  return () => (value ??= make());
+}
+
+type Draw = (ctx: CanvasRenderingContext2D) => void;
+const painted = new Map<Draw, CanvasTexture>();
+/** One shared, never-disposed texture per module-level `draw`. */
+export function useCanvasTexture(width: number, height: number, draw: Draw) {
+  let texture = painted.get(draw);
+  if (!texture)
+    painted.set(draw, (texture = canvasTexture(width, height, draw)));
   return texture;
 }
 
@@ -358,21 +363,14 @@ function surfaceMaps(kind: Surface) {
 type Maps = ReturnType<typeof surfaceMaps>;
 const KINDS = Object.keys(TILE) as Surface[];
 const SurfaceContext = createContext<Record<Surface, Maps> | null>(null);
+const allSurfaceMaps = once(
+  () =>
+    Object.fromEntries(
+      KINDS.map((kind) => [kind, surfaceMaps(kind)]),
+    ) as Record<Surface, Maps>,
+);
 export function Surfaces({ children }: { children: ReactNode }) {
-  const textures = useMemo(
-    () =>
-      Object.fromEntries(
-        KINDS.map((kind) => [kind, surfaceMaps(kind)]),
-      ) as Record<Surface, Maps>,
-    [],
-  );
-  useEffect(
-    () => () =>
-      Object.values(textures).forEach((maps) =>
-        Object.values(maps).forEach((texture) => texture.dispose()),
-      ),
-    [textures],
-  );
+  const textures = allSurfaceMaps();
   return (
     <SurfaceContext.Provider value={textures}>
       {children}

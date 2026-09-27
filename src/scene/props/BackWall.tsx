@@ -1,6 +1,13 @@
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { useTexture } from '@react-three/drei';
-import { CatmullRomCurve3, DoubleSide, Vector2, Vector3 } from 'three';
+import {
+  CatmullRomCurve3,
+  DoubleSide,
+  Vector2,
+  Vector3,
+  type CanvasTexture,
+  type Texture,
+} from 'three';
 import {
   Boxes,
   Solid,
@@ -166,16 +173,17 @@ function paintFoliage(ctx: CanvasRenderingContext2D) {
 }
 
 const matteAspect = 10 / 8;
+const mattes = new WeakMap<Texture, CanvasTexture>();
 function DistantView() {
   const source = useTexture('/images/tea-back-wall.jpg');
-  const matte = useMemo(
-    () =>
-      canvasTexture(1024, Math.round(1024 / matteAspect), (ctx) =>
+  let matte = mattes.get(source);
+  if (!matte)
+    mattes.set(
+      source,
+      (matte = canvasTexture(1024, Math.round(1024 / matteAspect), (ctx) =>
         paintMatte(ctx, source.image as HTMLImageElement),
-      ),
-    [source],
-  );
-  useEffect(() => () => matte.dispose(), [matte]);
+      )),
+    );
   const foliage = useCanvasTexture(1024, 1024, paintFoliage);
   return (
     <group>

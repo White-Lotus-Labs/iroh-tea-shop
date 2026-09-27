@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type Ref } from 'react';
+import { useMemo, type Ref } from 'react';
 import {
   BufferGeometry,
   CanvasTexture,
@@ -256,16 +256,12 @@ function paintGlaze(g: Glaze) {
   };
 }
 
+const glazes = new Map<string, ReturnType<typeof paintGlaze>>();
+/** Glaze maps shared by every mount with the same recipe; painted once, never disposed. */
 export function useGlaze(glaze: Glaze) {
   const key = JSON.stringify(glaze);
-  const maps = useMemo(() => paintGlaze(JSON.parse(key) as Glaze), [key]);
-  useEffect(
-    () => () => {
-      maps.color.dispose();
-      maps.surface.dispose();
-    },
-    [maps],
-  );
+  let maps = glazes.get(key);
+  if (!maps) glazes.set(key, (maps = paintGlaze(glaze)));
   return maps;
 }
 

@@ -24,7 +24,7 @@ import {
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { useSurfaceMaps } from '../Surfaces';
+import { once, useSurfaceMaps } from '../Surfaces';
 import {
   block,
   canvasTexture,
@@ -130,6 +130,10 @@ function drawNeedles(ctx: CanvasRenderingContext2D, alpha: boolean) {
     }
   }
 }
+const needleMaps = once(() => ({
+  needles: canvasTexture(256, 256, (ctx) => drawNeedles(ctx, false)),
+  tuft: canvasTexture(128, 128, (ctx) => drawNeedles(ctx, true)),
+}));
 
 const trunkTile: [number, number] = [0.3, 0.07];
 const GREENS = ['#2c4420', '#3a5526', '#4b652c', '#5d7532'];
@@ -364,21 +368,16 @@ export function Bonsai({
       pot = potGeometry(),
       table = stand ? standGeometry() : null,
       blob = blobGeometry(),
-      card = new CircleGeometry(0.5, 6),
-      needles = canvasTexture(256, 256, (ctx) => drawNeedles(ctx, false)),
-      tuft = canvasTexture(128, 128, (ctx) => drawNeedles(ctx, true));
+      card = new CircleGeometry(0.5, 6);
     return {
       ...tree,
+      ...needleMaps(),
       pot,
       table,
       blob,
       card,
-      needles,
-      tuft,
       dispose() {
-        [tree.bark, pot, table, blob, card, needles, tuft].forEach((item) =>
-          item?.dispose(),
-        );
+        [tree.bark, pot, table, blob, card].forEach((item) => item?.dispose());
       },
     };
   });
@@ -533,6 +532,7 @@ function drawLeaf(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = 'rgba(80,90,60,.18)';
   for (const y of [5, 9, 23, 27]) ctx.fillRect(0, y, 256, 1);
 }
+const bambooLeafMap = once(() => canvasTexture(256, 32, drawLeaf));
 
 /** Culms with node rings and bloom bands, twigs, and instanced leaves in a tall planter. */
 function growBamboo(seed: number) {
@@ -648,7 +648,7 @@ export function BambooPot({ position }: { position: Point }) {
   const built = useBuilt(() => {
     const plant = growBamboo(33),
       leaf = leafGeometry(),
-      leafMap = canvasTexture(256, 32, drawLeaf),
+      leafMap = bambooLeafMap(),
       pot = new LatheGeometry(
         [
           [0, 0],
@@ -671,7 +671,7 @@ export function BambooPot({ position }: { position: Point }) {
       leafMap,
       pot,
       dispose() {
-        [plant.culms, leaf, leafMap, pot].forEach((item) => item.dispose());
+        [plant.culms, leaf, pot].forEach((item) => item.dispose());
       },
     };
   });

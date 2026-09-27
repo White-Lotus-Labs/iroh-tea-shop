@@ -7,7 +7,7 @@ import {
   Vector3,
 } from 'three';
 import { Steam } from '../Steam';
-import { Solid } from '../Surfaces';
+import { once, Solid } from '../Surfaces';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
 import { Chabana } from './BackWall';
@@ -93,6 +93,7 @@ function drawShino(ctx: CanvasRenderingContext2D) {
       );
   }
 }
+const shinoMap = once(() => canvasTexture(512, 256, drawShino));
 
 const KENSUI: Point = [2.02, 0, -1.3];
 const LID_REST: Point = [2.34, 0, -1.03];
@@ -107,7 +108,6 @@ export function TemaeSet() {
   const built = useBuilt(() => {
     const jarAt: Point = [2.12, 0, -1.8],
       jar = place(lathe(JAR), jarAt),
-      shino = canvasTexture(512, 256, drawShino),
       lacquer = merge([
         paint(
           place(new CylinderGeometry(0.075, 0.075, 0.012, 28), [
@@ -152,12 +152,12 @@ export function TemaeSet() {
     ]);
     return {
       jar,
-      shino,
+      shino: shinoMap(),
       lacquer,
       bronze,
       bamboo,
       dispose() {
-        [jar, shino, lacquer, bronze, bamboo].forEach((g) => g.dispose());
+        [jar, lacquer, bronze, bamboo].forEach((g) => g.dispose());
       },
     };
   });
@@ -382,6 +382,7 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
     }
   ctx.globalAlpha = 1;
 }
+const screenArt = once(() => canvasTexture(1024, 720, drawScreen));
 
 /** Lacquer frame section: face width and depth. The painting sits inside the depth. */
 const FRAME = { face: 0.026, depth: 0.03 };
@@ -403,8 +404,7 @@ export function Byobu({
   height?: number;
 }) {
   const built = useBuilt(() => {
-    const art = canvasTexture(1024, 720, drawScreen),
-      { face: F, depth: D } = FRAME,
+    const { face: F, depth: D } = FRAME,
       innerW = PANEL_W - 2 * F + 0.008,
       innerH = PANEL_H - 2 * F + 0.008;
     let x = 0,
@@ -478,12 +478,12 @@ export function Byobu({
       frame = merge(frames),
       hinge = merge(hinges);
     return {
-      art,
+      art: screenArt(),
       face,
       frame,
       hinge,
       dispose() {
-        [art, face, frame, hinge].forEach((item) => item.dispose());
+        [face, frame, hinge].forEach((item) => item.dispose());
       },
     };
   });

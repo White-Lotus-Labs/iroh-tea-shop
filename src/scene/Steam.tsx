@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CanvasTexture, Sprite, SpriteMaterial } from 'three';
 import { createRandom, damp } from './motion/dynamics';
 import type { Point } from './stations';
+import { once } from './Surfaces';
 
 /** A soft, torn wisp: radial falloff broken up by value noise. */
 function wispTexture() {
@@ -45,6 +46,7 @@ function wispTexture() {
   ctx.putImageData(image, 0, 0);
   return new CanvasTexture(canvas);
 }
+const wisp = once(wispTexture);
 
 /** Soft billboards rising from one source: no simulation engine or shadow pass. */
 export function Steam({
@@ -75,8 +77,7 @@ export function Steam({
       spin: (random() - 0.5) * 0.8,
     }));
   }, [count, origin]);
-  const texture = useMemo(wispTexture, []);
-  useEffect(() => () => texture.dispose(), [texture]);
+  const texture = wisp();
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05),
       state = life.current;
