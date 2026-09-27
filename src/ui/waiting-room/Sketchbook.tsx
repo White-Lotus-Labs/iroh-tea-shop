@@ -24,6 +24,7 @@ import {
 import { LotusMark } from './LotusMark';
 import type { PetalArea } from './SakuraPetals';
 import {
+  BakerCopy,
   SKETCH_IMAGES,
   SKETCH_PAGES,
   SPREAD_TITLES,
@@ -135,14 +136,16 @@ const Baker = memo(function Baker({
 }) {
   return (
     <div ref={bind} className="sb-baker" hidden>
-      {SKETCH_PAGES.map((page, i) => (
-        <PageView
-          key={page.key}
-          index={i}
-          side={sideOf(mode, i)}
-          live={false}
-        />
-      ))}
+      <BakerCopy value>
+        {SKETCH_PAGES.map((page, i) => (
+          <PageView
+            key={page.key}
+            index={i}
+            side={sideOf(mode, i)}
+            live={false}
+          />
+        ))}
+      </BakerCopy>
     </div>
   );
 });

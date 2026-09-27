@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { DockPaints, stationGlyph } from '../StationDock';
 import { PROJECT, REPO_URL, TEAM, xUrl, type Member } from './content';
 import { LotusMark } from './LotusMark';
@@ -56,6 +56,9 @@ export function sketchPreloadUrl(src: string) {
   return src;
 }
 
+/** True inside the sketchbook's hidden baker, whose page copies are never shown. */
+export const BakerCopy = createContext(false);
+
 function Sketch({
   src,
   alt,
@@ -69,6 +72,7 @@ function Sketch({
   className?: string;
   priority?: boolean;
 }) {
+  const baking = useContext(BakerCopy);
   const image = sketchSources(src);
   return (
     <img
@@ -78,8 +82,11 @@ function Sketch({
       sizes={image.sizes}
       alt={live ? alt : ''}
       draggable={false}
-      decoding="async"
-      loading={priority ? 'eager' : 'lazy'}
+      // A page turn swaps the leaf's snapshot for this page in one frame; a
+      // lazy or async image paints blank for a frame there. Only the hidden
+      // baker copies stay lazy, so they never download twice.
+      decoding={baking ? 'async' : 'sync'}
+      loading={priority || !baking ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
     />
   );
