@@ -9,9 +9,24 @@ import {
   Vector3,
   CatmullRomCurve3,
 } from 'three';
+import { ContactShadows } from '@react-three/drei';
 import { damp, pourPose, type SceneMood } from './motion/dynamics';
 import { Steam } from './Steam';
 import { PaperLantern } from './TeaArchitecture';
+import { useSurfaceMaps } from './Surfaces';
+import type { Point } from './stations';
+
+const STEAM: {
+  origin: Point;
+  count: number;
+  strength: number;
+  rise: number;
+}[] = [
+  { origin: [0, 0.93, -2.48], count: 10, strength: 0.85, rise: 0.56 },
+  { origin: [0.33, 0.91, -2.33], count: 6, strength: 0.55, rise: 0.4 },
+  { origin: [-0.58, 0.72, -2.18], count: 8, strength: 0.7, rise: 0.46 },
+  { origin: [0.58, 0.72, -2.34], count: 8, strength: 0.7, rise: 0.46 },
+];
 /** A short ceremonial tip rotates about the teapot's foot rim, keeping its
  * support point on the table. Completion/cancellation never delays the result. */
 export function TeaRitual({
@@ -26,6 +41,12 @@ export function TeaRitual({
   const pot = useRef<Group>(null),
     stream = useRef<Mesh>(null),
     ceramic = useRef<MeshStandardMaterial>(null);
+  const glaze = {
+    map: useSurfaceMaps('paper').color,
+    roughness: 0.34,
+    clearcoat: 1,
+    clearcoatRoughness: 0.06,
+  };
   const motion = useRef({ age: 2, tilt: 0, stream: 0, active: false });
   const points = useRef({
     spout: new Vector3(),
@@ -85,11 +106,7 @@ export function TeaRitual({
           <group position={[-0.13, 0.15, 0]}>
             <mesh position={[0, -0.12, 0]} castShadow>
               <cylinderGeometry args={[0.125, 0.12, 0.035, 32]} />
-              <meshPhysicalMaterial
-                color="#424a32"
-                roughness={0.35}
-                clearcoat={0.6}
-              />
+              <meshPhysicalMaterial color="#424a32" {...glaze} />
             </mesh>
             <mesh scale={[1.2, 0.78, 1.1]} castShadow receiveShadow>
               <sphereGeometry args={[0.19, 40, 24]} />
@@ -98,26 +115,16 @@ export function TeaRitual({
                 color="#475235"
                 emissive="#b07839"
                 emissiveIntensity={0.025}
-                roughness={0.28}
-                clearcoat={0.8}
-                clearcoatRoughness={0.17}
+                {...glaze}
               />
             </mesh>
             <mesh position={[0, 0.137, 0]} castShadow>
               <cylinderGeometry args={[0.11, 0.12, 0.026, 32]} />
-              <meshPhysicalMaterial
-                color="#37422f"
-                roughness={0.33}
-                clearcoat={0.7}
-              />
+              <meshPhysicalMaterial color="#37422f" {...glaze} />
             </mesh>
             <mesh position={[0, 0.178, 0]} castShadow>
               <sphereGeometry args={[0.037, 20, 12]} />
-              <meshPhysicalMaterial
-                color="#38432f"
-                roughness={0.3}
-                clearcoat={0.7}
-              />
+              <meshPhysicalMaterial color="#38432f" {...glaze} />
             </mesh>
             <mesh castShadow>
               <tubeGeometry
@@ -134,19 +141,11 @@ export function TeaRitual({
                   false,
                 ]}
               />
-              <meshPhysicalMaterial
-                color="#475235"
-                roughness={0.3}
-                clearcoat={0.7}
-              />
+              <meshPhysicalMaterial color="#475235" {...glaze} />
             </mesh>
             <mesh position={[-0.195, 0.012, 0]} castShadow>
               <torusGeometry args={[0.108, 0.026, 12, 28]} />
-              <meshPhysicalMaterial
-                color="#465038"
-                roughness={0.33}
-                clearcoat={0.65}
-              />
+              <meshPhysicalMaterial color="#465038" {...glaze} />
             </mesh>
           </group>
         </group>
@@ -160,9 +159,24 @@ export function TeaRitual({
           depthWrite={false}
         />
       </mesh>
-      <group position={[0, 0, -2.18]}>
-        <Steam active={mood === 'pouring'} reduced={reduced} />
-      </group>
+      {STEAM.map((source) => (
+        <Steam
+          key={source.origin.join()}
+          {...source}
+          active={mood === 'pouring'}
+          reduced={reduced}
+        />
+      ))}
+      <ContactShadows
+        position={[0, 0.6135, -2.41]}
+        scale={[2.5, 1.3]}
+        far={0.32}
+        blur={1.4}
+        opacity={0.75}
+        resolution={512}
+        frames={reduced ? 1 : Infinity}
+        color="#140b06"
+      />
     </>
   );
 }

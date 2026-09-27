@@ -103,11 +103,11 @@ export function PaperLantern({
       <mesh>
         <latheGeometry args={[profile, 32]} />
         <meshStandardMaterial
-          color="#f0cf9c"
+          color="#e8b77e"
           map={paper}
-          emissive="#ff9f4a"
+          emissive="#ff8c35"
           emissiveMap={paper}
-          emissiveIntensity={2.4}
+          emissiveIntensity={1.7}
           roughness={0.92}
           side={DoubleSide}
         />
@@ -123,7 +123,7 @@ export function PaperLantern({
         <meshStandardMaterial color="#1a110b" roughness={0.8} />
       </mesh>
       {light !== undefined && (
-        <pointLight color="#ffb35c" intensity={light} distance={6} />
+        <pointLight color="#ffc68f" intensity={light} distance={6} />
       )}
     </group>
   );
@@ -690,7 +690,7 @@ export function WaitingRoom() {
       <Cup position={[-2.86, 1.4, 5.93]} color="#a5a077" />
       <Cup position={[-2.4, 1.4, 5.93]} color="#b98755" />
       <Vase position={[2.55, 0.17, 4.46]} />
-      <PaperLantern position={[-1.9, 2.7, 7.5]} drop={0.72} light={9} />
+      <PaperLantern position={[-2.3, 2.5, 5.55]} drop={0.92} light={7} />
     </group>
   );
 }
@@ -719,7 +719,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
         posts={[-6.1, -3.4, -0.9, 1.7]}
       />
       <Scroll position={[-3.99, 1.62, -4.62]} />
-      <Andon position={[-3.52, 0, -4.2]} />
+      <Andon position={[-3.5, 0, -1.95]} />
       <Suspense fallback={null}>
         <RightWallBackdrop />
       </Suspense>

@@ -48,6 +48,22 @@ Changes: `SceneEffects` (Lightformer environment, exp fog, 4x MSAA composer, hal
 | Orrery                 | 6     | Brass reads as metal against the pale scroll, but the andon clutters behind it and it has no contact shadow.                           |
 | Mood/color grade       | 6     | Warm, contrasty and cinematic, but saturated orange on skin and white-clipped lanterns cheapen it.                                     |
 
+## Round 2: tea set, steam, contact shadows, lantern balance
+
+Shots: `_scratch/shots/round-2`. Frame rate: mean 92 fps, min 73 fps (`tea-set`, full motion with steam).
+
+Changes: glazed ceramics with clearcoat, amber tea with a glossy surface, torn-wisp steam sprites from spout, lid and cups, `ContactShadows` under the tea set and the orrery, ribbed chochin lanterns at a lower emissive, smoother plaster and finer floor grain.
+
+| Part                   | Score | Reason                                                                                                                         |
+| ---------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Lighting and shadows   | 7     | Lanterns glow without clipping and key shadows rake the counter floor, but lanterns cast no light pools and the counter is murky. |
+| Environment/atmosphere | 6     | Fog gives depth, but the glowing shoji throw no light shafts and the air has no haze or dust.                                  |
+| Walls/architecture     | 6     | The frame, wainscot and ceiling read well, but the right plaster wall reads as blotchy rusted metal.                           |
+| Floor and table        | 7     | Floor and tatami hold up; the table top grain is stringy and aliased in the tea-set close-up.                                  |
+| Tea set and steam      | 6     | Grounded by contact shadows, with glossy glaze and visible steam, but the uniform green glaze still reads as plastic.          |
+| Orrery                 | 7     | Brass rings, planets and the glowing sun read clearly against the scroll; the dial face is flat and the andon clutters.        |
+| Mood/color grade       | 7     | Warm dusk grade with controlled highlights; the palette lacks a cool counterpoint, so every view is orange-brown.              |
+
 ## Proposed
 
 Items that need an off-limits file, a dependency, or a big architecture change.

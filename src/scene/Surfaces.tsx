@@ -48,9 +48,9 @@ const SIZE: Record<Surface, [number, number]> = {
   tatami: [512, 256],
 };
 const RELIEF: Record<Surface, number> = {
-  wood: 2.2,
+  wood: 1.5,
   floor: 2.6,
-  plaster: 1.1,
+  plaster: 0.55,
   paper: 1.2,
   shoji: 1.2,
   cloth: 1.6,
@@ -132,8 +132,8 @@ function sampler(kind: Surface): (s: number, t: number) => Texel {
       0.86 +
         (figure - 0.5) * 0.26 -
         late * 0.09 +
-        (fine - 0.5) * 0.07 -
-        pore * 0.12,
+        (fine - 0.5) * 0.04 -
+        pore * 0.08,
       0.5 + late * 0.08 + pore * 0.3 + (fine - 0.5) * 0.08,
       0.6 - late * 0.12 - pore * 0.35 + (fine - 0.5) * 0.2,
       late * 0.04 + (figure - 0.5) * 0.08,
@@ -168,7 +168,7 @@ function sampler(kind: Surface): (s: number, t: number) => Texel {
         const seam = Math.max(gap, joint);
         const wear = fbm(n2, s * 2, t * 2, 2, 2, 4);
         return [
-          (albedo * (1 + p.tone * 0.22) + (wear - 0.5) * 0.12) *
+          (albedo * (1 + p.tone * 0.15) + (wear - 0.5) * 0.12) *
             (1 - seam * 0.7),
           Math.min(
             1,
@@ -187,7 +187,7 @@ function sampler(kind: Surface): (s: number, t: number) => Texel {
       return (s, t) => {
         const mottle = fbm(n1, s * 3, t * 3, 3, 3, 5);
         const trowel = fbm(n2, (s + t) * 6, (s - t) * 14, 6, 14, 3);
-        const sand = n3(s * 160, t * 160, 160, 160);
+        const sand = n3(s * 240, t * 240, 240, 240);
         const speck = Math.max(0, sand - 0.86) * 5;
         return [
           0.86 +

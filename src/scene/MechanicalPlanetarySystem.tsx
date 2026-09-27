@@ -16,6 +16,7 @@ import {
   Vector3,
   CatmullRomCurve3,
 } from 'three';
+import { ContactShadows } from '@react-three/drei';
 import { damp } from './motion/dynamics';
 import { useSurfaceMaps } from './Surfaces';
 
@@ -410,6 +411,18 @@ export function MechanicalPlanetarySystem({
         document.body.style.cursor = '';
       }}
     >
+      {floorStand && (
+        <ContactShadows
+          position={[0, 0.004, 0]}
+          scale={1}
+          far={0.9}
+          blur={2.2}
+          opacity={0.7}
+          resolution={256}
+          frames={1}
+          color="#140b06"
+        />
+      )}
       {/* Optional Antique Mahogany & Brass Tripod Floor Stand */}
       {floorStand && (
         <FloorStand

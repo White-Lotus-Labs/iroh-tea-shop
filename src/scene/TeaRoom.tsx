@@ -141,8 +141,8 @@ function RoomGeometry({
       />
       <pointLight
         position={[1.1, 1.75, -0.7]}
-        color="#ffd9ad"
-        intensity={1.3}
+        color="#f5dcc0"
+        intensity={1}
         distance={5.3}
       />
       <pointLight

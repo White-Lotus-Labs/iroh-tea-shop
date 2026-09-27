@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Vector2 } from 'three';
 import type { Point } from './stations';
+import { useSurfaceMaps } from './Surfaces';
 /** A continuous cross-section includes the lip and inner wall, rather than a solid cylinder. */
 export function Cup({
   position,
@@ -25,24 +26,26 @@ export function Cup({
     ],
     [],
   );
+  const mottle = useSurfaceMaps('paper').color;
   return (
     <group position={position}>
       <mesh castShadow receiveShadow>
         <latheGeometry args={[profile, 40]} />
         <meshPhysicalMaterial
           color={color}
-          roughness={0.38}
-          clearcoat={0.32}
-          clearcoatRoughness={0.28}
+          map={mottle}
+          roughness={0.36}
+          clearcoat={0.85}
+          clearcoatRoughness={0.08}
         />
       </mesh>
       <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.087, 40]} />
         <meshPhysicalMaterial
-          color="#442711"
-          roughness={0.18}
-          metalness={0.05}
+          color="#6b3510"
+          roughness={0.12}
           clearcoat={1}
+          clearcoatRoughness={0.02}
         />
       </mesh>
       <mesh position={[0, -0.062, 0]}>
