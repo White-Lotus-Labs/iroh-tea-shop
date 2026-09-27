@@ -134,9 +134,13 @@ export default function TeaRoomShell({
     setPanelOpen(true);
   }, [shelfFocused]);
   const openPanel = useCallback(() => {
+    if (station === 'Shelf') {
+      setCameraAt(null);
+      setShelfFocused(true);
+    }
     setPanelOpen(true);
     queueMicrotask(() => panel.current?.focus());
-  }, []);
+  }, [station]);
   const closePanel = useCallback(() => {
     setPanelOpen(false);
     queueMicrotask(() => openHint.current?.focus());
