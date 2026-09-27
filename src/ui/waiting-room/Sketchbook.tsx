@@ -21,8 +21,10 @@ const BETA = 0.6;
 const TILT_X = 3.5;
 const TILT_Y = 6;
 const DEG = 180 / Math.PI;
-// Phones and portrait tablets read one tall page better than a small spread.
-const SINGLE_QUERY = '(max-width: 720px), (max-aspect-ratio: 4/5)';
+// Phones, portrait tablets, and phones on their side read one page better than
+// a small spread. Matches the single rules in Sketchbook.css.
+const SINGLE_QUERY =
+  '(max-width: 720px), (max-aspect-ratio: 4/5), (max-height: 500px)';
 // A handful of petals between the book and the eye, soft with depth of field.
 const NEAR_PETALS: PetalArea = { x: 12, y: 9, near: 9, far: 5 };
 
