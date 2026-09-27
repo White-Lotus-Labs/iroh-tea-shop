@@ -4,6 +4,7 @@
 //   node scripts/visual-shots.mjs [outDir] [--gpu=metal|swiftshader]
 //     [--shots=room-wide,host-face] [--base=http://127.0.0.1:3106]
 //     [--motion=reduce|full] [--size=1600x900] [--dpr=2] [--ui] [--headed]
+//     [--query=irohPose=sip:2]   (extra URL query, e.g. to hold a host pose)
 //
 // The dev server must already run (`npm run dev -- --port 3106`); the shot
 // camera is dev-only. Default outDir: ../_scratch/shots/round-N (next free N).
@@ -39,6 +40,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const gpu = flag('gpu', 'metal');
 const base = flag('base', 'http://127.0.0.1:3106');
 const motion = flag('motion', 'reduce');
+const query = flag('query', '');
 const [width, height] = flag('size', '1600x900').split('x').map(Number);
 // Metal shots default to a Retina-like 2x, which the Canvas caps at its own dpr range.
 const dpr = Number(flag('dpr', gpu === 'metal' ? '2' : '1'));
@@ -120,11 +122,18 @@ async function open(shot) {
         ? 'no-preference'
         : 'reduce',
   });
-  await page.goto(`${base}/?shot=${shot}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}/?shot=${shot}${query && `&${query}`}`, {
+    waitUntil: 'domcontentloaded',
+  });
   await page.locator('main[aria-busy="false"]').waitFor({ timeout: 60_000 });
-  await page.getByRole('button', { name: /Begin/ }).click();
+  await page
+    .getByRole('button', { name: /Step inside|Enter the tea room/ })
+    .click();
   await page
     .locator('main[data-station="Counter"][data-camera-at="Counter"]')
+    .waitFor({ timeout: 30_000 });
+  await page
+    .locator('canvas[data-iroh-host="model"]')
     .waitFor({ timeout: 30_000 });
   if (!has('ui'))
     await page.addStyleTag({
