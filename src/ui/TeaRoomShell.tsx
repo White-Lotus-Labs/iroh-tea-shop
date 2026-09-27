@@ -29,6 +29,7 @@ import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
 import { StationDock } from './StationDock';
 import { WaitingRoom } from './waiting-room/WaitingRoom';
+import { Tanzaku } from './waiting-room/Tanzaku';
 
 // The waiting room covers the stage while the scene chunk downloads.
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
@@ -221,7 +222,9 @@ export default function TeaRoomShell({
         progress={loaderProgress}
         reduced={reduced}
         onEnter={() => navigate('Counter')}
-      />
+      >
+        <Tanzaku reduced={reduced} />
+      </WaitingRoom>
       <header className="topbar">
         <a href="#main-panel" className="brand">
           <span className="brand-mark" aria-hidden="true">
