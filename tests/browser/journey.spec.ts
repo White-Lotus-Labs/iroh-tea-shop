@@ -111,7 +111,14 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   });
   await page.goto('/');
   await expect(page.getByText('The room is resting.')).toBeVisible();
+  // Nothing behind the waiting room is reachable or read out.
+  await expect(page.getByText('is only the beginning.')).toHaveCount(0);
+  await expect(page.locator('.topbar')).toHaveAttribute('inert', '');
   await beginVisit(page);
+  await expect(
+    page.getByRole('button', { name: 'Open the Thesis Desk' }),
+  ).toBeFocused();
+  await expect(page.locator('.topbar')).not.toHaveAttribute('inert');
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })

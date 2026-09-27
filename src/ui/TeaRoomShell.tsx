@@ -158,6 +158,7 @@ export default function TeaRoomShell({
   const openHint = useRef<HTMLButtonElement>(null);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
+  const focusHintOnArrive = useRef(false);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
   useEffect(() => {
@@ -373,6 +374,18 @@ export default function TeaRoomShell({
         : null;
   const showOpenHint =
     Boolean(panelStation) && !panelOpen && !isEntrance && cameraSettled;
+  // After Enter, focus would drop to <body> as the waiting room unmounts.
+  useEffect(() => {
+    if (!showOpenHint || !focusHintOnArrive.current) return;
+    focusHintOnArrive.current = false;
+    const current = document.activeElement;
+    if (
+      !current ||
+      current === document.body ||
+      current.closest('.waiting-room')
+    )
+      openHint.current?.focus({ preventScroll: true });
+  }, [showOpenHint]);
   const teaser = STATION_TEASERS[station];
   useEffect(() => {
     if (shelfOpen) panel.current?.focus({ preventScroll: true });
