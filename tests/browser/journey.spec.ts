@@ -138,6 +138,26 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   await status.getByRole('button', { name: 'Try again' }).click();
   await expect(status).toContainText('Saved Nansen readings');
 
+  // Asking Uncle about a thesis, then docking back, reopens that thesis.
+  await page
+    .getByRole('button', { name: /Open The Crypto Bull Market/ })
+    .click();
+  await page
+    .getByRole('button', { name: 'Ask Uncle about this thesis' })
+    .click();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-station',
+    'AvatarSeat',
+  );
+  // Keyboard: the dev overlay badge can sit over this dock button.
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Counter/ })
+    .press('Enter');
+  await expect(
+    page.getByRole('dialog', { name: 'The Crypto Bull Market' }),
+  ).toBeVisible();
+
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })

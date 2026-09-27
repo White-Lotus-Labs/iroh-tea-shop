@@ -161,6 +161,7 @@ export default function TeaRoomShell({
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
   const focusHintOnArrive = useRef(false);
+  const returnThesis = useRef<ThesisId | null>(null);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
   useEffect(() => {
@@ -224,6 +225,14 @@ export default function TeaRoomShell({
           window.dispatchEvent(new Event(RECENTER_EVENT));
         }
         return;
+      }
+      // Back from asking Uncle: reopen the thesis the guest was reading.
+      // A thesis picked on the way (a counter card) still wins.
+      if (next === 'Counter' && returnThesis.current) {
+        const back = returnThesis.current;
+        returnThesis.current = null;
+        setSelectedThesis((current) => current ?? back);
+        deepLinkOpenOnce.current = true;
       }
       setCameraAt(null);
       setShelfFocused(false);
@@ -339,14 +348,18 @@ export default function TeaRoomShell({
     navigate('Counter');
     deepLinkOpenOnce.current = true;
   }, [station, navigate]);
-  const onTalkToUncle = useCallback((text: string) => {
-    setUncleDraft({ text, key: Date.now() });
-    setCameraAt(null);
-    setShelfFocused(false);
-    setStation('AvatarSeat');
-    setPanelOpen(true);
-    queueMicrotask(() => panel.current?.focus());
-  }, []);
+  const onTalkToUncle = useCallback(
+    (text: string) => {
+      returnThesis.current = selectedThesis;
+      setUncleDraft({ text, key: Date.now() });
+      setCameraAt(null);
+      setShelfFocused(false);
+      setStation('AvatarSeat');
+      setPanelOpen(true);
+      queueMicrotask(() => panel.current?.focus());
+    },
+    [selectedThesis],
+  );
   const active = STATIONS.find((s) => s.id === station)!;
   const isEntrance = station === 'Entrance';
   const mood: SceneMood = isEntrance ? 'waiting' : pour.mood;
