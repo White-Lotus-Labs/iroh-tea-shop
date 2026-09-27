@@ -166,6 +166,7 @@ export function IrohChat({
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [chat.messages.at(-1)?.content, chat.error]);
+  const dailyCap = chat.errorCode === 'nansen_agent_daily_limit';
   const send = () => {
     const pending = session.send(draft);
     if (pending) {
@@ -257,11 +258,20 @@ export function IrohChat({
                   onchain evidence.
                 </p>
               )}
+              {!user && (
+                <p>
+                  Guest chats are not saved. <a href="/account">Log in</a> to
+                  keep them.
+                </p>
+              )}
             </div>
           )}
           {chat.messages
-            // A failed reply with no text would render as an empty card.
-            .filter((message) => message.content || message.status !== 'error')
+            // An empty reply shows no card: the activity line below is the
+            // one waiting signal, and a failed reply shows the error box.
+            .filter(
+              (message) => message.content || message.status === 'stopped',
+            )
             .map((message) => (
               <article
                 className={`iroh-message is-${message.role}`}
@@ -270,15 +280,7 @@ export function IrohChat({
                 <div className="iroh-speaker">
                   {message.role === 'user' ? 'You' : 'Uncle'}
                 </div>
-                {message.content ? (
-                  <IrohMessage content={message.content} />
-                ) : message.status === 'streaming' ? (
-                  <p className="iroh-waiting">
-                    {nansen === 'configured'
-                      ? 'Waiting for Nansen…'
-                      : 'Nansen research is offline'}
-                  </p>
-                ) : null}
+                {message.content && <IrohMessage content={message.content} />}
                 {message.status === 'stopped' && (
                   <small>Stopped · partial answer</small>
                 )}
@@ -295,11 +297,11 @@ export function IrohChat({
           )}
           {chat.error && (
             <div
-              className={`iroh-error${chat.errorCode === 'nansen_agent_daily_limit' ? ' is-limit' : ''}`}
+              className={`iroh-error${dailyCap ? ' is-limit' : ''}`}
               role="alert"
             >
               <p>{chat.error}</p>
-              {chat.errorCode === 'nansen_agent_daily_limit' ? (
+              {dailyCap ? (
                 <a
                   className="iroh-limit-cta"
                   href="https://nsn.ai/iroh0x"
@@ -355,11 +357,18 @@ export function IrohChat({
               send();
             }
           }}
-          placeholder="What is smart money doing with BTC this week?"
+          placeholder={
+            historyLoading
+              ? 'Loading your chats…'
+              : dailyCap
+                ? 'Daily limit reached. Come back tomorrow.'
+                : 'What is smart money doing with BTC this week?'
+          }
           rows={2}
           disabled={
             chat.isStreaming ||
             historyLoading ||
+            dailyCap ||
             (Boolean(user) && !chat.chatId)
           }
         />
@@ -383,6 +392,7 @@ export function IrohChat({
               disabled={
                 !draft.trim() ||
                 historyLoading ||
+                dailyCap ||
                 (Boolean(user) && !chat.chatId)
               }
             >

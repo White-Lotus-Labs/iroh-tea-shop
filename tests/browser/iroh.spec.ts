@@ -280,6 +280,14 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
   await expect(cta).toHaveAttribute('href', 'https://nsn.ai/iroh0x');
   await expect(cta).toHaveAttribute('target', '_blank');
   await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+  const composer = page.getByRole('textbox', {
+    name: 'Ask an onchain research question',
+  });
+  await expect(composer).toBeDisabled();
+  await expect(composer).toHaveAttribute(
+    'placeholder',
+    'Daily limit reached. Come back tomorrow.',
+  );
 });
 
 test('Iroh keeps a completed answer when Nansen returns no conversation ID', async ({
