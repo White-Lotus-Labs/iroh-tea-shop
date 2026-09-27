@@ -354,10 +354,13 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   useEffect(() => {
     if (!freshnessAnchor) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFreshnessAnchor(null);
+      if (e.key !== 'Escape') return;
+      // Capture phase: Escape closes the popover and keeps the panel open.
+      e.stopPropagation();
+      setFreshnessAnchor(null);
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [freshnessAnchor]);
 
   const load = useCallback(async () => {

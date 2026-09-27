@@ -303,13 +303,15 @@ export default function TeaRoomShell({
     if (!panelOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      if (station !== 'Counter' && station !== 'AvatarSeat') return;
+      // Keep a half-typed question to Uncle.
+      const target = event.target as HTMLTextAreaElement | null;
+      if (target?.tagName === 'TEXTAREA' && target.value) return;
       event.preventDefault();
       closePanel();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [panelOpen, station, closePanel]);
+  }, [panelOpen, closePanel]);
   const onOpenThesis = useCallback(
     (id: ThesisId, conviction: ConvictionLevel | null) => {
       setSelectedThesis(id);
@@ -357,9 +359,10 @@ export default function TeaRoomShell({
           ? 'focusing'
           : 'browse'
       : undefined;
+  // After a close the camera keeps its Shelf pose; this button reopens it.
   const canApproachShelf =
     station === 'Shelf' &&
-    !shelfFocused &&
+    !(shelfFocused && panelOpen) &&
     (cameraAt === 'Shelf' || sceneFailed);
   const cameraSettled = cameraAt === station || sceneFailed;
   const panelStation =
@@ -371,6 +374,9 @@ export default function TeaRoomShell({
   const showOpenHint =
     Boolean(panelStation) && !panelOpen && !isEntrance && cameraSettled;
   const teaser = STATION_TEASERS[station];
+  useEffect(() => {
+    if (shelfOpen) panel.current?.focus({ preventScroll: true });
+  }, [shelfOpen]);
   const showPanel =
     !isEntrance &&
     panelOpen &&
@@ -512,6 +518,7 @@ export default function TeaRoomShell({
 
           {canApproachShelf && (
             <button
+              ref={openHint}
               type="button"
               className="panel-open-hint shelf-approach"
               aria-label={STATION_TEASERS.Shelf!.cta!.join(' ')}

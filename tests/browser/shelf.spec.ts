@@ -230,8 +230,19 @@ test('a hanging spirit paper answers hover and opens the Shelf', async ({
 
   await page.getByRole('button', { name: 'Close Shelf menu' }).click();
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  const approach = page.getByRole('button', { name: 'See the top traders' });
+  await expect(approach).toBeFocused();
   await page.mouse.click(...portrait);
   await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  expect(await cameraPose(page)).toEqual(beforeOpen);
+
+  // Keyboard: Escape closes the parchment, Enter on the hint reopens it.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await expect(approach).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  await expect(page.locator('.reading-panel')).toBeFocused();
   expect(await cameraPose(page)).toEqual(beforeOpen);
 });
 
