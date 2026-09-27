@@ -177,7 +177,9 @@ export function IrohChat({
       <header className="iroh-chat-head">
         <div>
           <div className="eyebrow">03 / THE HOST · RESEARCH</div>
-          <h1>Ask Iroh</h1>
+          <h1>
+            Ask <em>Uncle</em>
+          </h1>
           <p>
             {nansen === 'configured'
               ? 'Powered by Nansen Research Agent · Fast mode'
@@ -238,7 +240,7 @@ export function IrohChat({
         <div
           className="iroh-transcript"
           role="log"
-          aria-label="Iroh conversation"
+          aria-label="Uncle conversation"
           aria-live="polite"
         >
           {chat.messages.length === 0 && (
@@ -263,7 +265,7 @@ export function IrohChat({
               key={message.id}
             >
               <div className="iroh-speaker">
-                {message.role === 'user' ? 'You' : 'Iroh'}
+                {message.role === 'user' ? 'You' : 'Uncle'}
               </div>
               {message.content ? (
                 <IrohMessage content={message.content} />
@@ -285,7 +287,7 @@ export function IrohChat({
                 ? 'Nansen research is offline · demo voice only'
                 : chat.currentTool
                   ? `Researching with Nansen: ${chat.currentTool}`
-                  : 'Iroh is consulting Nansen…'}
+                  : 'Uncle is consulting Nansen…'}
             </p>
           )}
           {chat.error && (
@@ -312,7 +314,7 @@ export function IrohChat({
         }}
       >
         <label htmlFor="iroh-question" className="sr-only">
-          Ask Iroh a research question
+          Ask Uncle a research question
         </label>
         <textarea
           id="iroh-question"
