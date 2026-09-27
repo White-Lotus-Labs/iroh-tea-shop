@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   Group,
@@ -208,6 +208,7 @@ export function TeaRitual({
     [spout, handle],
   );
   const motion = useRef({ age: 2, tilt: 0, stream: 0, active: false });
+  const [still, setStill] = useState(true);
   const points = useRef({
     spout: new Vector3(),
     unit: new Vector3(),
@@ -236,6 +237,8 @@ export function TeaRitual({
       m.stream = 0;
     }
     if (pot.current) pot.current.rotation.z = -m.tilt;
+    const resting = !m.active && m.tilt < 1e-4;
+    if (resting !== still) setStill(resting);
     if (ceramic.current)
       ceramic.current.emissiveIntensity = damp(
         ceramic.current.emissiveIntensity,
@@ -259,6 +262,23 @@ export function TeaRitual({
       stream.current.visible = m.stream > 0.03 && !reduced;
     }
   });
+  // drei's ContactShadows restarts its frame count on every render and then
+  // redraws the whole scene, so it is memoized and live only while the pot moves.
+  const shadow = useMemo(
+    () => (
+      <ContactShadows
+        position={[0, 0.6135, -2.41]}
+        scale={[2.5, 1.3]}
+        far={0.32}
+        blur={1.4}
+        opacity={0.75}
+        resolution={512}
+        frames={reduced || still ? 1 : Infinity}
+        color="#140b06"
+      />
+    ),
+    [reduced, still],
+  );
   return (
     <>
       <group position={[0, 0.6, -2.48]} rotation={[0, -0.423, 0]}>
@@ -315,16 +335,7 @@ export function TeaRitual({
           reduced={reduced}
         />
       ))}
-      <ContactShadows
-        position={[0, 0.6135, -2.41]}
-        scale={[2.5, 1.3]}
-        far={0.32}
-        blur={1.4}
-        opacity={0.75}
-        resolution={512}
-        frames={reduced ? 1 : Infinity}
-        color="#140b06"
-      />
+      {shadow}
     </>
   );
 }

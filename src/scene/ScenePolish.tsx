@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {
   Environment,
@@ -77,11 +77,13 @@ function Composer({
   ao,
   msaa,
   bloom,
+  covered,
 }: {
   reduced: boolean;
   ao: boolean;
   msaa: number;
   bloom: boolean;
+  covered: boolean;
 }) {
   const gl = useThree((state) => state.gl);
   const scene = useThree((state) => state.scene);
@@ -136,9 +138,14 @@ function Composer({
     target.samples = msaa;
     composer.reset(target);
   }, [pipeline, msaa]);
+  const skipped = useRef(false);
   useFrame((_, delta) => {
     if (!reduced) pipeline.grade.uniforms.time.value += delta;
-    pipeline.composer.render(delta);
+    skipped.current =
+      covered &&
+      !(window as unknown as { __noCover?: boolean }).__noCover &&
+      !skipped.current;
+    if (!skipped.current) pipeline.composer.render(delta);
   }, 1);
   return null;
 }
@@ -232,7 +239,14 @@ function openingTier() {
   return lightExperience() ? 0 : 3;
 }
 
-export function ScenePolish({ reduced }: { reduced: boolean }) {
+/** `covered`: a panel hides most of the room, so it is drawn every other frame. */
+export function ScenePolish({
+  reduced,
+  covered,
+}: {
+  reduced: boolean;
+  covered: boolean;
+}) {
   const setDpr = useThree((state) => state.setDpr);
   const [tier, setTier] = useState(openingTier);
   const capped = lightExperience();
@@ -247,7 +261,10 @@ export function ScenePolish({ reduced }: { reduced: boolean }) {
       <PerformanceMonitor
         flipflops={3}
         onDecline={() => setTier((current) => Math.max(0, current - 1))}
-        onIncline={() => setTier((current) => Math.min(ceiling, current + 1))}
+        // Skipped draws inflate the measured fps, so no climbing while covered.
+        onIncline={() =>
+          covered || setTier((current) => Math.min(ceiling, current + 1))
+        }
         onFallback={() => setTier(0)}
       />
       <Composer
@@ -255,6 +272,7 @@ export function ScenePolish({ reduced }: { reduced: boolean }) {
         ao={rung.ao}
         msaa={rung.msaa}
         bloom={!capped && tier > 0}
+        covered={covered}
       />
     </>
   );
