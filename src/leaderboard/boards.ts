@@ -1,6 +1,6 @@
 /** Nansen Hyperliquid leaderboard boards and sort metrics. */
 
-export const LEADERBOARD_BOARDS = ['perps', 'smart-money', 'meme'] as const;
+export const LEADERBOARD_BOARDS = ['perps', 'smart-money', 'whales'] as const;
 export type LeaderboardBoard = (typeof LEADERBOARD_BOARDS)[number];
 
 export const LEADERBOARD_METRICS = [
@@ -19,13 +19,21 @@ export type StoredLeaderboardMetric = Exclude<LeaderboardMetric, 'holdings'>;
 export const BOARD_LABELS: Record<LeaderboardBoard, string> = {
   perps: 'Perps Traders',
   'smart-money': 'Smart Wallets',
-  meme: 'Meme Traders',
+  whales: 'Whales',
 };
 
 export const BOARD_BLURB: Record<LeaderboardBoard, string> = {
   perps: 'Smart HL Perps Traders · last 30 days',
   'smart-money': 'Fund and Smart Trader wallets · last 30 days',
-  meme: 'Token Millionaire wallets · last 30 days',
+  whales: 'Accounts worth $10M or more · last 30 days',
+};
+
+/** One sentence per board for the Shelf intro. The meta line under it carries the filter and period. */
+export const BOARD_INTRO: Record<LeaderboardBoard, string> = {
+  perps: 'The ten Smart HL Perps Traders at the top of this ranking.',
+  'smart-money':
+    'The ten Fund and Smart Trader wallets at the top of this ranking.',
+  whales: 'The ten biggest Hyperliquid accounts at the top of this ranking.',
 };
 
 export const METRIC_LABELS: Record<LeaderboardMetric, string> = {
@@ -45,6 +53,9 @@ const SMART_MONEY_FILTER = [
   '90D Smart Trader',
   '180D Smart Trader',
 ] as const;
+
+/** Whales board floor. Nansen has no meme-trader label for Hyperliquid perps. */
+const WHALE_MIN_ACCOUNT_USD = 10_000_000;
 
 /** Default Perps / biggest-wins row. Keep this key so older saved rows still match. */
 export const DEFAULT_LEADERBOARD_CACHE_KEY =
@@ -104,7 +115,7 @@ export function boardQuery(board: LeaderboardBoard, metric: LeaderboardMetric) {
       ? { include_smart_money_labels: ['Smart HL Perps Trader'] }
       : board === 'smart-money'
         ? { include_smart_money_labels: [...SMART_MONEY_FILTER] }
-        : { trader_address_label: 'Token Millionaire' };
+        : { account_value: { min: WHALE_MIN_ACCOUNT_USD } };
 
   const order_by =
     metric === 'losses'
