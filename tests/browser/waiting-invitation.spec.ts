@@ -57,4 +57,8 @@ test('on a phone held sideways the controls stand beside the sheet', async ({
   // Beside the sheet, not under it, and clear of the dock.
   expect(turn!.x).toBeGreaterThan(844 / 2);
   expect(chips!.y + chips!.height).toBeLessThanOrEqual(dock!.y);
+  // The sheet is too small to read here, so its words stand on the other side.
+  const read = await page.locator('.inv-read').boundingBox();
+  expect(read!.x + read!.width).toBeLessThan(844 / 2);
+  expect(read!.y + read!.height).toBeLessThanOrEqual(dock!.y);
 });
