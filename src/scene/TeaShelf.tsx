@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { CatmullRomCurve3, Vector3 } from 'three';
+import { HangingPaper } from './HangingPaper';
 import { Solid, SurfaceMaterial } from './Surfaces';
 
 function TeaJar({
@@ -199,90 +201,94 @@ export function TeaShelf({
   return (
     <group
       position={[3.82, 0, -4.55]}
-      scale={[0.82, 0.86, 0.76]}
       name="right-wall-tea-shelf"
       onClick={(event) => {
         event.stopPropagation();
         onSelect();
       }}
     >
-      {[-1.99, -0.91, 0.91, 1.99].map((z) => (
-        <group key={z}>
-          <Solid
-            position={[-0.05, 1.84, z]}
-            size={[0.57, 3.2, 0.115]}
-            color="#432b1d"
-          />
-          <Solid
-            position={[-0.35, 1.84, z]}
-            size={[0.018, 2.85, 0.022]}
-            color="#aa8050"
-          />
-        </group>
-      ))}
-      {[0.5, 1.25, 2.03, 2.83].map((y) => (
-        <group key={y}>
-          {(y === 0.5 || y === 2.83 ? [0] : [-1.46, 1.46]).map((z) => (
-            <group key={z}>
-              <Solid
-                position={[-0.17, y, z]}
-                size={[0.88, 0.09, z === 0 ? 4.12 : 1.2]}
-                color="#835938"
-              />
-              <Solid
-                position={[-0.62, y + 0.012, z]}
-                size={[0.018, 0.025, z === 0 ? 4.08 : 1.17]}
-                color="#c69a5d"
-              />
-            </group>
-          ))}
-          {[-1.55, 1.55].map((z) => (
+      <Suspense fallback={null}>
+        <HangingPaper />
+      </Suspense>
+      <group scale={[0.82, 0.86, 0.76]}>
+        {[-1.99, -0.91, 0.91, 1.99].map((z) => (
+          <group key={z}>
             <Solid
-              key={z}
-              position={[-0.21, y - 0.19, z]}
-              size={[0.09, 0.32, 0.095]}
+              position={[-0.05, 1.84, z]}
+              size={[0.57, 3.2, 0.115]}
               color="#432b1d"
             />
-          ))}
-        </group>
-      ))}
-      <TeaJar position={[-0.28, 0.55, -1.55]} color="#6b735a" />
-      <TeaJar position={[-0.28, 0.55, -1.08]} color="#8b6c49" />
-      <TeaJar position={[-0.28, 0.55, 1.08]} color="#414e42" />
-      <TeaJar position={[-0.28, 0.55, 1.54]} color="#9b7656" />
-      <TeaTin position={[-0.28, 1.3, -1.45]} color="#414f43" />
-      <TeaTin position={[-0.28, 1.3, -1.12]} color="#6b553e" />
-      <TeaBox position={[-0.25, 1.3, 1.17]} color="#786143" />
-      <TeaBox position={[-0.25, 1.3, 1.49]} color="#4b4939" />
-      <TeaJar position={[-0.25, 2.08, -1.35]} color="#465c58" lid="#b38a55" />
-      <TeaJar position={[-0.25, 2.08, -1.02]} color="#b18b62" />
-      <TeaTin position={[-0.25, 2.08, 1.04]} color="#3e4944" />
-      <TeaTin position={[-0.25, 2.08, 1.38]} color="#7c5b3a" />
-      <Branch position={[-0.28, 2.87, -1.24]} />
-      <TeaJar position={[-0.25, 2.87, -0.4]} color="#6f664d" />
-      <TeaBox position={[-0.25, 2.87, 0.5]} color="#5a4831" />
-      <TeaBox position={[-0.25, 2.87, 0.86]} color="#76583a" />
-      <mesh position={[-0.27, 3.16, 1.53]} castShadow>
-        <cylinderGeometry args={[0.11, 0.11, 0.38, 4]} />
-        <SurfaceMaterial surface="paper" color="#f5d7a0" />
-      </mesh>
-      <pointLight
-        position={[-0.4, 3.04, 1.53]}
-        color="#ffbe71"
-        intensity={4.5}
-        distance={3.5}
-      />
-      <Solid
-        position={[-0.37, 3.38, 1.53]}
-        size={[0.27, 0.025, 0.27]}
-        color="#48311f"
-      />
-      <Solid
-        position={[-0.37, 2.96, 1.53]}
-        size={[0.27, 0.025, 0.27]}
-        color="#48311f"
-      />
-      <LeaderboardScroll revealed={revealed} />
+            <Solid
+              position={[-0.35, 1.84, z]}
+              size={[0.018, 2.85, 0.022]}
+              color="#aa8050"
+            />
+          </group>
+        ))}
+        {[0.5, 1.25, 2.03, 2.83].map((y) => (
+          <group key={y}>
+            {(y === 0.5 || y === 2.83 ? [0] : [-1.46, 1.46]).map((z) => (
+              <group key={z}>
+                <Solid
+                  position={[-0.17, y, z]}
+                  size={[0.88, 0.09, z === 0 ? 4.12 : 1.2]}
+                  color="#835938"
+                />
+                <Solid
+                  position={[-0.62, y + 0.012, z]}
+                  size={[0.018, 0.025, z === 0 ? 4.08 : 1.17]}
+                  color="#c69a5d"
+                />
+              </group>
+            ))}
+            {[-1.55, 1.55].map((z) => (
+              <Solid
+                key={z}
+                position={[-0.21, y - 0.19, z]}
+                size={[0.09, 0.32, 0.095]}
+                color="#432b1d"
+              />
+            ))}
+          </group>
+        ))}
+        <TeaJar position={[-0.28, 0.55, -1.55]} color="#6b735a" />
+        <TeaJar position={[-0.28, 0.55, -1.08]} color="#8b6c49" />
+        <TeaJar position={[-0.28, 0.55, 1.08]} color="#414e42" />
+        <TeaJar position={[-0.28, 0.55, 1.54]} color="#9b7656" />
+        <TeaTin position={[-0.28, 1.3, -1.45]} color="#414f43" />
+        <TeaTin position={[-0.28, 1.3, -1.12]} color="#6b553e" />
+        <TeaBox position={[-0.25, 1.3, 1.17]} color="#786143" />
+        <TeaBox position={[-0.25, 1.3, 1.49]} color="#4b4939" />
+        <TeaJar position={[-0.25, 2.08, -1.35]} color="#465c58" lid="#b38a55" />
+        <TeaJar position={[-0.25, 2.08, -1.02]} color="#b18b62" />
+        <TeaTin position={[-0.25, 2.08, 1.04]} color="#3e4944" />
+        <TeaTin position={[-0.25, 2.08, 1.38]} color="#7c5b3a" />
+        <Branch position={[-0.28, 2.87, -1.24]} />
+        <TeaJar position={[-0.25, 2.87, -0.4]} color="#6f664d" />
+        <TeaBox position={[-0.25, 2.87, 0.5]} color="#5a4831" />
+        <TeaBox position={[-0.25, 2.87, 0.86]} color="#76583a" />
+        <mesh position={[-0.27, 3.16, 1.53]} castShadow>
+          <cylinderGeometry args={[0.11, 0.11, 0.38, 4]} />
+          <SurfaceMaterial surface="paper" color="#f5d7a0" />
+        </mesh>
+        <pointLight
+          position={[-0.4, 3.04, 1.53]}
+          color="#ffbe71"
+          intensity={4.5}
+          distance={3.5}
+        />
+        <Solid
+          position={[-0.37, 3.38, 1.53]}
+          size={[0.27, 0.025, 0.27]}
+          color="#48311f"
+        />
+        <Solid
+          position={[-0.37, 2.96, 1.53]}
+          size={[0.27, 0.025, 0.27]}
+          color="#48311f"
+        />
+        <LeaderboardScroll revealed={revealed} />
+      </group>
     </group>
   );
 }

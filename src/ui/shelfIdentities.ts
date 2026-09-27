@@ -3,17 +3,20 @@ export interface ShelfIdentity {
   portraitIndex: number;
 }
 
+export const SHELF_CAST_NAME = 'The Ten Spirits of the Tea House';
+export const SHELF_GUEST_NAME = 'Wandering spirit';
+
 const identities: readonly ShelfIdentity[] = [
-  { name: 'Iroh', portraitIndex: 0 },
-  { name: 'Bumi', portraitIndex: 1 },
-  { name: 'Pakku', portraitIndex: 2 },
-  { name: 'Piandao', portraitIndex: 3 },
-  { name: 'Jeong Jeong', portraitIndex: 4 },
-  { name: 'Roku', portraitIndex: 5 },
-  { name: 'Kuruk', portraitIndex: 6 },
-  { name: 'Fung', portraitIndex: 7 },
-  { name: 'Xian', portraitIndex: 8 },
-  { name: 'The White Lotus Tile', portraitIndex: 9 },
+  { name: 'Azure Dragon', portraitIndex: 0 },
+  { name: 'Vermilion Phoenix', portraitIndex: 1 },
+  { name: 'White Tiger', portraitIndex: 2 },
+  { name: 'Black Tortoise', portraitIndex: 3 },
+  { name: 'Qilin', portraitIndex: 4 },
+  { name: 'Cloud Ox', portraitIndex: 5 },
+  { name: 'Nine-Tail Fox', portraitIndex: 6 },
+  { name: 'Red-Crowned Crane', portraitIndex: 7 },
+  { name: 'Golden Koi', portraitIndex: 8 },
+  { name: 'Jade Rabbit', portraitIndex: 9 },
 ];
 
 export function shelfIdentityForRank(rank: number): ShelfIdentity | null {
