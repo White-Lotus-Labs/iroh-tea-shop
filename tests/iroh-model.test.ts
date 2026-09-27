@@ -92,7 +92,9 @@ describe('Iroh motion', () => {
     } as unknown as WebGLProgramParametersWithUniforms;
     patchHostBody({})(body);
     expect(body.fragmentShader).toContain('irohEye( 1');
-    expect(body.fragmentShader).toContain('float wrap = 0.45 * vMask.r;');
+    expect(body.fragmentShader).toContain(
+      'float wrap = 0.45 * vMask.r * ( 1.0 - eyeMask );',
+    );
     expect(body.fragmentShader).toContain('crease * vMask.r');
     expect(body.fragmentShader).toContain('metalnessFactor, 0.0');
     expect(body.fragmentShader).toContain('specularColor *= 1.0 - eyeMask');

@@ -206,9 +206,9 @@ material.specularF90 = mix( material.specularF90, 0.0, eyeMask );
 /** Wrap light and a warm terminator on skin; everything else stays Lambert. */
 const SKIN_DIFFUSE = /* glsl */ `
 float nl = dot( geometryNormal, directLight.direction );
-float wrap = 0.45 * vMask.r;
-vec3 scatter = vec3( 0.14, 0.035, 0.02 ) * vMask.r * smoothstep( - 0.35, 0.0, nl ) * ( 1.0 - smoothstep( 0.0, 0.5, nl ) );
-reflectedLight.directDiffuse += directLight.color * ( saturate( ( nl + wrap ) / ( 1.0 + wrap ) ) + scatter ) * BRDF_Lambert( material.diffuseColor );`;
+float wrap = 0.45 * vMask.r * ( 1.0 - eyeMask );
+vec3 scatter = vec3( 0.14, 0.035, 0.02 ) * vMask.r * ( 1.0 - eyeMask ) * smoothstep( - 0.35, 0.0, nl ) * ( 1.0 - smoothstep( 0.0, 0.5, nl ) );
+reflectedLight.directDiffuse += directLight.color * ( saturate( ( nl + wrap ) / ( 1.0 + wrap ) ) + scatter ) * BRDF_Lambert( material.diffuseColor ) * mix( 1.0, 0.62, eyeMask );`;
 
 export function patchHostBody(uniforms: Uniforms) {
   return (shader: WebGLProgramParametersWithUniforms) => {
@@ -613,6 +613,7 @@ export function IrohModel({
     thickness: { value: number };
   } | null>(null);
   useEffect(() => {
+    if (!ready) return;
     let body: SkinnedMesh | undefined;
     scene.traverse((node) => {
       if (node.name === 'IrohBody') body = node as SkinnedMesh;
@@ -657,7 +658,7 @@ export function IrohModel({
       material.dispose();
       rim.current = null;
     };
-  }, [scene]);
+  }, [scene, ready]);
   const rimOpacity = useRef(0);
   useFrame((_, delta) => {
     const edge = rim.current;
