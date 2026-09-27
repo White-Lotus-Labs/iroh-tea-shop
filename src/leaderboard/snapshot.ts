@@ -4,8 +4,7 @@ import { NansenError } from '../nansen/client';
 import { LeaderboardError } from './provider';
 
 export const SNAPSHOT_TTL_MS = 30 * 60 * 1000;
-export const LEADERBOARD_CACHE_KEY =
-  'smart-wallet-leaderboard:hyperliquid:smart-hl-perps-trader:30d:total-pnl-desc:top-10';
+export { DEFAULT_LEADERBOARD_CACHE_KEY as LEADERBOARD_CACHE_KEY } from './boards';
 
 type SnapshotMeta = {
   fetchedAt: string;

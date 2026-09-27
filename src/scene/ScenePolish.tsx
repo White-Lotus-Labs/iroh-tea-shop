@@ -35,7 +35,6 @@ import { lightExperience } from './lightExperience';
 const GradeShader = {
   uniforms: {
     tDiffuse: { value: null },
-    time: { value: 0 },
     aspect: { value: 1 },
   },
   vertexShader: /* glsl */ `
@@ -46,7 +45,6 @@ const GradeShader = {
     }`,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float time;
     uniform float aspect;
     varying vec2 vUv;
     void main() {
@@ -58,7 +56,7 @@ const GradeShader = {
       c = mix(vec3(luma), c, 1.06);
       vec2 d = (vUv - 0.5) * vec2(aspect, 1.0);
       c *= 1.0 - 0.32 * smoothstep(0.42, 1.15, length(d));
-      float n = fract(sin(dot(gl_FragCoord.xy + fract(time) * 91.7, vec2(12.9898, 78.233))) * 43758.5453);
+      float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
       c += (n - 0.5) * 0.018;
       gl_FragColor = vec4(c, source.a);
     }`,
@@ -157,13 +155,11 @@ function primeOutput(pass: OutputPass, gl: WebGLRenderer) {
 }
 
 function Composer({
-  reduced,
   ao,
   msaa,
   bloom,
   covered,
 }: {
-  reduced: boolean;
   ao: boolean;
   msaa: number;
   bloom: boolean;
@@ -237,7 +233,6 @@ function Composer({
   }, [pipeline, msaa]);
   const skipped = useRef(false);
   useFrame((_, delta) => {
-    if (!reduced) pipeline.grade.uniforms.time.value += delta;
     // Until the passes link, keep the last frame rather than block on them.
     if (!linked.current) return;
     skipped.current = covered && !skipped.current;
@@ -262,13 +257,7 @@ function openingTier() {
 }
 
 /** `covered`: a panel hides most of the room, so it is drawn every other frame. */
-export function ScenePolish({
-  reduced,
-  covered,
-}: {
-  reduced: boolean;
-  covered: boolean;
-}) {
+export function ScenePolish({ covered }: { covered: boolean }) {
   const setDpr = useThree((state) => state.setDpr);
   // Behind the waiting room the room draws a few frames a second on purpose;
   // measuring that would read as a slow GPU and drop the quality for good.
@@ -294,7 +283,6 @@ export function ScenePolish({
         />
       )}
       <Composer
-        reduced={reduced}
         ao={rung.ao}
         msaa={rung.msaa}
         bloom={!capped && tier > 0}

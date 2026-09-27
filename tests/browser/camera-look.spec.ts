@@ -160,8 +160,10 @@ test('halos fly to another station, open the current one, and a drag is not a cl
   const nav = page.getByRole('navigation', { name: 'Tea room stations' });
   await nav.getByRole('button', { name: /Host/ }).click();
   await settle(page, 'AvatarSeat');
-  // Only the current station carries the long teaser, as one small label.
-  await expect(page.locator('.halo-label')).toHaveCount(1);
+  // The seal sits in the ring. The sentence opens when the pointer is on it.
+  const hostMark = await onCanvas(page, hotspot('AvatarSeat'));
+  expect(hostMark, 'Host seal in view').not.toBeNull();
+  await page.mouse.move(...hostMark!);
   await expect(page.locator('.halo-label')).toContainText(
     'Bring an onchain question to Nansen',
   );

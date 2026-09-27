@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import {
+  BackSide,
   Color,
   CylinderGeometry,
   MathUtils,
   Mesh,
+  MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   Quaternion,
@@ -22,6 +24,7 @@ import {
   actionAt,
   DEFAULT_LOOK,
   lookAngles,
+  restBlend,
   rotateWorld,
   sample,
   sampleNumber,
@@ -34,6 +37,7 @@ import {
   type PotPose,
 } from './irohMotion';
 import { lightExperience } from './lightExperience';
+import { LOOK } from './stations';
 
 /** Built by scripts/host-model/build.mjs. */
 const MODEL = '/models/iroh-host.2a7606.glb';
@@ -51,6 +55,23 @@ type EyeFrame = {
 
 /** Lid samples across each eye; matches EYE_COLUMNS in prepare.py. */
 const EYE_COLUMNS = 16;
+
+/** Round the fitted lid so the opening is not a 16-sided polygon. */
+function smoothEye(eye: EyeFrame): EyeFrame {
+  const blur = (values: number[]) =>
+    values.map((value, i) =>
+      i === 0 || i === values.length - 1
+        ? value
+        : values[i - 1] * 0.25 + value * 0.5 + values[i + 1] * 0.25,
+    );
+  let top = eye.top;
+  let bottom = eye.bottom;
+  for (let pass = 0; pass < 2; pass++) {
+    top = blur(top);
+    bottom = blur(bottom);
+  }
+  return { ...eye, top, bottom };
+}
 
 type Uniforms = WebGLProgramParametersWithUniforms['uniforms'];
 
@@ -78,47 +99,66 @@ uniform float eyeLid;
 float eyeMask = 0.0;`;
 
 /**
- * A procedural eye over the painted one: sclera with lid shadow, amber iris
+ * A procedural eye over the painted one: sclera with lid shadow, brown iris
  * that follows the gaze, catchlights, and an upper lid that closes over
  * skin sampled from the cheek. Plane units are metres on the face.
  */
 const EYE_FUNCTION = /* glsl */ `
+vec2 roundDisk( const in int i, const in vec2 d ) {
+  mat2 m = eyeP[ i ];
+  float e00 = m[ 0 ].x, e10 = m[ 0 ].y, e01 = m[ 1 ].x, e11 = m[ 1 ].y;
+  float det = e00 * e11 - e01 * e10;
+  vec2 uv = vec2( e11 * d.x - e01 * d.y, - e10 * d.x + e00 * d.y ) / det;
+  vec2 c0 = m[ 0 ];
+  float l0 = length( c0 );
+  c0 /= l0;
+  vec2 c1 = normalize( m[ 1 ] - c0 * dot( m[ 1 ], c0 ) );
+  float s = 0.5 * ( l0 + length( m[ 1 ] ) );
+  return ( c0 * uv.x + c1 * uv.y ) * s;
+}
 vec3 irohEye( const in int i, const in vec3 base, inout float mask ) {
   vec2 p = eyeP[ i ] * ( vMapUv - eyeC[ i ] );
   float x = p.x / ( eyeA[ i ] * 1.04 );
-  if ( abs( x ) > 1.1 || abs( p.y ) > 0.05 ) return base;
   float f = clamp( x * 0.5 + 0.5, 0.0, 1.0 ) * ${EYE_COLUMNS - 1}.0;
   float j0 = min( floor( f ), ${EYE_COLUMNS - 2}.0 );
   int j = i * ${EYE_COLUMNS} + int( j0 );
   float top0 = mix( eyeTop[ j ], eyeTop[ j + 1 ], f - j0 ) + 0.0012;
-  float bot = mix( eyeBot[ j ], eyeBot[ j + 1 ], f - j0 ) - 0.0008;
+  // The painted eye hangs below the fitted lid, so the lower lid drops to cover it.
+  float bot = mix( eyeBot[ j ], eyeBot[ j + 1 ], f - j0 ) - 0.012;
   int c = i * ${EYE_COLUMNS} + ${EYE_COLUMNS / 2};
-  float midY = mix( eyeBot[ c ], eyeTop[ c ], 0.45 );
+  float midY = mix( eyeBot[ c ], eyeTop[ c ], 0.055 );
   float top = mix( top0, bot, eyeLid );
-  float aa = fwidth( p.y ) + 1e-5;
+  // No early return: a branch here makes fwidth flicker, so the lid pixels jump.
+  float aa = max( fwidth( p.y ), 0.0007 );
+  float window = ( 1.0 - smoothstep( 1.05, 1.2, abs( x ) ) ) * ( 1.0 - smoothstep( 0.08, 0.1, abs( p.y ) ) );
   float inX = 1.0 - smoothstep( 0.96, 1.0, abs( x ) );
-  float open = smoothstep( - aa, aa, top - p.y ) * smoothstep( - aa, aa, p.y - bot ) * inX;
-  float lidded = smoothstep( - aa, aa, top0 - p.y ) * smoothstep( - aa, aa, p.y - top ) * inX;
+  float open = smoothstep( - aa, aa, top - p.y ) * smoothstep( - aa, aa, p.y - bot ) * inX * window;
+  float lidded = smoothstep( - aa, aa, top0 - p.y ) * smoothstep( - aa, aa, p.y - top ) * inX * window;
   float height = max( top0 - bot, 1e-4 );
   float shade = mix( 0.55, 1.0, smoothstep( 0.0, height * 0.45, top - p.y ) ) * mix( 0.75, 1.0, 1.0 - x * x );
-  vec3 col = vec3( 0.8, 0.72, 0.62 ) * shade;
-  float ri = 0.0125;
-  vec2 d = p - vec2( eyeGaze.x * eyeA[ i ] * 0.36, midY + eyeGaze.y * 0.004 );
+  vec3 col = vec3( 0.72, 0.66, 0.58 ) * shade;
+  float ri = 0.018;
+  vec2 gaze = clamp( eyeGaze, vec2( - 1.0 ), vec2( 1.0 ) );
+  vec2 d = roundDisk( i, p - vec2( gaze.x * eyeA[ i ] * 0.22, midY + gaze.y * 0.0012 ) );
   float r = length( d ) / ri;
-  float edge = fwidth( r ) + 1e-4;
-  float streak = 0.86 + 0.14 * sin( atan( d.y, d.x ) * 23.0 + r * 5.0 );
-  vec3 iris = mix( vec3( 0.42, 0.22, 0.05 ), vec3( 0.14, 0.06, 0.015 ), smoothstep( 0.35, 1.0, r ) ) * streak;
-  iris *= mix( 1.0, 0.35, smoothstep( 0.8, 1.0, r ) );
+  float edge = max( fwidth( r ), 0.04 );
+  float rings = atan( d.y, d.x ) * 7.0;
+  float streak = mix( 1.0, 0.9 + 0.1 * sin( rings ), 1.0 - smoothstep( 0.5, 1.4, fwidth( rings ) ) );
+  vec3 iris = mix( vec3( 0.55, 0.22, 0.05 ), vec3( 0.26, 0.09, 0.02 ), smoothstep( 0.15, 0.95, r ) ) * streak;
+  iris *= mix( 1.0, 0.62, smoothstep( 0.82, 1.0, r ) );
   iris = mix( vec3( 0.008, 0.006, 0.005 ), iris, smoothstep( 0.36, 0.36 + edge, r ) );
   iris *= mix( 0.55, 1.0, smoothstep( 0.0, height * 0.4, top - p.y ) );
   col = mix( iris, col, smoothstep( 1.0 - edge, 1.0 + edge, r ) );
-  float c1 = length( d - vec2( - 0.32, 0.34 ) * ri ) / ( 0.2 * ri );
-  float c2 = length( d - vec2( 0.34, - 0.3 ) * ri ) / ( 0.09 * ri );
-  col += vec3( 1.0, 0.95, 0.85 ) * ( ( 1.0 - smoothstep( 0.8, 1.0, c1 ) ) * 0.9 + ( 1.0 - smoothstep( 0.7, 1.0, c2 ) ) * 0.35 ) * shade;
+  float px = max( fwidth( d.x ), 0.0004 );
+  float c1 = length( d - vec2( - 0.28, 0.3 ) * ri );
+  float c2 = length( d - vec2( 0.22, - 0.16 ) * ri );
+  float wet = ( 1.0 - smoothstep( 0.16 * ri, 0.16 * ri + px * 2.0, c1 ) ) * 0.75
+    + ( 1.0 - smoothstep( 0.08 * ri, 0.08 * ri + px * 2.0, c2 ) ) * 0.28;
+  col += vec3( 0.55, 0.5, 0.42 ) * wet * shade * smoothstep( 1.0, 0.75, r );
   vec3 skin = texture2D( map, eyeC[ i ] + eyeU[ i ] * vec2( p.x, bot - 0.012 ) ).rgb;
   skin *= mix( 0.72, 0.96, smoothstep( top, top0, p.y ) );
   vec3 outColor = mix( mix( base, skin, lidded ), col, open );
-  float lash = ( 1.0 - smoothstep( 0.0015, 0.0015 + aa, abs( p.y - top - 0.0006 ) ) ) * ( 1.0 - smoothstep( 0.9, 1.1, abs( x ) ) );
+  float lash = ( 1.0 - smoothstep( 0.0015, 0.0015 + aa, abs( p.y - top - 0.0006 ) ) ) * ( 1.0 - smoothstep( 0.9, 1.1, abs( x ) ) ) * window;
   outColor = mix( outColor, vec3( 0.03, 0.02, 0.015 ), lash * 0.92 );
   mask = max( mask, open );
   return outColor;
@@ -134,10 +174,12 @@ diffuseColor.rgb = mix( diffuseColor.rgb, mix( vec3( luma ), diffuseColor.rgb, 0
 const BODY_ROUGHNESS = /* glsl */ `
 roughnessFactor = mix( roughnessFactor, max( roughnessFactor, 0.62 ), vMask.r );
 roughnessFactor = mix( roughnessFactor, max( roughnessFactor, 0.75 ), vMask.g );
-roughnessFactor = mix( roughnessFactor, 0.16, eyeMask );`;
+roughnessFactor = mix( roughnessFactor, 1.0, eyeMask );`;
 
 /** A fine plain weave on the robe, faded out before it can alias. */
 const BODY_WEAVE = /* glsl */ `
+float crease = smoothstep( 0.2, 0.65, length( normal - nonPerturbedNormal ) );
+normal = normalize( mix( normal, nonPerturbedNormal, max( eyeMask, crease * vMask.r ) ) );
 {
   vec3 q = vRest * 1500.0;
   float fade = vMask.b * ( 1.0 - smoothstep( 0.6, 1.6, length( fwidth( q ) ) ) );
@@ -154,19 +196,19 @@ const BODY_WEAVE = /* glsl */ `
 }`;
 
 const BODY_MATERIAL = /* glsl */ `
+material.roughness = mix( material.roughness, 1.0, eyeMask );
+material.specularColor *= 1.0 - eyeMask;
+material.specularF90 = mix( material.specularF90, 0.0, eyeMask );
 #ifdef USE_SHEEN
-  material.sheenColor *= vMask.b;
-#endif
-#ifdef USE_CLEARCOAT
-  material.clearcoat *= eyeMask;
+  material.sheenColor *= vMask.b * ( 1.0 - eyeMask );
 #endif`;
 
 /** Wrap light and a warm terminator on skin; everything else stays Lambert. */
 const SKIN_DIFFUSE = /* glsl */ `
 float nl = dot( geometryNormal, directLight.direction );
-float wrap = 0.45 * vMask.r;
-vec3 scatter = vec3( 0.14, 0.035, 0.02 ) * vMask.r * smoothstep( - 0.35, 0.0, nl ) * ( 1.0 - smoothstep( 0.0, 0.5, nl ) );
-reflectedLight.directDiffuse += directLight.color * ( saturate( ( nl + wrap ) / ( 1.0 + wrap ) ) + scatter ) * BRDF_Lambert( material.diffuseColor );`;
+float wrap = 0.45 * vMask.r * ( 1.0 - eyeMask );
+vec3 scatter = vec3( 0.14, 0.035, 0.02 ) * vMask.r * ( 1.0 - eyeMask ) * smoothstep( - 0.35, 0.0, nl ) * ( 1.0 - smoothstep( 0.0, 0.5, nl ) );
+reflectedLight.directDiffuse += directLight.color * ( saturate( ( nl + wrap ) / ( 1.0 + wrap ) ) + scatter ) * BRDF_Lambert( material.diffuseColor ) * mix( 1.0, 0.62, eyeMask );`;
 
 export function patchHostBody(uniforms: Uniforms) {
   return (shader: WebGLProgramParametersWithUniforms) => {
@@ -199,6 +241,13 @@ export function patchHostBody(uniforms: Uniforms) {
       f,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>${BODY_ROUGHNESS}`,
+    );
+    // Tripo's metalness map sparks on skin. Those pixels jump as the head moves.
+    f = patch(
+      f,
+      '#include <metalnessmap_fragment>',
+      `#include <metalnessmap_fragment>
+metalnessFactor = mix( metalnessFactor, 0.0, max( vMask.r, eyeMask ) );`,
     );
     f = patch(
       f,
@@ -275,11 +324,11 @@ export function patchHairShell(uniforms: Uniforms) {
       '#include <map_fragment>',
       `#include <map_fragment>
 vec3 strandP = vRest * vec3( 520.0, 70.0, 520.0 );
-float strand = mix( irohNoise( strandP ), 0.5, smoothstep( 0.5, 1.5, fwidth( strandP.x ) ) );
+float strand = mix( irohNoise( strandP ), 0.5, smoothstep( 0.25, 1.1, fwidth( strandP.x ) ) );
 float hi = max( max( diffuseColor.r, diffuseColor.g ), diffuseColor.b );
 float lo = min( min( diffuseColor.r, diffuseColor.g ), diffuseColor.b );
 float hairness = smoothstep( 0.1, 0.2, hi ) * ( 1.0 - smoothstep( 0.2, 0.35, ( hi - lo ) / max( hi, 1e-3 ) ) );
-diffuseColor.a = clamp( ( strand * hairness - shell ) * 6.0 + 0.5, 0.0, 1.0 );
+diffuseColor.a = clamp( ( strand * hairness - shell ) * 3.0 + 0.5, 0.0, 1.0 );
 diffuseColor.rgb *= mix( 0.62, 1.08, shell );`,
     );
     f = patch(
@@ -326,7 +375,7 @@ function buildRig(scene: Object3D, shells: number): Rig {
     'R' | 'L',
     EyeFrame
   >;
-  const pair = [eyes.R, eyes.L];
+  const pair = [eyes.R, eyes.L].map(smoothEye);
   const eyeGaze = new Vector2();
   const eyeLid = { value: 0 };
   const source = body.material as MeshStandardMaterial;
@@ -341,8 +390,6 @@ function buildRig(scene: Object3D, shells: number): Rig {
     sheen: 1,
     sheenRoughness: 0.55,
     sheenColor: new Color(0.5, 0.36, 0.26),
-    clearcoat: 1,
-    clearcoatRoughness: 0.06,
   });
   material.onBeforeCompile = patchHostBody({
     eyeC: { value: new Float32Array(pair.flatMap((eye) => eye.uv)) },
@@ -522,10 +569,16 @@ export function IrohModel({
   reduced,
   activity,
   onReady,
+  lit = false,
+  onActivate,
 }: {
   reduced: boolean;
   activity: IrohActivity;
   onReady: () => void;
+  /** The Host seal is hovered. The pointer on the mesh is tracked here too. */
+  lit?: boolean;
+  /** Same action as the Host seal: travel there, or open the panel. */
+  onActivate?: () => void;
 }) {
   const light = useMemo(lightExperience, []);
   const { scene } = useGLTF(light ? MODEL_LIGHT : MODEL);
@@ -537,6 +590,88 @@ export function IrohModel({
   const camera = useThree((state) => state.camera);
   const room = useThree((state) => state.scene);
   const [ready, setReady] = useState(false);
+  const [over, setOver] = useState(false);
+  const cursor = useRef(false);
+  const hover = (on: boolean) => {
+    setOver(on);
+    if (cursor.current === on) return;
+    cursor.current = on;
+    document.body.style.cursor = on ? 'pointer' : '';
+  };
+  useEffect(
+    () => () => {
+      if (cursor.current) document.body.style.cursor = '';
+    },
+    [],
+  );
+  // A second skinned copy, pushed out a few pixels. A plain mesh stays in the
+  // bind pose and draws yellow lines through the robe.
+  const rim = useRef<{
+    material: MeshBasicMaterial;
+    shell: SkinnedMesh;
+    size: Vector2;
+    thickness: { value: number };
+  } | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    let body: SkinnedMesh | undefined;
+    scene.traverse((node) => {
+      if (node.name === 'IrohBody') body = node as SkinnedMesh;
+    });
+    if (!body?.parent) return;
+    const size = new Vector2(1, 1);
+    const thickness = { value: 2.5 };
+    const material = new MeshBasicMaterial({
+      color: '#e9c983',
+      side: BackSide,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      toneMapped: false,
+      fog: false,
+    });
+    material.customProgramCacheKey = () => 'iroh-rim';
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uSize = { value: size };
+      shader.uniforms.uThickness = thickness;
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+         vec2 rimDir = (projectionMatrix * vec4(normalMatrix * objectNormal, 0.0)).xy;
+         gl_Position.xy += normalize(rimDir + vec2(1e-5)) * uThickness / uSize * gl_Position.w * 2.0;`,
+      );
+    };
+    const shell = new SkinnedMesh(body.geometry, material);
+    shell.name = 'iroh-rim';
+    shell.bind(body.skeleton, body.bindMatrix);
+    shell.position.copy(body.position);
+    shell.quaternion.copy(body.quaternion);
+    shell.scale.copy(body.scale);
+    shell.raycast = () => null;
+    shell.castShadow = false;
+    shell.receiveShadow = false;
+    shell.visible = false;
+    body.parent.add(shell);
+    rim.current = { material, shell, size, thickness };
+    return () => {
+      shell.removeFromParent();
+      material.dispose();
+      rim.current = null;
+    };
+  }, [scene, ready]);
+  const rimOpacity = useRef(0);
+  useFrame((_, delta) => {
+    const edge = rim.current;
+    if (!edge) return;
+    const goal = ready && (lit || over) ? 1 : 0;
+    rimOpacity.current = reduced
+      ? goal
+      : MathUtils.damp(rimOpacity.current, goal, 10, delta);
+    edge.material.opacity = rimOpacity.current;
+    edge.shell.visible = rimOpacity.current > 0.02;
+    gl.getDrawingBufferSize(edge.size);
+    edge.thickness.value = 6 * gl.getPixelRatio();
+  });
   useEffect(() => {
     let live = true;
     gl.compileAsync(scene, camera, room)
@@ -670,14 +805,20 @@ export function IrohModel({
     if (!frozen && now > m.nextSaccade) {
       m.saccade
         .set(Math.random() - 0.5, Math.random() - 0.5)
-        .multiplyScalar(0.25);
-      m.nextSaccade = now + 0.8 + Math.random() * 2.2;
+        .multiplyScalar(0.12);
+      m.nextSaccade = now + 1.4 + Math.random() * 2.4;
     }
-    const gazeX =
-      MathUtils.clamp((yawWanted - m.yaw) / 0.35, -1, 1) + m.saccade.x;
-    const gazeY =
-      MathUtils.clamp((pitchWanted - m.pitch) / 0.3, -1, 1) + m.saccade.y;
-    m.gaze.set(damp(m.gaze.x, gazeX, 18, dt), damp(m.gaze.y, gazeY, 18, dt));
+    const gazeX = MathUtils.clamp(
+      (yawWanted - m.yaw) / 0.35 + m.saccade.x,
+      -1,
+      1,
+    );
+    const gazeY = MathUtils.clamp(
+      (pitchWanted - m.pitch) / 0.3 + m.saccade.y,
+      -1,
+      1,
+    );
+    m.gaze.set(damp(m.gaze.x, gazeX, 10, dt), damp(m.gaze.y, gazeY, 10, dt));
     rig.eyeGaze.copy(m.gaze);
     if (!frozen && now > m.nextBlink + 0.16)
       m.nextBlink = now + 2.5 + Math.random() * 3.5;
@@ -732,6 +873,9 @@ export function IrohModel({
         potTarget(poses.from as PotPose, rest, s.a);
         potTarget(poses.to as PotPose, rest, s.b);
       }
+      const back = restBlend(poses.from, poses.to, poses.mix);
+      // The solved rest pose is not the bind pose, so a full rest skips IK.
+      if (back >= 1) continue;
       s.a.p.lerp(s.b.p, poses.mix);
       s.a.q.slerp(s.b.q, poses.mix);
       s.wrist.subVectors(wristRest, pivot).applyQuaternion(s.a.q).add(s.a.p);
@@ -743,6 +887,12 @@ export function IrohModel({
         s.pole.addVectors(elbowRest, poleOffset),
       );
       setWorldQuaternion(hand, s.q.copy(s.a.q).multiply(handRest));
+      if (back > 0) {
+        for (const bone of [upper, lower, hand]) {
+          const bind = rig.rest.find(([item]) => item === bone)![1];
+          bone.quaternion.slerp(bind, back);
+        }
+      }
     }
 
     const tea = stream.current;
@@ -762,7 +912,20 @@ export function IrohModel({
   return (
     <>
       <group visible={ready} position-y={0.1}>
-        <primitive object={scene} />
+        <primitive
+          object={scene}
+          onPointerOver={(event: ThreeEvent<PointerEvent>) => {
+            if (!onActivate) return;
+            event.stopPropagation();
+            hover(true);
+          }}
+          onPointerOut={() => hover(false)}
+          onClick={(event: ThreeEvent<MouseEvent>) => {
+            if (!onActivate || event.delta > LOOK.dragPx) return;
+            event.stopPropagation();
+            onActivate();
+          }}
+        />
       </group>
       <mesh ref={stream} geometry={teaGeometry} visible={false}>
         <meshStandardMaterial

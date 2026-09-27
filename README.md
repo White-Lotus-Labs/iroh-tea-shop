@@ -38,7 +38,7 @@ npm run dev
 
 Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101`.
 
-`npm run db:migrate` creates the local database file (`prisma/dev.db`, which git ignores) and applies migrations. Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings.
+`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL`. The default is `file:./dev.db`, which Prisma stores as `prisma/dev.db` (git ignores it). Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
 
 Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env.local`. The default is 1.
 
@@ -52,15 +52,15 @@ Two different things happen with Nansen.
 
 **Uncle.** Chat is not a saved dataset. When you send a message, the server calls Nansen's Research Agent right then (`agent/fast`). The reply is streamed back. Signed-in chats are stored so you can reopen them. The Nansen request itself is still live, and it is not part of the hourly save.
 
-A full background save makes **80 Nansen requests**:
+A full background save makes **94 Nansen requests**:
 
 | What it fills      | Requests | Where they go                                                                                                                                                                     |
 | ------------------ | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                           |
 | Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book (2 requests). |
-| Shelf              |        1 | Top 10 Smart HL Perps Traders by 30-day total PnL.                                                                                                                                |
+| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Mem Traders) and five sorts. Account holdings reuses the account-value row.                                                           |
 
-12 + 67 + 1 = 80. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
+12 + 67 + 15 = 94. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
 
 Stock tokens (NVIDIA, Micron, SanDisk) still request token info, but the page hides "supply not yet circulating" for them. A stock's share count is not the story. Bitcoin, Ether, and Hyperliquid also look at the spot token on their detail page, on top of the perp signal used for the seal.
 
@@ -110,7 +110,7 @@ Unit tests mock Nansen. They do not spend credits. Browser tests mock the app's 
 
 ## Limits worth knowing
 
-- One Node process, one SQLite file. If you run several copies of the server, each copy has its own database and each copy refreshes Nansen about once an hour. The intended deploy is a single web process.
+- One Node process, one SQLite file. If you run several copies of the server, each copy has its own database and each copy refreshes Nansen about once an hour. The intended deploy is a single web process with `DATABASE_URL` pointed at a volume.
 - Uncle's daily cap lives in that process. It trusts the proxy's forwarding headers, resets at midnight UTC, and also resets if the process restarts.
 - The host's 3D model is still a work in progress. The writing says Uncle. The mesh still looks like the earlier grandfather.
 - The app is deployed on Railway at the link above. Railway runs `prisma migrate deploy` before the server starts, so the snapshot table exists before the first fill.

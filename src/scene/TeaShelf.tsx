@@ -193,11 +193,13 @@ export function TeaShelf({
   revealed,
   reduced,
   posters,
+  onHover,
 }: {
   onSelect: () => void;
   revealed: boolean;
   reduced: boolean;
   posters: boolean;
+  onHover?: (on: boolean) => void;
 }) {
   const goods = useBuilt(buildGoods);
   return (
@@ -207,6 +209,15 @@ export function TeaShelf({
       onClick={(event) => {
         event.stopPropagation();
         onSelect();
+      }}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        onHover?.(true);
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        onHover?.(false);
+        document.body.style.cursor = '';
       }}
     >
       {/* Own boundary: suspending here must not hide the staged room. */}

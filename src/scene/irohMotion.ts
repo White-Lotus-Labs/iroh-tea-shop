@@ -130,6 +130,14 @@ export function sample<C extends Channel>(
   };
 }
 
+/** 1 when the prop is on the rest pose, 0 when it is fully on another pose. */
+export function restBlend(from: string, to: string, mix: number) {
+  if (from === 'rest' && to === 'rest') return 1;
+  if (to === 'rest') return mix;
+  if (from === 'rest') return 1 - mix;
+  return 0;
+}
+
 export function sampleNumber(
   name: ActionName,
   channel: 'lids' | 'nod' | 'shake' | 'lean' | 'stream',

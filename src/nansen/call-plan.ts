@@ -1,3 +1,4 @@
+import { leaderboardRefreshTargets } from '../leaderboard/boards';
 import { THESES } from '../thesis/deck';
 import type { Ticker } from '../thesis/types';
 
@@ -62,14 +63,14 @@ export function nansenCallPlan(): {
       })),
     ),
   );
-  const leaderboard: PlannedNansenCall[] = [
-    {
-      surface: 'leaderboard',
+  const leaderboard: PlannedNansenCall[] = leaderboardRefreshTargets().map(
+    () => ({
+      surface: 'leaderboard' as const,
       endpoint: 'perp-leaderboard',
       thesisId: null,
       symbol: null,
-    },
-  ];
+    }),
+  );
   const background = [...deck, ...details, ...leaderboard];
   return {
     deck,

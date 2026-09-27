@@ -9,6 +9,7 @@ import {
   MathUtils,
   Mesh,
   Quaternion,
+  SkinnedMesh,
   ShaderMaterial,
   Vector2,
   Vector3,
@@ -25,7 +26,9 @@ import { LOOK, STATIONS, wallBetween, type Point } from './stations';
 /** The ember quad and its hit disc, in CSS pixels; the lit core itself reads about 20 px. */
 const QUAD_PX = 56,
   HIT_PX = 34;
-const WARM = new Color('#ffb45e');
+/** Same gold as the thesis-card rim. */
+const WARM = new Color('#e9c983');
+const RIM_PX = 6;
 
 const QUAD_VERTEX = /* glsl */ `
 varying vec2 vUv;
@@ -33,7 +36,7 @@ void main() {
   vUv = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`;
-// Pixel-space ember: a crisp hot core, a thin ring that opens on hover, a slow pulse and three sparks.
+// A quiet ring around the seal. No sparks and no expanding pulse.
 const EMBER_FRAGMENT = /* glsl */ `
 uniform float uTime;
 uniform float uHover;
@@ -41,31 +44,19 @@ uniform float uActive;
 uniform float uOpacity;
 uniform float uMotion;
 varying vec2 vUv;
-float disc(float d, float radius) { return 1.0 - smoothstep(radius - 0.75, radius + 0.75, d); }
 float band(float d, float radius, float width) {
   return 1.0 - smoothstep(width * 0.5 - 0.5, width * 0.5 + 0.5, abs(d - radius));
 }
 void main() {
   vec2 p = (vUv - 0.5) * ${QUAD_PX.toFixed(1)};
   float r = length(p);
-  float breath = 0.5 + 0.5 * sin(uTime * 2.1) * uMotion;
-  float core = disc(r, 3.3 + 0.7 * uActive);
-  float glow = exp(-r * r / 50.0) * (0.5 + 0.25 * breath);
-  float ring = band(r, mix(8.5, 11.0, uHover), 1.2) * (0.22 + 0.3 * uActive + 0.45 * uHover);
-  float t = fract(uTime * 0.4);
-  float pulse = band(r, 8.0 + t * 13.0, 1.4) * (1.0 - t) * (1.0 - t) * 0.4 * uMotion;
-  float sparks = 0.0;
-  for (int i = 0; i < 3; i++) {
-    float fi = float(i);
-    float cycle = uTime * (0.23 + fi * 0.06) + fi * 0.41;
-    float life = fract(cycle);
-    float angle = fi * 2.09 + floor(cycle) * 2.4;
-    vec2 at = vec2(cos(angle), sin(angle)) * (6.0 + life * 9.0) + vec2(0.0, life * 6.0);
-    sparks += disc(length(p - at), 0.85) * sin(life * 3.14159) * 0.5;
-  }
-  vec3 hot = vec3(1.0, 0.92, 0.74), ember = vec3(1.0, 0.6, 0.24);
-  vec3 color = hot * core + ember * (glow + ring + pulse) + mix(ember, hot, 0.4) * sparks * uMotion;
-  gl_FragColor = vec4(color, uOpacity);
+  float breath = 0.5 + 0.5 * sin(uTime * 1.3) * uMotion;
+  float ring = band(r, 16.5, 1.45);
+  float halo = exp(-pow(r - 16.5, 2.0) / 22.0);
+  float lit = ring * (0.8 + 0.4 * uHover + 0.15 * uActive) + halo * (0.22 + 0.1 * breath);
+  vec3 ember = vec3(1.0, 0.58, 0.22);
+  vec3 hot = vec3(1.0, 0.94, 0.8);
+  gl_FragColor = vec4(mix(ember, hot, ring) * lit, uOpacity);
 }`;
 // Inverted hull pushed out a fixed number of pixels, so the warm line is crisp at any distance.
 const HULL_VERTEX = /* glsl */ `
@@ -105,21 +96,28 @@ const world = new Vector3(),
 /** A small ember that marks something to open or inspect. Keep these props stable for other lanes. */
 export function HaloMarker({
   position,
-  label,
   active,
   reduced,
   onClick,
   detail,
   onHover,
+  stay = false,
+  stayNear = 0,
+  openDelay = 700,
 }: {
   position: Point;
-  label: string;
   active: boolean;
   reduced: boolean;
   onClick?: () => void;
-  /** Longer line shown beside the active marker, with its seal glyph. */
+  /** Longer line. The seal is always in the ring. The line opens beside it. */
   detail?: { glyph: string; text: string };
   onHover?: (hovered: boolean) => void;
+  /** Keep the line open. Used when this place is the current station. */
+  stay?: boolean;
+  /** Also keep the line open while the camera is within this many metres. */
+  stayNear?: number;
+  /** Wait before the line opens, so the seal is seen first. */
+  openDelay?: number;
 }) {
   const root = useRef<Group>(null),
     face = useRef<Group>(null);
@@ -146,7 +144,9 @@ export function HaloMarker({
   useEffect(() => () => material.dispose(), [material]);
   const [hovered, setHovered] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const live = useRef({ hidden: false, opacity: 0, hover: 0 });
+  const [near, setNear] = useState(false);
+  const [held, setHeld] = useState(false);
+  const live = useRef({ hidden: false, opacity: 0, hover: 0, near: false });
   const hoverRef = useRef({ on: false, notify: onHover });
   useEffect(() => {
     hoverRef.current.notify = onHover;
@@ -166,6 +166,19 @@ export function HaloMarker({
     },
     [],
   );
+  const pinned = stay || near;
+  useEffect(() => {
+    if (!pinned) {
+      setHeld(false);
+      return;
+    }
+    if (reduced || openDelay <= 0) {
+      setHeld(true);
+      return;
+    }
+    const id = window.setTimeout(() => setHeld(true), openDelay);
+    return () => window.clearTimeout(id);
+  }, [pinned, reduced, openDelay]);
   useFrame(({ camera, size, clock }, delta) => {
     const g = root.current,
       f = face.current,
@@ -179,6 +192,14 @@ export function HaloMarker({
       s.hidden = blocked;
       setHidden(blocked);
       if (blocked) hover(false);
+    }
+    if (stayNear > 0) {
+      const limit = s.near ? stayNear + 0.7 : stayNear;
+      const next = distance < limit;
+      if (next !== s.near) {
+        s.near = next;
+        setNear(next);
+      }
     }
     // Slide the ember toward the camera on its own sight line: same pixel, but it now wins
     // R3F's nearest-first raycast over the prop it marks.
@@ -213,7 +234,6 @@ export function HaloMarker({
     u.uMotion.value = reduced ? 0 : 1;
     if (!reduced) u.uTime.value = clock.elapsedTime;
   });
-  const showDetail = active && detail;
   return (
     <group ref={root} position={position}>
       <group ref={face}>
@@ -245,23 +265,28 @@ export function HaloMarker({
             colorWrite={false}
           />
         </mesh>
+        {!hidden && detail && (
+          <Html
+            center
+            zIndexRange={[5, 0]}
+            wrapperClass="halo-core-wrap"
+            pointerEvents="none"
+          >
+            <span className="halo-label-seal" aria-hidden="true">
+              {detail.glyph}
+            </span>
+          </Html>
+        )}
       </group>
-      {!hidden && (hovered || showDetail) && (
+      {!hidden && (held || hovered) && detail && (
         <Html
           zIndexRange={[6, 0]}
-          wrapperClass={showDetail ? 'halo-label-wrap' : 'halo-tag-wrap'}
+          wrapperClass="halo-label-wrap"
           pointerEvents="none"
         >
-          {showDetail ? (
-            <div className="halo-label" aria-hidden="true">
-              <span className="halo-label-seal">{detail.glyph}</span>
-              <InkLine text={detail.text} className="halo-label-text" />
-            </div>
-          ) : (
-            <div className="halo-tag" aria-hidden="true">
-              <InkLine text={label} className="halo-tag-text" />
-            </div>
-          )}
+          <div className="halo-label is-note" aria-hidden="true">
+            <InkLine text={detail.text} className="halo-label-text" />
+          </div>
         </Html>
       )}
     </group>
@@ -293,7 +318,9 @@ function WarmOutline({
       if (
         !mesh.isMesh ||
         !mesh.visible ||
-        (mesh as InstancedMesh).isInstancedMesh
+        (mesh as InstancedMesh).isInstancedMesh ||
+        // A plain hull is not skinned, so it draws the bind pose through Uncle.
+        (mesh as SkinnedMesh).isSkinnedMesh
       )
         return;
       const material = (
@@ -308,7 +335,7 @@ function WarmOutline({
       if (!cutout && Math.min(extent.x, extent.y, extent.z) < 0.004) return;
       picked.push({ mesh, size: extent.length(), cutout });
     });
-    // ponytail: the 48 largest meshes carry the silhouette; raise it if small parts go unlined.
+    // The largest parts carry the silhouette. Every gear would draw lines through the machine.
     picked.sort((a, b) => b.size - a.size);
     const hull = new ShaderMaterial({
       vertexShader: HULL_VERTEX,
@@ -317,7 +344,7 @@ function WarmOutline({
         uColor: { value: WARM },
         uOpacity: { value: 0 },
         uSize: { value: new Vector2(1, 1) },
-        uThickness: { value: 2 },
+        uThickness: { value: RIM_PX },
       },
       side: BackSide,
       transparent: true,
@@ -325,7 +352,7 @@ function WarmOutline({
       toneMapped: false,
     });
     const materials = [hull];
-    const added = picked.slice(0, 48).map(({ mesh, cutout }) => {
+    const added = picked.slice(0, 12).map(({ mesh, cutout }) => {
       let shell: Mesh;
       if (cutout) {
         const glow = new ShaderMaterial({
@@ -364,7 +391,7 @@ function WarmOutline({
       u.uOpacity.value +=
         (0.85 - u.uOpacity.value) * (reduced ? 1 : Math.min(1, delta * 8));
       u.uSize?.value.copy(drawing);
-      if (u.uThickness) u.uThickness.value = 2 * gl.getPixelRatio();
+      if (u.uThickness) u.uThickness.value = RIM_PX * gl.getPixelRatio();
     }
   });
   return null;
@@ -385,41 +412,6 @@ const OUTLINES: Record<HaloStation, OutlineTarget> = {
   Shelf: { name: 'hanging-paper' },
 };
 
-/** True once the camera has rested at `station`; real travel clears it, a small drag does not. */
-function useSettled(station: Station) {
-  const [settledAt, setSettledAt] = useState<Station | null>(null);
-  const motion = useRef({
-    last: new Vector3(),
-    still: 0,
-    station,
-    settled: false,
-  });
-  useFrame(({ camera }, delta) => {
-    const m = motion.current,
-      dt = Math.max(delta, 1e-3),
-      speed = camera.position.distanceTo(m.last) / dt;
-    m.last.copy(camera.position);
-    if (m.station !== station) {
-      m.station = station;
-      m.still = 0;
-      m.settled = false;
-      setSettledAt(null);
-    }
-    if (m.settled && speed > 2) {
-      m.settled = false;
-      m.still = 0;
-      setSettledAt(null);
-    } else if (!m.settled) {
-      m.still = speed < 0.08 ? m.still + dt : 0;
-      if (m.still > 0.3) {
-        m.settled = true;
-        setSettledAt(station);
-      }
-    }
-  });
-  return settledAt === station;
-}
-
 /** One ember per place worth opening. Another station's ember flies there; the current one opens it. */
 export function StationHalos({
   station,
@@ -428,6 +420,9 @@ export function StationHalos({
   onNavigate,
   onMenuOpen,
   onShelfSelect,
+  onHostHover,
+  orreryHot = false,
+  shelfHot = false,
 }: {
   station: Station;
   menuClosed: boolean;
@@ -435,15 +430,31 @@ export function StationHalos({
   onNavigate: (station: Station) => void;
   onMenuOpen: () => void;
   onShelfSelect: () => void;
+  onHostHover?: (on: boolean) => void;
+  /** The pointer is on the machine, not only its seal. */
+  orreryHot?: boolean;
+  /** The pointer is on the shelf, not only its seal or a poster. */
+  shelfHot?: boolean;
 }) {
-  const settled = useSettled(station);
   const [hovered, setHovered] = useState<HaloStation | null>(null);
   if (station === 'Entrance') return null;
+  const fromSeal = hovered && hovered !== 'AvatarSeat' ? hovered : null;
+  const rim = fromSeal
+    ? OUTLINES[fromSeal]
+    : orreryHot
+      ? OUTLINES.TeaTable
+      : shelfHot
+        ? { name: 'right-wall-tea-shelf' }
+        : null;
   return (
     <>
       {HALO_STATIONS.map((id) => {
         const current = id === station;
+        // The open panel covers the room. Hide this place's seal until it closes.
         if (current && !menuClosed) return null;
+        const stays =
+          current &&
+          (id === 'Counter' || id === 'Shelf' || id === 'TeaTable');
         const anchor = STATIONS.find((place) => place.id === id)!;
         // The Observatorium has no panel: its ember points at the orrery's own click-to-wind.
         const open = !current
@@ -457,19 +468,27 @@ export function StationHalos({
           <HaloMarker
             key={id}
             position={anchor.hotspot}
-            label={anchor.label}
             active={current}
             reduced={reduced}
             onClick={open}
-            detail={current && settled ? STATION_TEASERS[id] : undefined}
-            onHover={(on) =>
-              setHovered((was) => (on ? id : was === id ? null : was))
-            }
+            detail={STATION_TEASERS[id]}
+            stay={stays}
+            stayNear={id === 'Shelf' || id === 'TeaTable' ? 4.2 : 0}
+            openDelay={id === 'Counter' ? 1200 : 650}
+            onHover={(on) => {
+              setHovered((was) => (on ? id : was === id ? null : was));
+              if (id === 'AvatarSeat') onHostHover?.(on);
+            }}
           />
         );
       })}
-      {hovered && (
-        <WarmOutline key={hovered} {...OUTLINES[hovered]} reduced={reduced} />
+      {rim && (
+        <WarmOutline
+          key={rim.name}
+          name={rim.name}
+          within={'within' in rim ? rim.within : undefined}
+          reduced={reduced}
+        />
       )}
     </>
   );

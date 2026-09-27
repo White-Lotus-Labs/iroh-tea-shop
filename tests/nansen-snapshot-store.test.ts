@@ -62,20 +62,19 @@ describe('Nansen call plan', () => {
   test('counts the background save and leaves Uncle out of it', () => {
     const plan = nansenCallPlan();
     expect(plan.deck).toHaveLength(12);
-    expect(plan.leaderboard).toEqual([
-      {
-        surface: 'leaderboard',
-        endpoint: 'perp-leaderboard',
-        thesisId: null,
-        symbol: null,
-      },
-    ]);
+    expect(plan.leaderboard).toHaveLength(15);
+    expect(plan.leaderboard[0]).toEqual({
+      surface: 'leaderboard',
+      endpoint: 'perp-leaderboard',
+      thesisId: null,
+      symbol: null,
+    });
     expect(plan.details).toHaveLength(67);
-    expect(plan.backgroundCount).toBe(80);
+    expect(plan.backgroundCount).toBe(94);
     expect(plan.uncleEndpoint).toBe('agent/fast');
     expect(NANSEN_REFRESH_MS).toBe(60 * 60 * 1000);
     const readme = readFileSync('README.md', 'utf8');
-    expect(readme).toContain('80 Nansen requests');
+    expect(readme).toContain('94 Nansen requests');
     expect(readme).toContain('agent/fast');
   });
 });
@@ -125,7 +124,7 @@ describe('saved Nansen readings', () => {
         now,
       );
       expect(report.missing).toEqual([]);
-      expect(report.saved).toHaveLength(14);
+      expect(report.saved).toHaveLength(28);
       expect(called).toHaveLength(nansenCallPlan().backgroundCount);
       const before = called.length;
       const deck = await readNansenSnapshot(temp.db, DECK_CACHE_KEY, now);

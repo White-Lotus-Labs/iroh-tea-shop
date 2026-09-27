@@ -87,12 +87,16 @@ export function TeaHost3D({
   model = false,
   position = IROH_DEFAULT_POSITION,
   rotation = IROH_DEFAULT_ROTATION,
+  lit = false,
+  onActivate,
 }: {
   reduced: boolean;
   activity?: IrohActivity;
   model?: boolean;
   position?: Point;
   rotation?: Point;
+  lit?: boolean;
+  onActivate?: () => void;
 }) {
   const [modelReady, setModelReady] = useState(false);
   return (
@@ -123,6 +127,8 @@ export function TeaHost3D({
           <IrohModel
             reduced={reduced}
             activity={activity}
+            lit={lit}
+            onActivate={onActivate}
             onReady={() => setModelReady(true)}
           />
         </Suspense>

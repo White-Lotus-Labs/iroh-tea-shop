@@ -8,6 +8,7 @@ import {
 } from 'three';
 import {
   actionAt,
+  restBlend,
   sample,
   sampleNumber,
   solveTwoBone,
@@ -67,6 +68,16 @@ describe('Iroh motion', () => {
     expect(sample('nod', 'cup', 1)).toBeUndefined();
   });
 
+  it('returns the hands to the bind pose at the end of a sip', () => {
+    expect(restBlend('sip', 'rest', 0)).toBe(0);
+    expect(restBlend('sip', 'rest', 1)).toBe(1);
+    expect(restBlend('rest', 'sip', 0)).toBe(1);
+    expect(restBlend('rest', 'rest', 0.2)).toBe(1);
+    expect(restBlend('lift', 'pour', 0.5)).toBe(0);
+    const end = sample('sip', 'cup', 5.5);
+    expect(end && restBlend(end.from, end.to, end.mix)).toBe(1);
+  });
+
   it('shakes his head once on an error, then settles', () => {
     expect(actionAt('error', 0)).toBe('shake');
     for (let n = 1; n < 30; n++) expect(actionAt('error', n)).not.toBe('shake');
@@ -81,7 +92,14 @@ describe('Iroh motion', () => {
     } as unknown as WebGLProgramParametersWithUniforms;
     patchHostBody({})(body);
     expect(body.fragmentShader).toContain('irohEye( 1');
-    expect(body.fragmentShader).toContain('float wrap = 0.45 * vMask.r;');
+    expect(body.fragmentShader).toContain(
+      'float wrap = 0.45 * vMask.r * ( 1.0 - eyeMask );',
+    );
+    expect(body.fragmentShader).toContain('crease * vMask.r');
+    expect(body.fragmentShader).toContain('metalnessFactor, 0.0');
+    expect(body.fragmentShader).toContain('specularColor *= 1.0 - eyeMask');
+    expect(body.fragmentShader).toContain('roundDisk( i,');
+    expect(body.fragmentShader).not.toContain('return base');
     const shell = {
       uniforms: {},
       vertexShader: ShaderLib.standard.vertexShader,

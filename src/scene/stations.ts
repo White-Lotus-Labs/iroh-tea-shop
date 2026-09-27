@@ -20,9 +20,9 @@ export const STATIONS: {
     id: 'Counter',
     label: 'Counter',
     purpose: 'Thesis Desk',
-    position: [0.15, 1.67, 7.65],
-    target: [-1.43, 1.37, 2.92],
-    hotspot: [-0.95, 1.5, 6.07],
+    position: [-1, 1.8, 7.8],
+    target: [-1.32, 1.38, 2.82],
+    hotspot: [-1.36, 1.5, 6.4],
   },
   {
     id: 'TeaTable',
