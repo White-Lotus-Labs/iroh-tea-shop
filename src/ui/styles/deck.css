@@ -865,11 +865,14 @@
   animation: deck-fade 360ms ease both;
 }
 
+/* The ring renders at viewport size and is scaled up in CSS so it haloes the
+   scroll edges without a larger canvas. */
 .scroll-glow {
   position: absolute;
   inset: 0;
-  opacity: 0.34;
+  opacity: 0.5;
   mix-blend-mode: screen;
+  transform: scale(2.15);
   pointer-events: none;
   animation: deck-fade 1200ms ease both;
 }

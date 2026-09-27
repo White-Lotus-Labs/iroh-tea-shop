@@ -120,13 +120,18 @@ function Meter({
               signal?.status === 'ok' ? signal.smartMoneyNetFlowUsd : null;
             const state = flow === null ? 'none' : flow > 0 ? 'up' : 'down';
             return (
-              <li
-                key={ticker.symbol}
-                data-state={state}
-                aria-label={`${ticker.symbol}: ${state === 'up' ? 'accumulating' : state === 'down' ? 'distributing' : 'no data'}`}
-              >
+              <li key={ticker.symbol} data-state={state}>
                 <LeafIcon />
-                <span>{ticker.symbol}</span>
+                <span>
+                  {ticker.symbol}
+                  <span className="sr-only">
+                    {state === 'up'
+                      ? ': accumulating'
+                      : state === 'down'
+                        ? ': distributing'
+                        : ': no data'}
+                  </span>
+                </span>
               </li>
             );
           })}
@@ -158,6 +163,7 @@ export function ThesisScroll({
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [origin, setOrigin] = useState('');
   const [canShare, setCanShare] = useState(false);
+  const [wide, setWide] = useState(false);
   const [toast, setToast] = useState('');
   const [stampKey, setStampKey] = useState(0);
 
@@ -165,6 +171,7 @@ export function ThesisScroll({
     setHost(document.body);
     setOrigin(window.location.origin);
     setCanShare(typeof navigator.share === 'function');
+    setWide(window.matchMedia('(min-width: 761px)').matches);
   }, []);
 
   useEffect(() => {
@@ -248,7 +255,7 @@ export function ThesisScroll({
       style={style}
     >
       <div className="scroll-veil" aria-hidden="true" onClick={onClose} />
-      {!reduced && (
+      {!reduced && wide && (
         <div className="scroll-glow" aria-hidden="true">
           <CrossBeam variant="ring" hue={0} speed={0.6} />
           <span className="scroll-glow-tint" />
@@ -402,6 +409,7 @@ export function ThesisScroll({
                   rel="noopener noreferrer"
                 >
                   Share the thesis on X
+                  <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 <button
                   type="button"
