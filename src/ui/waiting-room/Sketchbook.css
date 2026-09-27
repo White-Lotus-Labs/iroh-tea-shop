@@ -778,15 +778,46 @@
 }
 
 @media (max-width: 720px) {
+  /* The dots jump by spread, so the arrows move beside them to step by page. */
   .sb {
+    grid-template-columns: 1fr max-content 1fr;
+    grid-template-areas:
+      'book book book'
+      'prev index next'
+      'hint hint hint';
     padding: 0 0 6px;
   }
+  .sb-stage {
+    display: contents;
+  }
+  .sb-3d {
+    grid-area: book;
+    animation: sb-arrive 1.1s var(--wr-ease-out) 0.2s both;
+  }
   .sb-arrow {
-    display: none;
+    grid-area: prev;
+    justify-self: end;
+    width: 40px;
+    min-height: 40px;
+    margin: 18px 0 0;
+    animation: waiting-rise 0.9s var(--wr-ease-out) 0.5s both;
+  }
+  .sb-arrow.is-next {
+    grid-area: next;
+    justify-self: start;
+  }
+  .sb-arrow svg {
+    width: 9px;
+    height: 24px;
+    stroke-width: 1.5;
   }
   .sb-index {
+    grid-area: index;
     gap: 0;
     margin-top: 18px;
+  }
+  .sb-hint {
+    grid-area: hint;
   }
   /* Dots on phones: the titles stay for screen readers. */
   .sb-index button {
@@ -825,6 +856,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sb-stage,
+  .sb-3d,
+  .sb-arrow,
   .sb-index {
     animation: none;
   }
