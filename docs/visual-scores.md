@@ -100,6 +100,23 @@ Changes: code-sculpted back wall (veranda with deck and railing, painted landsca
 | Mood/color grade             | 7     | The purple dusk through the veranda gives a cool counterpoint; the counter view is still murky.                     |
 | Prop and architecture detail | 7     | Every prop the camera sees now has parts; the tokonoma and side walls are sparse, and the brazier box is plain.     |
 
+## Round 5: counter light, tokonoma, brazier fittings
+
+Shots: `_scratch/shots/round-5`. Frame rate: mean 85 fps, min 68 fps (`counter`).
+
+Changes: a customer-side chochin that lights the counter front, a brighter tokonoma with a bronze koro, stronger shoji shafts, brass corners and ring pulls on the brazier box, and a sumi-e bamboo scroll on the left wall. The counter menu board moved to face the lantern.
+
+| Part                         | Score | Reason                                                                                                |
+| ---------------------------- | ----- | ----------------------------------------------------------------------------------------------------- |
+| Lighting and shadows         | 8     | Every station now has a motivated key: lanterns, shoji, brazier embers, and the tokonoma downlight.   |
+| Environment/atmosphere       | 7     | Shafts read on the veranda and behind the orrery; the wide view still shows little haze.              |
+| Walls/architecture           | 7     | Joinery, shoji and alcove read as built; side-wall plaster stays deliberately plain.                  |
+| Floor and table              | 7     | No change.                                                                                            |
+| Tea set and steam            | 7     | No change.                                                                                            |
+| Orrery                       | 8     | No change.                                                                                            |
+| Mood/color grade             | 8     | The counter is no longer murky; warm interior against the violet dusk is consistent across all shots. |
+| Prop and architecture detail | 7     | The brazier and tokonoma gained parts; small props are still sparse at wide framing.                  |
+
 ## Proposed
 
 Items that need an off-limits file, a dependency, or a big architecture change.

@@ -217,6 +217,36 @@ export function Brazier({ reduced }: { reduced: boolean }) {
           />
         </group>
       ))}
+      {[-1, 1].flatMap((sx) =>
+        [-1, 1].map((sz) => (
+          <mesh
+            key={`${sx}${sz}`}
+            position={[(sx * width) / 2, height - 0.03, (sz * width) / 2]}
+          >
+            <boxGeometry args={[0.036, 0.05, 0.036]} />
+            <meshStandardMaterial
+              color="#8a6a3a"
+              metalness={1}
+              roughness={0.35}
+            />
+          </mesh>
+        )),
+      )}
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * (width / 2 + 0.004), 0.19, 0]}>
+          <mesh rotation={[0, Math.PI / 2, 0]}>
+            <cylinderGeometry args={[0.012, 0.012, 0.008, 12]} />
+            <primitive object={iron} attach="material" />
+          </mesh>
+          <mesh
+            position={[side * 0.006, -0.028, 0]}
+            rotation={[0, Math.PI / 2, 0]}
+          >
+            <torusGeometry args={[0.026, 0.0035, 6, 20]} />
+            <primitive object={iron} attach="material" />
+          </mesh>
+        </group>
+      ))}
       <mesh position={[0, height - 0.012, 0]}>
         <boxGeometry args={[inner, 0.02, inner]} />
         <meshStandardMaterial

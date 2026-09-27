@@ -136,9 +136,70 @@ function drawEnso(ctx: CanvasRenderingContext2D) {
   for (let i = 0; i < 4; i++) ctx.fillRect(180, 300 + i * 13, 10, 6);
 }
 
-/** A hanging scroll with an ink circle, brocade border and a wooden roller. */
-function Scroll({ position }: { position: Point }) {
-  const art = useCanvasTexture(256, 512, drawEnso);
+function drawBamboo(ctx: CanvasRenderingContext2D) {
+  const random = createRandom(412);
+  ctx.fillStyle = '#e6d8bb';
+  ctx.fillRect(0, 0, 256, 512);
+  for (let i = 0; i < 2600; i++) {
+    ctx.fillStyle = `rgba(120,90,50,${random() * 0.05})`;
+    ctx.fillRect(random() * 256, random() * 512, 1 + random() * 6, 1);
+  }
+  for (const [x, width, tone] of [
+    [96, 13, 0.78],
+    [150, 9, 0.45],
+  ]) {
+    let y = 470;
+    while (y > 40) {
+      const length = 58 + random() * 40,
+        lean = (470 - y) * 0.04;
+      ctx.fillStyle = `rgba(22,18,12,${tone * (0.75 + random() * 0.25)})`;
+      ctx.beginPath();
+      ctx.moveTo(x + lean - width / 2, y);
+      ctx.lineTo(x + lean + length * 0.04 - width / 2, y - length + 5);
+      ctx.lineTo(x + lean + length * 0.04 + width / 2, y - length + 5);
+      ctx.lineTo(x + lean + width / 2, y);
+      ctx.fill();
+      ctx.fillStyle = `rgba(14,10,8,${tone})`;
+      ctx.fillRect(
+        x + lean + length * 0.04 - width / 2 - 2,
+        y - length,
+        width + 4,
+        3,
+      );
+      y -= length;
+    }
+  }
+  for (let leaf = 0; leaf < 22; leaf++) {
+    const x = 90 + random() * 110,
+      y = 60 + random() * 200,
+      angle = 0.3 + random() * 1.2 * (random() > 0.5 ? 1 : -1) + Math.PI / 2,
+      length = 34 + random() * 30;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = `rgba(20,16,10,${0.45 + random() * 0.45})`;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(length * 0.4, -length * 0.12, length, 0);
+    ctx.quadraticCurveTo(length * 0.4, length * 0.12, 0, 0);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle = '#a3321f';
+  ctx.fillRect(196, 400, 18, 18);
+  ctx.fillStyle = 'rgba(22,16,12,.8)';
+  for (let i = 0; i < 3; i++) ctx.fillRect(203, 330 + i * 16, 8, 7);
+}
+
+/** A hanging scroll with ink art (an enso by default), brocade border and a wooden roller. */
+function Scroll({
+  position,
+  paint = drawEnso,
+}: {
+  position: Point;
+  paint?: (ctx: CanvasRenderingContext2D) => void;
+}) {
+  const art = useCanvasTexture(256, 512, paint);
   return (
     <group position={position} rotation={[0, Math.PI / 2, 0]}>
       <mesh position={[0, 0, -0.004]} castShadow receiveShadow>
@@ -620,7 +681,7 @@ export function WaitingRoom() {
       <Counter />
       <WaitingDressing />
       <PaperLantern position={[-2.3, 2.5, 5.55]} drop={0.92} light={7} />
-      <PaperLantern position={[-1.2, 2.62, 7.35]} drop={0.8} light={3.2} />
+      <PaperLantern position={[-1.2, 2.62, 7.35]} drop={0.8} light={5} />
     </group>
   );
 }
@@ -649,6 +710,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
         posts={[-6.1, -3.4, -0.9, 1.7]}
       />
       <Scroll position={[-3.99, 1.62, -4.62]} />
+      <Scroll position={[-3.99, 1.62, 0.4]} paint={drawBamboo} />
       <Andon position={[-3.5, 0, -1.95]} />
       <RightWall />
       {[-5.94, -1.53, 3.17].map((z) => (

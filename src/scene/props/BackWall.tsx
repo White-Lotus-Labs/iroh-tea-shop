@@ -655,6 +655,64 @@ const pillarProfile = Array.from({ length: 14 }, (_, i) => {
   );
 });
 
+/** A bronze incense burner on three ball feet, with a domed lid and a bead finial. */
+function Koro({ position }: { position: Point }) {
+  const bowl = useMemo(
+    () =>
+      [
+        [0, 0.012],
+        [0.045, 0.012],
+        [0.07, 0.03],
+        [0.075, 0.055],
+        [0.066, 0.075],
+        [0.06, 0.078],
+      ].map(([r, y]) => new Vector2(r, y)),
+    [],
+  );
+  const lid = useMemo(
+    () =>
+      [
+        [0.062, 0],
+        [0.058, 0.018],
+        [0.035, 0.04],
+        [0.012, 0.05],
+        [0, 0.052],
+      ].map(([r, y]) => new Vector2(r, y)),
+    [],
+  );
+  const bronze = (
+    <meshStandardMaterial color="#6b4a2a" metalness={1} roughness={0.38} />
+  );
+  return (
+    <group position={position}>
+      <mesh castShadow>
+        <latheGeometry args={[bowl, 28]} />
+        {bronze}
+      </mesh>
+      <mesh position={[0, 0.078, 0]} castShadow>
+        <latheGeometry args={[lid, 28]} />
+        {bronze}
+      </mesh>
+      <mesh position={[0, 0.138, 0]} castShadow>
+        <sphereGeometry args={[0.012, 12, 8]} />
+        {bronze}
+      </mesh>
+      {[0, 1, 2].map((i) => {
+        const a = (i / 3) * Math.PI * 2;
+        return (
+          <mesh
+            key={i}
+            position={[Math.cos(a) * 0.05, 0.007, Math.sin(a) * 0.05]}
+          >
+            <sphereGeometry args={[0.011, 8, 6]} />
+            {bronze}
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 /** The tokonoma: raised board floor, lacquered edge, natural toko-bashira, scroll and flowers. */
 function Tokonoma() {
   const width = toko.x1 - toko.x0,
@@ -724,11 +782,12 @@ function Tokonoma() {
       <pointLight
         position={[midX, toko.top - 0.12, midZ + 0.05]}
         color="#ffc488"
-        intensity={2.2}
-        distance={2.6}
+        intensity={4.2}
+        distance={2.8}
       />
       <Kakejiku position={[midX - 0.12, 1.62, toko.back]} />
       <Chabana position={[midX + 0.55, toko.floor, midZ - 0.05]} />
+      <Koro position={[midX - 0.68, toko.floor, midZ + 0.02]} />
     </group>
   );
 }
