@@ -1,10 +1,23 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PublicUser } from '../auth/service';
 
 export function AccountMenu({ user }: { user: PublicUser | null }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const menu = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(false);
+  // Close like the other popovers: a press outside the menu closes it.
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent) => {
+      const details = menu.current;
+      if (details && !details.contains(event.target as Node))
+        details.open = false;
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open]);
   const logout = async () => {
     setBusy(true);
     setError('');
@@ -48,7 +61,18 @@ export function AccountMenu({ user }: { user: PublicUser | null }) {
   }
 
   return (
-    <details className="account-menu">
+    <details
+      ref={menu}
+      className="account-menu"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !event.currentTarget.open) return;
+        // The shell closes the open panel on Escape; close only this menu.
+        event.stopPropagation();
+        event.currentTarget.open = false;
+        event.currentTarget.querySelector('summary')?.focus();
+      }}
+    >
       <summary
         data-testid="account-control"
         aria-label={`Account: ${user.nickname}`}

@@ -79,8 +79,18 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
     'data-station',
     'AvatarSeat',
   );
+  const logout = page.getByRole('button', { name: 'Log out' });
   await page.getByTestId('account-control').click();
-  await page.getByRole('button', { name: 'Log out' }).click();
+  await expect(logout).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(logout).toBeHidden();
+  await expect(page.getByTestId('account-control')).toBeFocused();
+  await page.getByTestId('account-control').click();
+  await expect(logout).toBeVisible();
+  await page.locator('main').click({ position: { x: 5, y: 300 } });
+  await expect(logout).toBeHidden();
+  await page.getByTestId('account-control').click();
+  await logout.click();
   await expect(page.getByTestId('account-entry')).toBeVisible();
   await expect(page.locator('main')).toHaveAttribute(
     'data-station',
@@ -111,17 +121,26 @@ test('duplicate nickname and short password show recoverable errors', async ({
   await page.getByRole('button', { name: 'Create an account' }).click();
   await page.getByLabel('Nickname').fill(nickname);
   await page.getByLabel('Password').fill('short');
-  await page
+  const create = page
     .getByRole('button', { name: 'Create my room', exact: true })
-    .last()
-    .click();
-  await expect(page.locator('.auth-error')).toContainText('at least 8');
+    .last();
+  await create.click();
+  // The browser blocks a short password before any request.
+  expect(
+    await page
+      .getByLabel('Password')
+      .evaluate((el) => (el as HTMLInputElement).validity.valid),
+  ).toBe(false);
+  await expect(page.locator('.auth-error')).toHaveCount(0);
   await expect(page.getByLabel('Nickname')).toHaveValue(nickname);
   await page.getByLabel('Password').fill('long enough');
-  await page
-    .getByRole('button', { name: 'Create my room', exact: true })
-    .last()
-    .click();
+  await page.route('**/api/auth/register', (route) => route.abort());
+  await create.click();
+  await expect(page.locator('.auth-error')).toHaveText(
+    'Could not reach the shop. Try again.',
+  );
+  await page.unroute('**/api/auth/register');
+  await create.click();
   await expect(page.getByTestId('account-control')).toContainText(nickname, {
     timeout: 15000,
   });
