@@ -1,5 +1,6 @@
 'use client';
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -28,7 +29,7 @@ import {
   SPREAD_TITLES,
   sketchPreloadUrl,
 } from './sketchbookPages';
-import { bakePageShot, getPageShot, snapshotAndStore } from './pageSnapshot';
+import { bakePageShot, getPageShot, idle, pageShotKey } from './pageSnapshot';
 import { usePetalCanvas } from './usePetalCanvas';
 import './Sketchbook.css';
 
@@ -97,7 +98,7 @@ function leafOf(mode: Mode, turn: Turn) {
       };
 }
 
-function PageView({
+const PageView = memo(function PageView({
   index,
   side,
   live,
@@ -116,7 +117,34 @@ function PageView({
       {SKETCH_PAGES[index].render(live)}
     </div>
   );
+});
+
+/** The side a page sits on when it lies flat, so its shot matches it. */
+function sideOf(mode: Mode, index: number): 'left' | 'right' {
+  return mode === 'spread' && index % 2 === 0 ? 'left' : 'right';
 }
+
+/** Every page, hidden, for the snapshot baker to draw from. */
+const Baker = memo(function Baker({
+  mode,
+  bind,
+}: {
+  mode: Mode;
+  bind: (el: HTMLDivElement | null) => void;
+}) {
+  return (
+    <div ref={bind} className="sb-baker" hidden>
+      {SKETCH_PAGES.map((page, i) => (
+        <PageView
+          key={page.key}
+          index={i}
+          side={sideOf(mode, i)}
+          live={false}
+        />
+      ))}
+    </div>
+  );
+});
 
 function Leaf({
   cls,
@@ -205,17 +233,6 @@ function pageWidth(bookEl: HTMLElement | null, mode: Mode): number {
   return mode === 'spread' ? w / 2 : w;
 }
 
-function livePageEl(
-  bookEl: HTMLElement | null,
-  index: number,
-): HTMLElement | null {
-  return (
-    bookEl?.querySelector<HTMLElement>(
-      `.sb-half > .sb-page[data-index="${index}"]`,
-    ) ?? null
-  );
-}
-
 function shotsForLeaf(
   mode: Mode,
   turn: Turn,
@@ -223,12 +240,8 @@ function shotsForLeaf(
 ): { front?: string; back?: string } {
   const leaf = leafOf(mode, turn);
   const width = pageWidth(bookEl, mode);
-  const take = (index: number) => {
-    const cached = getPageShot(index, width);
-    if (cached) return cached;
-    const el = livePageEl(bookEl, index);
-    return el ? (snapshotAndStore(el, index, width) ?? undefined) : undefined;
-  };
+  const take = (index: number) =>
+    getPageShot(pageShotKey(index, sideOf(mode, index), width));
   return {
     front: take(leaf.front),
     back: leaf.back === undefined ? undefined : take(leaf.back),
@@ -300,10 +313,9 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   const lidStrips = useRef<(HTMLDivElement | null)[]>([]);
   const stripLock = useRef(FULL_STRIPS);
   const shotLock = useRef<{ front?: string; back?: string }>({});
-  const [bakeIndex, setBakeIndex] = useState(0);
   const [pageW, setPageW] = useState(0);
   const bakeDone = useRef(false);
-  const baker = useRef<HTMLDivElement>(null);
+  const baker = useRef<HTMLDivElement | null>(null);
   const stripsRef = useRef(FULL_STRIPS);
   const kickRef = useRef<() => void>(() => {});
   const bounds = useRef({ left: 0, top: 0, width: 0, height: 0, at: 0 });
@@ -328,6 +340,9 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     },
     [],
   );
+  const bindBaker = useCallback((el: HTMLDivElement | null) => {
+    baker.current = el;
+  }, []);
   const bindLid = useCallback(
     (i: number) => (el: HTMLDivElement | null) => {
       lidStrips.current[i] = el;
@@ -426,37 +441,31 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     return () => observer.disconnect();
   }, []);
 
+  // One page per idle slot, so the bake never holds up the intro or a drag.
   useEffect(() => {
-    if (phase === 'shut' || bakeIndex >= SKETCH_PAGES.length) {
-      if (bakeIndex >= SKETCH_PAGES.length) bakeDone.current = true;
-      return;
-    }
+    const height = book.current?.clientHeight ?? 0;
+    const pages = baker.current?.querySelectorAll<HTMLElement>('.sb-page');
+    if (phase === 'shut' || pageW < 8 || !pages) return;
     let cancel = false;
-    const width = pageW || pageWidth(book.current, mode);
-    const run = async () => {
-      if (width < 8) return;
-      if (getPageShot(bakeIndex, width)) {
-        if (!cancel) setBakeIndex((i) => i + 1);
-        return;
+    bakeDone.current = false;
+    void (async () => {
+      for (const [n, page] of [...pages].entries()) {
+        const index = Number(page.dataset.index);
+        const key = pageShotKey(index, sideOf(mode, index), pageW);
+        if (!getPageShot(key)) {
+          await idle();
+          if (cancel) return;
+          await bakePageShot(page, key, pageW, height, sketchPreloadUrl);
+          if (cancel) return;
+        }
+        root.current?.setAttribute('data-bake', String(n + 1));
       }
-      const el = baker.current?.querySelector<HTMLElement>('.sb-page');
-      if (el) {
-        await Promise.all(
-          [...el.querySelectorAll('img')].map((img) =>
-            img.decode
-              ? img.decode().catch(() => undefined)
-              : Promise.resolve(),
-          ),
-        );
-        if (!cancel) await bakePageShot(el, bakeIndex, width);
-      }
-      if (!cancel) setBakeIndex((i) => i + 1);
-    };
-    void run();
+      bakeDone.current = true;
+    })();
     return () => {
       cancel = true;
     };
-  }, [phase, bakeIndex, mode, pageW]);
+  }, [phase, mode, pageW]);
 
   const settle = useCallback(() => {
     const s = spring.current;
@@ -853,7 +862,6 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
       data-mode={mode}
       data-open={phase}
       data-budget={budget}
-      data-bake={bakeIndex}
     >
       <svg className="sb-defs" aria-hidden="true" focusable="false">
         <filter id="sb-blur-1">
@@ -945,18 +953,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
                   bind={bind}
                 />
               )}
-              {phase !== 'shut' && bakeIndex < SKETCH_PAGES.length && (
-                <div
-                  ref={baker}
-                  className="sb-baker"
-                  aria-hidden="true"
-                  style={{
-                    width: pageWidth(book.current, mode) || undefined,
-                  }}
-                >
-                  <PageView index={bakeIndex} side="right" live={false} />
-                </div>
-              )}
+              <Baker mode={mode} bind={bindBaker} />
             </div>
           </div>
         </div>

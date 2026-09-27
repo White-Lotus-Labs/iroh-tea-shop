@@ -1,37 +1,64 @@
 import { describe, expect, it } from 'vitest';
 import {
-  canvasFont,
-  getPageShot,
+  coversAny,
+  declarations,
+  matchableSelector,
   pageShotKey,
-  rememberPageShot,
 } from '../src/ui/waiting-room/pageSnapshot';
 
-describe('pageSnapshot cache', () => {
-  it('stores a shot by page index and width', () => {
-    rememberPageShot(3, 420.4, 'data:image/jpeg;base64,xx');
-    expect(pageShotKey(3, 420.4)).toBe('3:420');
-    expect(getPageShot(3, 420)).toBe('data:image/jpeg;base64,xx');
-    expect(getPageShot(3, 100)).toBeUndefined();
+/** A CSSOM rule whose `background` shorthand holds `var()`. */
+function fakeStyle(values: Record<string, string>, longhands: string[]) {
+  const style: Record<string | number, unknown> = {
+    length: longhands.length,
+    getPropertyValue: (name: string) => values[name] ?? '',
+    getPropertyPriority: () => '',
+  };
+  longhands.forEach((name, i) => (style[i] = name));
+  return style as unknown as CSSStyleDeclaration;
+}
+
+describe('pageSnapshot', () => {
+  it('keys a shot by page, side and rounded width', () => {
+    expect(pageShotKey(3, 'left', 420.4)).toBe('3:left:420');
   });
 
-  it('builds a canvas font when the CSS shorthand is empty', () => {
-    expect(
-      canvasFont({
-        font: '',
-        fontStyle: 'italic',
-        fontWeight: '400',
-        fontSize: '18px',
-        fontFamily: 'Georgia, serif',
-      }),
-    ).toBe('italic 400 18px Georgia, serif');
-    expect(
-      canvasFont({
-        font: '700 9.5px / 11.4px Arial',
-        fontStyle: 'normal',
-        fontWeight: '700',
-        fontSize: '9.5px',
-        fontFamily: 'Arial',
-      }),
-    ).toBe('700 9.5px / 11.4px Arial');
+  it('tests pseudo-element rules against their host element', () => {
+    expect(matchableSelector('.sb-page::after')).toBe('.sb-page');
+    expect(matchableSelector('.sb-link:hover')).toBe('.sb-link');
+    expect(matchableSelector('::selection')).toBe('::selection');
+  });
+
+  it('fills var() longhands that CSSOM reads as empty from computed style', () => {
+    const style = fakeStyle(
+      { content: '""', 'background-size': '280px 280px, auto' },
+      ['content', 'background-image', 'background-size'],
+    );
+    const computed: Record<string, string> = {
+      'background-image': 'url("data:tooth"), linear-gradient(red, blue)',
+    };
+    expect(declarations(style, (name) => computed[name] ?? '')).toBe(
+      'content:"";background-image:url("data:tooth"), linear-gradient(red, blue);background-size:280px 280px, auto;',
+    );
+    expect(declarations(style)).toBe(
+      'content:"";background-size:280px 280px, auto;',
+    );
+  });
+
+  it('keeps a var() shorthand CSSOM still holds, so cqi stays unresolved', () => {
+    const style = fakeStyle(
+      { font: 'italic max(10px, 2.4cqi) var(--wr-serif)' },
+      ['font-style', 'font-size', 'font-family'],
+    );
+    expect(declarations(style, () => '24px')).toBe(
+      'font:italic max(10px, 2.4cqi) var(--wr-serif);',
+    );
+  });
+
+  it('matches unicode-range descriptors against the text', () => {
+    const latin = 'U+0000-00FF, U+0131, U+2000-206F';
+    expect(coversAny(latin, [0x41])).toBe(true);
+    expect(coversAny(latin, [0x0416])).toBe(false);
+    expect(coversAny('U+04??', [0x0416])).toBe(true);
+    expect(coversAny('', [0x0416])).toBe(true);
   });
 });
