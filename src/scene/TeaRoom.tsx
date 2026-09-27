@@ -3,9 +3,9 @@ import {
   Suspense,
   type ReactNode,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
-import dynamic from 'next/dynamic';
 import { Canvas, type RootState } from '@react-three/fiber';
 import { ContactShadows, useProgress } from '@react-three/drei';
 import { WebGLRenderTarget } from 'three';
@@ -28,17 +28,12 @@ import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
 import { DevShotCamera } from './DevShotCamera';
 import { SceneLighting, Staged } from './SceneEffects';
+import { ScenePolish } from './ScenePolish';
 import { lightExperience } from './lightExperience';
 import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 import type { ThesisId } from '../thesis/types';
-
-// AO, bloom, and the room environment stay out of the entrance download.
-const ScenePolish = dynamic(
-  () => import('./ScenePolish').then((mod) => ({ default: mod.ScenePolish })),
-  { ssr: false, loading: () => null },
-);
 
 function RoomGeometry({
   mood,
@@ -52,7 +47,8 @@ function RoomGeometry({
   onMenuOpen,
   onThesisPick,
   onNavigate,
-  polish,
+  onStaged,
+  hostModel,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -65,8 +61,44 @@ function RoomGeometry({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
-  polish: boolean;
+  onStaged?: () => void;
+  hostModel: boolean;
 }) {
+  const posters = station !== 'Entrance';
+  // Deck state (mood, menuClosed) re-renders this component on every thesis
+  // switch. Each drei ContactShadows then redraws the whole room, so the static
+  // detail is memoized away from it.
+  const detail = useMemo(
+    () => (
+      <>
+        <WaitingDetail />
+        <ChamberDetail reduced={reduced} />
+        <ContactShadows
+          position={[0, 0.016, -2.55]}
+          opacity={0.3}
+          scale={5.7}
+          blur={2.4}
+          far={1.6}
+          resolution={256}
+          frames={1}
+          color="#25180f"
+        />
+        <MechanicalPlanetarySystem reduced={reduced} />
+        <TeaShelf
+          onSelect={onShelfSelect}
+          revealed={shelfRevealed}
+          reduced={reduced}
+          posters={posters}
+        />
+      </>
+    ),
+    [reduced, onShelfSelect, shelfRevealed, posters],
+  );
+  const covered = station === 'Counter' && !menuClosed;
+  const finish = useMemo(
+    () => <ScenePolish reduced={reduced} covered={covered} />,
+    [reduced, covered],
+  );
   return (
     <>
       <color attach="background" args={['#2f2119']} />
@@ -108,26 +140,8 @@ function RoomGeometry({
       <SceneLighting reduced={reduced} />
       <WaitingRoom />
       {/* Later group: no lights, so the shell's programs stay valid when it arrives. */}
-      <Staged reduced={reduced} precompile={compileRoom}>
-        <WaitingDetail />
-        <ChamberDetail reduced={reduced} />
-        <ContactShadows
-          position={[0, 0.016, -2.55]}
-          opacity={0.3}
-          scale={5.7}
-          blur={2.4}
-          far={1.6}
-          resolution={256}
-          frames={1}
-          color="#25180f"
-        />
-        <MechanicalPlanetarySystem reduced={reduced} />
-        <TeaShelf
-          onSelect={onShelfSelect}
-          revealed={shelfRevealed}
-          reduced={reduced}
-          posters={station !== 'Entrance'}
-        />
+      <Staged reduced={reduced} precompile={compileRoom} onReady={onStaged}>
+        {detail}
         <ThesisCards
           halos={station === 'Counter' && menuClosed}
           reduced={reduced}
@@ -141,13 +155,17 @@ function RoomGeometry({
           onMenuOpen={onMenuOpen}
           onShelfSelect={onShelfSelect}
         />
-        {polish && <ScenePolish reduced={reduced} />}
+        {finish}
       </Staged>
       <TeaChamber>
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
         <Suspense fallback={null}>
-          <TeaHost3D reduced={reduced} activity={irohActivity} model={polish} />
+          <TeaHost3D
+            reduced={reduced}
+            activity={irohActivity}
+            model={hostModel}
+          />
         </Suspense>
       </TeaChamber>
     </>
@@ -203,7 +221,8 @@ export default function TeaRoom({
   onMenuOpen,
   onThesisPick,
   onNavigate,
-  polish,
+  onStaged,
+  hostModel,
 }: {
   station: Station;
   reduced: boolean;
@@ -224,7 +243,8 @@ export default function TeaRoom({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
-  polish: boolean;
+  onStaged?: () => void;
+  hostModel: boolean;
 }) {
   const [lost, setLost] = useState(false);
   // Textures load through three's default manager, which useProgress observes.
@@ -273,22 +293,25 @@ export default function TeaRoom({
           onAvailabilityChange(true);
         }}
       >
-        <Surfaces>
-          <RoomGeometry
-            mood={mood}
-            reduced={reduced}
-            requestKey={requestKey}
-            irohActivity={irohActivity}
-            onShelfSelect={onShelfSelect}
-            shelfRevealed={shelfRevealed}
-            station={station}
-            menuClosed={menuClosed}
-            onMenuOpen={onMenuOpen}
-            onThesisPick={onThesisPick}
-            onNavigate={onNavigate}
-            polish={polish}
-          />
-        </Surfaces>
+        <Suspense fallback={null}>
+          <Surfaces>
+            <RoomGeometry
+              mood={mood}
+              reduced={reduced}
+              requestKey={requestKey}
+              irohActivity={irohActivity}
+              onShelfSelect={onShelfSelect}
+              shelfRevealed={shelfRevealed}
+              station={station}
+              menuClosed={menuClosed}
+              onMenuOpen={onMenuOpen}
+              onThesisPick={onThesisPick}
+              onNavigate={onNavigate}
+              onStaged={onStaged}
+              hostModel={hostModel}
+            />
+          </Surfaces>
+        </Suspense>
         <CameraRig
           station={station}
           shelfFocused={shelfFocused}

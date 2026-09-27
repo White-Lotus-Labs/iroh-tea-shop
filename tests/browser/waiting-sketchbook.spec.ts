@@ -178,14 +178,14 @@ test('a light machine riffles snapshot strips and skips the page blur', async ({
       const style = getComputedStyle(el);
       return {
         position: style.backgroundPosition,
-        jpeg: style.backgroundImage.startsWith('url("data:image/jpeg'),
+        shot: style.backgroundImage.startsWith('url("blob:'),
       };
     });
     return { strips, faces };
   });
   expect(curl.strips).toBe(16);
   expect(curl.faces.length).toBeGreaterThanOrEqual(16);
-  expect(curl.faces.every((face) => face.jpeg)).toBe(true);
+  expect(curl.faces.every((face) => face.shot)).toBe(true);
   expect(
     curl.faces.every((face) => /^0(px|%) 0(px|%)$/.test(face.position)),
   ).toBe(true);
@@ -217,7 +217,7 @@ test('on a phone held sideways one page keeps a size its text fits', async ({
     'The Tea Shop, page 2 of 12',
   );
   // The title page is the fullest; its last line must stay on the paper.
-  const inner = await book.locator('.sb-title').boundingBox();
-  const last = await book.locator('.sb-sign').boundingBox();
+  const inner = await book.locator('.sb-half .sb-title').boundingBox();
+  const last = await book.locator('.sb-half .sb-sign').boundingBox();
   expect(last!.y + last!.height).toBeLessThanOrEqual(inner!.y + inner!.height);
 });

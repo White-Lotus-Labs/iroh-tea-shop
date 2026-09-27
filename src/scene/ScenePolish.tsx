@@ -1,10 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import {
-  Environment,
-  Lightformer,
-  PerformanceMonitor,
-} from '@react-three/drei';
+import { PerformanceMonitor } from '@react-three/drei';
 import {
   HalfFloatType,
   Vector2,
@@ -77,11 +73,13 @@ function Composer({
   ao,
   msaa,
   bloom,
+  covered,
 }: {
   reduced: boolean;
   ao: boolean;
   msaa: number;
   bloom: boolean;
+  covered: boolean;
 }) {
   const gl = useThree((state) => state.gl);
   const scene = useThree((state) => state.scene);
@@ -136,85 +134,13 @@ function Composer({
     target.samples = msaa;
     composer.reset(target);
   }, [pipeline, msaa]);
+  const skipped = useRef(false);
   useFrame((_, delta) => {
     if (!reduced) pipeline.grade.uniforms.time.value += delta;
-    pipeline.composer.render(delta);
+    skipped.current = covered && !skipped.current;
+    if (!skipped.current) pipeline.composer.render(delta);
   }, 1);
   return null;
-}
-
-/** Procedural room reflections: warm window and doorway panels, dim timber above and below. */
-function RoomEnvironment() {
-  return (
-    <Environment resolution={256} frames={1} environmentIntensity={0.55}>
-      <color attach="background" args={['#140d09']} />
-      <Lightformer
-        form="rect"
-        color="#ff9a5c"
-        intensity={3.2}
-        position={[-3.1, 1.2, -6]}
-        scale={[1.8, 2.6, 1]}
-      />
-      <Lightformer
-        form="rect"
-        color="#ffd9a3"
-        intensity={2.4}
-        position={[-0.4, 1.9, -6]}
-        scale={[2.2, 2.8, 1]}
-      />
-      <Lightformer
-        form="rect"
-        color="#ffd7a0"
-        intensity={2}
-        position={[4, 2.1, -0.3]}
-        scale={[2, 2.4, 1]}
-      />
-      <Lightformer
-        form="circle"
-        color="#ffc070"
-        intensity={9}
-        position={[2.3, 2.72, -3.1]}
-        scale={0.5}
-      />
-      <Lightformer
-        form="circle"
-        color="#ffc070"
-        intensity={9}
-        position={[-1.05, 2.45, -2.6]}
-        scale={0.55}
-      />
-      <Lightformer
-        form="rect"
-        color="#ffcf96"
-        intensity={0.7}
-        position={[0, 1.6, 8]}
-        scale={[3.5, 3, 1]}
-      />
-      <Lightformer
-        form="rect"
-        color="#5a3b25"
-        intensity={0.35}
-        position={[0, 4, -1.5]}
-        rotation={[Math.PI / 2, 0, 0]}
-        scale={[8, 10, 1]}
-      />
-      <Lightformer
-        form="rect"
-        color="#7a4c2c"
-        intensity={0.4}
-        position={[0, -1.2, -1.5]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        scale={[8, 10, 1]}
-      />
-      <Lightformer
-        form="rect"
-        color="#4a3222"
-        intensity={0.3}
-        position={[-4.5, 1.8, -1.5]}
-        scale={[10, 3.7, 1]}
-      />
-    </Environment>
-  );
 }
 
 /** Quality rungs, cheapest first. Sustained low fps steps down: AO, then MSAA, then DPR toward 1. */
@@ -232,7 +158,14 @@ function openingTier() {
   return lightExperience() ? 0 : 3;
 }
 
-export function ScenePolish({ reduced }: { reduced: boolean }) {
+/** `covered`: a panel hides most of the room, so it is drawn every other frame. */
+export function ScenePolish({
+  reduced,
+  covered,
+}: {
+  reduced: boolean;
+  covered: boolean;
+}) {
   const setDpr = useThree((state) => state.setDpr);
   const [tier, setTier] = useState(openingTier);
   const capped = lightExperience();
@@ -243,11 +176,13 @@ export function ScenePolish({ reduced }: { reduced: boolean }) {
   }, [rung, setDpr]);
   return (
     <>
-      <RoomEnvironment />
       <PerformanceMonitor
         flipflops={3}
         onDecline={() => setTier((current) => Math.max(0, current - 1))}
-        onIncline={() => setTier((current) => Math.min(ceiling, current + 1))}
+        // Skipped draws inflate the measured fps, so no climbing while covered.
+        onIncline={() =>
+          covered || setTier((current) => Math.min(ceiling, current + 1))
+        }
         onFallback={() => setTier(0)}
       />
       <Composer
@@ -255,6 +190,7 @@ export function ScenePolish({ reduced }: { reduced: boolean }) {
         ao={rung.ao}
         msaa={rung.msaa}
         bloom={!capped && tier > 0}
+        covered={covered}
       />
     </>
   );

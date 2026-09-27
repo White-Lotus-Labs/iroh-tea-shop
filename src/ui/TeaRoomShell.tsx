@@ -21,6 +21,9 @@ import { InkLine, STATION_TEASERS } from './stationTeasers';
 import { WaitingRoom } from './waiting-room/WaitingRoom';
 import { WaitingVersions } from './waiting-room/Versions';
 import { MusicToggle } from './MusicToggle';
+import { roomTextures, SHELF_POSTERS } from './roomTextures';
+import { lightExperience } from '../scene/lightExperience';
+import { paintSurfaces } from '../scene/paintSurfaces';
 
 // Scene / deck / chat stay out of the first paint; idle preloads warm them.
 const loadTeaRoom = () => import('../scene/TeaRoom');
@@ -29,7 +32,46 @@ const loadThesisDeck = () =>
 const loadIrohChat = () =>
   import('./IrohChat').then((m) => ({ default: m.IrohChat }));
 
-const TeaRoom = dynamic(loadTeaRoom, {
+// Textures download while three.js parses and the room builds, instead of
+// after; the scene then reads them from the HTTP cache.
+const warmTeaRoom = () => {
+  void paintSurfaces();
+  return loadTeaRoom().then(() => {
+    for (const src of roomTextures(lightExperience())) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.fetchPriority = 'low';
+      img.src = src;
+    }
+  });
+};
+
+let firstSpread: Promise<void> | undefined;
+/** Resolves once the sketchbook's first spread is baked (or after 12 s), so the room never competes with the first read. */
+const afterFirstSpread = () =>
+  (firstSpread ??= new Promise<void>((resolve) => {
+    const done = () => {
+      observer.disconnect();
+      resolve();
+    };
+    const check = () => {
+      const bake = document
+        .querySelector('[data-bake]')
+        ?.getAttribute('data-bake');
+      if (Number(bake) >= 2) done();
+    };
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-bake'],
+    });
+    window.setTimeout(done, 12000);
+    check();
+  }));
+
+const TeaRoom = dynamic(() => afterFirstSpread().then(loadTeaRoom), {
   ssr: false,
   loading: () => <div className="scene-fallback" />,
 });
@@ -87,14 +129,23 @@ export default function TeaRoomShell({
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [assetProgress, setAssetProgress] = useState(0);
   const [sceneReady, setSceneReady] = useState(false);
+  const [staged, setStaged] = useState(false);
+  const onStaged = useCallback(() => setStaged(true), []);
   const [revealed, setRevealed] = useState(false);
   const onReveal = useCallback(() => setRevealed(true), []);
-  // Warm the 3D room while the waiting room covers the stage.
-  useEffect(() => idlePreload(loadTeaRoom), []);
-  // Warm Counter / Host panels once the room is ready to enter.
+  // Warm the 3D room behind the sketchbook, after its first spread.
+  useEffect(() => void afterFirstSpread().then(warmTeaRoom), []);
+  // Warm the shelf posters and the Counter / Host panels once the room is ready to enter.
   useEffect(() => {
     if (!sceneReady) return;
-    return idlePreload(() => Promise.all([loadThesisDeck(), loadIrohChat()]));
+    return idlePreload(() => {
+      for (const src of SHELF_POSTERS) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = src;
+      }
+      return Promise.all([loadThesisDeck(), loadIrohChat()]);
+    });
   }, [sceneReady]);
   useEffect(() => {
     if (!revealed) return;
@@ -235,7 +286,8 @@ export default function TeaRoomShell({
     setAssetsLoading(active);
     setAssetProgress((current) => Math.max(current, progress));
   }, []);
-  const sceneSettled = sceneFailed || (sceneAvailable && !assetsLoading);
+  const sceneSettled =
+    sceneFailed || (sceneAvailable && staged && !assetsLoading);
   useEffect(() => {
     if (sceneReady) return;
     // Wait for loading to stay quiet briefly; never hold the room past 20s.
@@ -440,7 +492,8 @@ export default function TeaRoomShell({
             onMenuOpen={openPanel}
             onThesisPick={pickThesis}
             onNavigate={navigate}
-            polish={revealed}
+            onStaged={onStaged}
+            hostModel={revealed}
           />
 
           {!isEntrance && sceneAvailable && (

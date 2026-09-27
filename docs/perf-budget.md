@@ -94,7 +94,18 @@ Measured 2026-09-27T12:41:32Z the same way, after WebP waiting-room art, deferri
 - Desktop raw transfer stays over 2.5 MB. The wire number is under 2.5 MB.
 - Desktop images stay over 1.2 MB: diorama, back wall, thesis covers on the counter, and the sketchbook riffle. Mobile images pass.
 - Entrance time on this headless Linux host is about 9.5 s unthrottled and 10.3 s on Fast 4G (down from 15.0 s). The 2.4 s figure was a Metal GPU. Step inside still waits for the 3D room.
-- AO, bloom, and the environment chunk stay off the entrance download. They load after Step inside. Shelf poster textures do too.
+- AO, bloom, and the environment chunk stay off the entrance download. They load after Step inside. Shelf poster textures do too. (Superseded by the sketchbook-first load order below.)
+
+## Sketchbook-first load order (2026-09-27)
+
+Visitors read the sketchbook first, so the room may load slowly as long as the first spread shows and turns fast.
+
+- The room chunk and its textures start only after the sketchbook bakes its first spread (`data-bake` ≥ 2), or after 12 s.
+- Surface textures are painted in a Web Worker (`src/scene/surfaceTexels.worker.ts`), not on the main thread.
+- Room reflections are a one-shot cube map in the lit shell, so they no longer recompile every program when they arrive. AO and bloom mount with the staged room detail, and Enter waits for that stage, so nothing pops in after the guest steps inside.
+- Music is a 36 s seamless loop: Opus (about 86 KB) with an MP3 fallback (about 144 KB). Nothing downloads before a gesture, and the on/off choice persists.
+- Shelf posters carry baked names and warm once the room is ready. The duplicate shelf mini-scroll is gone.
+- Files with a content hash (`name.abc123.ext`) in `images`, `audio`, and `models` are cached as immutable; other images for a week.
 
 ## Low-end motion path
 
@@ -109,7 +120,7 @@ The light path is used when any of these is true:
 
 On the light path the sketchbook still riffles and still turns by drag, keys, and the index:
 
-- the curl uses 16 strips instead of 18. Each bending face is a JPEG snapshot of the real page (type and pictures), not a title or cover placeholder and not 16 live DOM clones
+- the curl uses 16 strips instead of 18. Each bending face is a snapshot of the real page that the browser itself draws (SVG `foreignObject`, with the page's CSS, fonts, and pictures inlined), not a title or cover placeholder and not 16 live DOM clones. Snapshots bake one page per idle slot after the book opens
 - the riffle is shorter, and a drag or button turn uses a short wall-clock tween (about 220 ms) so a missed frame does not leave the spring running in slow motion
 - the pages under the leaf are not blurred
 - the cast shadow and the petals in front of the book drop their blur
@@ -122,4 +133,21 @@ On the light path the thesis deck still opens, switches, and closes:
 - book shadows are not blurred, and the open scroll fades with opacity and transform only
 - the 3D counter cards write their spring once when they are already at rest, instead of every frame
 
+On both paths, the 3D room behind the deck is the main cost, not the deck itself:
+
+- while the Counter deck is open, the room is drawn every other frame, and the quality ladder does not climb
+- a thesis switch no longer re-renders the static room, so the `frames={1}` contact shadows do not redraw the whole scene on each click
+- the tea-pot contact shadow redraws only while the pot pours, not every frame
+
 A capable machine keeps the 18-strip curl, the riffle blur, the view transitions, and the full petal counts.
+
+### Page turn at 4× CPU
+
+Production `next start` on the isolated sketchbook, headless Chromium, `Emulation.setCPUThrottlingRate` 4, on battery power (the browser caps frames at 33.3 ms, even on a blank page). Two runs each.
+
+| | PR #21 (canvas walker) | Browser-drawn snapshots |
+| --- | --- | --- |
+| Riffle p90 frame, full / light | 33–67 ms / 67–100 ms | 33.4 ms / 33.4 ms |
+| Riffle long tasks, full / light | 2–3 (50–61 ms) / 3–5 (50–79 ms) | 0 / 0 |
+| Drag long tasks | 0 | 0 |
+| Bake tasks over 50 ms | not split out | 1 (78 ms, SVG layout of the text-heaviest page, in idle time) |

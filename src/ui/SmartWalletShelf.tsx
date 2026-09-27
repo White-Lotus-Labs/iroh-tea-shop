@@ -121,54 +121,15 @@ function WalletActions({
   );
 }
 
-function SpiritWindow({ rank }: { rank: number }) {
-  const identity = shelfIdentityForRank(rank);
-  const name = identity?.name ?? SHELF_GUEST_NAME;
-  const poster =
-    rank >= 1 && rank <= 3 ? `/images/shelf/spirit-${rank}.webp` : null;
-  const index = identity?.portraitIndex ?? 9;
-  return (
-    <figure className="shelf-mini-scroll">
-      <span className="shelf-mini-rod" aria-hidden="true" />
-      <div className="shelf-mini-window">
-        {poster ? (
-          <img src={poster} alt="" />
-        ) : (
-          <div
-            className="wallet-portrait shelf-mini-portrait"
-            role="img"
-            aria-label={name}
-            style={{
-              backgroundPosition: `${(index % 5) * 25}% ${index < 5 ? 0 : 100}%`,
-            }}
-          />
-        )}
-      </div>
-      <figcaption>{name}</figcaption>
-      <span className="shelf-mini-rod" aria-hidden="true" />
-    </figure>
-  );
-}
-
-function Leader({
-  entry,
-  selected,
-  onSelect,
-}: {
-  entry: SmartWalletLeaderboardEntry;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+function Leader({ entry }: { entry: SmartWalletLeaderboardEntry }) {
   const name = shelfIdentityForRank(entry.rank)?.name ?? SHELF_GUEST_NAME;
   const label = shelfLabel(entry.displayName, entry.address);
   return (
     <article
       className="wallet-hero"
       data-rank={entry.rank}
-      data-selected={selected || undefined}
       data-testid="top-wallet"
       aria-label={`Rank ${entry.rank}, ${name}${label ? `, ${label}` : ''}`}
-      onClick={onSelect}
     >
       <div className="wallet-hero-portrait">
         <Portrait rank={entry.rank} />
@@ -210,13 +171,9 @@ function Leader({
 function WalletRow({
   entry,
   leaderPnl,
-  selected,
-  onSelect,
 }: {
   entry: SmartWalletLeaderboardEntry;
   leaderPnl: number | null;
-  selected: boolean;
-  onSelect: () => void;
 }) {
   const name = shelfIdentityForRank(entry.rank)?.name ?? SHELF_GUEST_NAME;
   const label = shelfLabel(entry.displayName, entry.address);
@@ -225,12 +182,7 @@ function WalletRow({
       ? Math.min(1, Math.abs(entry.pnl) / Math.abs(leaderPnl))
       : 0;
   return (
-    <li
-      className="wallet-row"
-      data-rank={entry.rank}
-      data-selected={selected || undefined}
-      onClick={onSelect}
-    >
+    <li className="wallet-row" data-rank={entry.rank}>
       <span className="wallet-seal">
         <span className="sr-only">Rank </span>
         {entry.rank}
@@ -317,7 +269,6 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   const [freshnessAnchor, setFreshnessAnchor] = useState<
     'header' | 'footer' | null
   >(null);
-  const [selectedRank, setSelectedRank] = useState(1);
   const pending = useRef(false);
 
   const toggleFreshness = useCallback((anchor: 'header' | 'footer') => {
@@ -450,12 +401,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
         )}
         {leader ? (
           <div className="leaderboard-content" aria-busy={loading}>
-            <SpiritWindow rank={selectedRank} />
-            <Leader
-              entry={leader}
-              selected={selectedRank === leader.rank}
-              onSelect={() => setSelectedRank(leader.rank)}
-            />
+            <Leader entry={leader} />
             {others.length > 0 && (
               <>
                 <div className="wallet-list-head" aria-hidden="true">
@@ -475,8 +421,6 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                       key={entry.address}
                       entry={entry}
                       leaderPnl={leader.pnl}
-                      selected={selectedRank === entry.rank}
-                      onSelect={() => setSelectedRank(entry.rank)}
                     />
                   ))}
                 </ol>
