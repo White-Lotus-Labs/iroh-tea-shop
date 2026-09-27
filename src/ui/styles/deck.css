@@ -34,7 +34,7 @@
   }
 
   .thesis-deck .deck-stage {
-    --w: min(calc((100cqh - 150px) * 0.75), 24cqw, 240px);
+    --w: min(calc((100cqh - 138px) * 0.75), 24cqw, 240px);
     height: auto;
     min-height: 0;
     container-type: size;
@@ -59,8 +59,9 @@
 }
 
 .deck-kicker {
-  margin: 0 0 6px;
+  margin-left: 14px;
   color: var(--seal);
+  vertical-align: 0.5em;
   font: 700 10px/1 var(--font-body);
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -214,7 +215,7 @@
   align-items: flex-start;
   justify-content: center;
   margin: 0;
-  padding: 40px 0 0;
+  padding: 32px 0 0;
   list-style: none;
 }
 
@@ -322,7 +323,7 @@
 
 .deck-book:hover .book-pose,
 .deck-book:focus-visible .book-pose {
-  transform: translateY(-12px) translateZ(52px) rotate(0deg) rotateY(0deg);
+  transform: translateY(-14px) translateZ(72px) rotate(0deg) rotateY(0deg);
 }
 
 .deck-book:hover .book-contact,
@@ -567,17 +568,17 @@
   background:
     radial-gradient(
       circle at calc(50% + var(--px, 0) * 120%) calc(50% + var(--py, 0) * 120%),
-      rgba(255, 252, 240, 0.7),
-      rgba(255, 252, 240, 0.14) 30%,
-      transparent 58%
+      rgba(255, 252, 240, 0.85),
+      rgba(255, 252, 240, 0.2) 32%,
+      transparent 60%
     ),
     linear-gradient(
       118deg,
-      transparent calc(38% + var(--px, 0) * 40%),
-      rgba(255, 250, 235, 0.22) calc(48% + var(--px, 0) * 40%),
-      transparent calc(58% + var(--px, 0) * 40%)
+      transparent calc(36% + var(--px, 0) * 40%),
+      rgba(255, 250, 235, 0.32) calc(48% + var(--px, 0) * 40%),
+      transparent calc(60% + var(--px, 0) * 40%)
     );
-  mix-blend-mode: soft-light;
+  mix-blend-mode: overlay;
   opacity: 0;
   transition: opacity 320ms ease;
   pointer-events: none;
@@ -620,8 +621,8 @@
   align-items: center;
   gap: 10px;
   width: calc(var(--w) * 0.94);
-  margin-top: 34px;
-  padding-top: 10px;
+  margin-top: 30px;
+  padding-top: 9px;
   border-top: 1px solid rgba(219, 187, 122, 0.3);
   color: #f1e4c8;
   text-align: left;
@@ -1431,6 +1432,10 @@
   border: 1px solid var(--scroll-line);
   border-radius: 8px;
   background: rgba(255, 250, 238, 0.5);
+}
+
+.leaf-section[data-wide='true'] {
+  grid-column: 1 / -1;
 }
 
 .leaf-section-title {

@@ -196,10 +196,10 @@ export function ThesisDeck({
       data-reduced={reduced ? 'true' : 'false'}
     >
       <header className="deck-head">
-        <div>
-          <p className="deck-kicker">The Counter · three scrolls</p>
-          <h1 className="deck-title">Thesis Desk</h1>
-        </div>
+        <h1 className="deck-title">
+          Thesis Desk
+          <span className="deck-kicker">three scrolls</span>
+        </h1>
         <DeckStatus deck={deck} now={now} />
       </header>
 

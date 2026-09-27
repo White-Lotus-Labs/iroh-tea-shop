@@ -97,17 +97,23 @@ function DetailSection<T>({
   title,
   section,
   okOnly = false,
+  wide = false,
   children,
 }: {
   title: string;
   section: Section<T>;
   okOnly?: boolean;
+  wide?: boolean;
   children: (data: T) => ReactNode;
 }) {
   if (section.status === 'not-applicable') return null;
   if (okOnly && section.status !== 'ok') return null;
   return (
-    <section className="leaf-section" data-status={section.status}>
+    <section
+      className="leaf-section"
+      data-status={section.status}
+      data-wide={wide ? 'true' : undefined}
+    >
       <h5 className="leaf-section-title">{title}</h5>
       {section.status === 'ok' ? (
         children(section.data)
@@ -141,7 +147,11 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
         {detail.stale && <span className="deck-stale">Stale</span>}
       </p>
       <div className="leaf-sections">
-        <DetailSection title="Smart money moves" section={detail.movements}>
+        <DetailSection
+          title="Smart money moves"
+          section={detail.movements}
+          wide
+        >
           {({ buyers, sellers, recent }) =>
             !buyers.length && !sellers.length && !recent.length ? (
               <p className="leaf-quiet">
