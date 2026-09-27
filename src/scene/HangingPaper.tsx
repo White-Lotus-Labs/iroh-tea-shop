@@ -27,6 +27,10 @@ const SWAY_PERIOD = 6.2;
 const TIME_SCALE = 1.2;
 const REDUCED_TIME = 2.4;
 const HOVER_DEPTH = 0.25;
+// The shelf is scaled independently from the papers, putting its front lip at
+// x ~= -0.52. Keep every sheet in front of it so the two outer portraits are
+// not clipped where the side shelves project into the middle bay.
+const HANGING_X = -0.61;
 
 const ART = [
   '/images/shelf/spirit-1.webp',
@@ -281,7 +285,7 @@ export function HangingPaper({
   return (
     <group
       name="hanging-paper"
-      position={[-0.42, 2.15, 0]}
+      position={[HANGING_X, 2.15, 0]}
       scale={emphasized ? 1.06 : 1}
     >
       {SHEETS.map((s, index) => (

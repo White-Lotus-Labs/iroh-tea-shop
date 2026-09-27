@@ -109,7 +109,7 @@ The light path is used when any of these is true:
 
 On the light path the sketchbook still riffles and still turns by drag, keys, and the index:
 
-- the curl uses 8 strips instead of 18, and each bending face is the page's picture or its title, not a second copy of the whole page
+- the curl uses 16 strips instead of 18. Each bending face is a JPEG snapshot of the real page (type and pictures), not a title or cover placeholder and not 16 live DOM clones
 - the riffle is shorter, and a drag or button turn uses a short wall-clock tween (about 220 ms) so a missed frame does not leave the spring running in slow motion
 - the pages under the leaf are not blurred
 - the cast shadow and the petals in front of the book drop their blur

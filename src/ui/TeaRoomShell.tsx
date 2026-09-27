@@ -181,20 +181,26 @@ export default function TeaRoomShell({
     [station],
   );
   const focusShelf = useCallback(() => {
-    if (shelfFocused) return;
-    setCameraAt(null);
+    if (shelfFocused) {
+      setPanelOpen(true);
+      queueMicrotask(() => panel.current?.focus());
+      return;
+    }
+    const alreadyAtShelf =
+      station === 'Shelf' && (cameraAt === 'Shelf' || sceneFailed);
+    if (!alreadyAtShelf) setCameraAt(null);
     setShelfFocused(true);
     setStation('Shelf');
     setPanelOpen(true);
-  }, [shelfFocused]);
+  }, [shelfFocused, station, cameraAt, sceneFailed]);
   const openPanel = useCallback(() => {
     if (station === 'Shelf') {
-      setCameraAt(null);
+      if (cameraAt !== 'Shelf' && !sceneFailed) setCameraAt(null);
       setShelfFocused(true);
     }
     setPanelOpen(true);
     queueMicrotask(() => panel.current?.focus());
-  }, [station]);
+  }, [station, cameraAt, sceneFailed]);
   useEffect(() => {
     if (!deepLinkOpenOnce.current) return;
     if (station !== 'Counter') return;
