@@ -3,9 +3,7 @@
   --dock-ink: #2a1f15;
   --dock-ink-soft: #715c43;
   --dock-cinnabar: #a3301f;
-  --dock-serif:
-    Iowan Old Style, Baskerville, Palatino Linotype, Book Antiqua, Palatino,
-    Georgia, serif;
+  --dock-serif: var(--font-display);
   position: absolute;
   z-index: 13;
   bottom: 18px;
@@ -173,20 +171,17 @@
 }
 
 .station-dock__label {
-  font-size: 13.5px;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1.15;
   white-space: nowrap;
   transform: translateY(calc(var(--dock-v) * -2px));
 }
 .station-dock__caption {
-  font:
-    500 10px/1.1 Arial,
-    Helvetica,
-    sans-serif;
+  font: 500 10px/1.1 var(--font-body);
   letter-spacing: 0.02em;
   white-space: nowrap;
   color: var(--dock-ink-soft);
-  opacity: 0.8;
 }
 
 .station-dock__steam {
@@ -322,7 +317,7 @@
     padding: 0 2px;
   }
   .station-dock__item {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
     padding: 9px 2px 12px;
   }
@@ -331,7 +326,7 @@
     height: 24px;
   }
   .station-dock__label {
-    font-size: 10px;
+    font-size: 11.5px;
     line-height: 1.05;
     white-space: normal;
     text-align: center;

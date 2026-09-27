@@ -6,7 +6,6 @@ import type {
   Thesis,
   ThesisId,
   ThesisSummary,
-  TickerSignal,
 } from '../thesis/types';
 
 export type DeckState =
@@ -79,22 +78,6 @@ export function convictionSentence(
   return `Smart money is accumulating ${conviction.accumulating} of ${total} ${assets}${gap}`;
 }
 
-export function measuredSignals(tickers: TickerSignal[]) {
-  return tickers.filter(
-    (t): t is TickerSignal & { smartMoneyNetFlowUsd: number } =>
-      t.status === 'ok' && t.smartMoneyNetFlowUsd !== null,
-  );
-}
-
-export function strongestAndWeakest(tickers: TickerSignal[]) {
-  const measured = measuredSignals(tickers);
-  if (!measured.length) return null;
-  const sorted = [...measured].sort(
-    (a, b) => b.smartMoneyNetFlowUsd - a.smartMoneyNetFlowUsd,
-  );
-  return { strongest: sorted[0], weakest: sorted[sorted.length - 1] };
-}
-
 export function buildUncleDraft(
   thesis: Thesis,
   summary: ThesisSummary | null,
@@ -146,9 +129,13 @@ export const FOLLOW_KEY = 'tea.followedTheses';
 
 // ponytail: follows live in localStorage, so they do not sync across devices
 // or accounts. Upgrade path: a Prisma FollowedThesis(userId, thesisId) table.
-export function readFollowed(storage: Pick<Storage, 'getItem'>): ThesisId[] {
+// Storage defaults to localStorage, read inside the try: the getter itself
+// throws when the browser blocks site data.
+export function readFollowed(storage?: Pick<Storage, 'getItem'>): ThesisId[] {
   try {
-    const raw: unknown = JSON.parse(storage.getItem(FOLLOW_KEY) ?? '[]');
+    const raw: unknown = JSON.parse(
+      (storage ?? localStorage).getItem(FOLLOW_KEY) ?? '[]',
+    );
     return Array.isArray(raw)
       ? raw.filter((v): v is ThesisId =>
           ['robinhood', 'bullrun', 'ai'].includes(v),
@@ -160,13 +147,17 @@ export function readFollowed(storage: Pick<Storage, 'getItem'>): ThesisId[] {
 }
 
 export function toggleFollowed(
-  storage: Pick<Storage, 'getItem' | 'setItem'>,
   id: ThesisId,
+  storage?: Pick<Storage, 'getItem' | 'setItem'>,
 ): ThesisId[] {
   const current = readFollowed(storage);
   const next = current.includes(id)
     ? current.filter((v) => v !== id)
     : [...current, id];
-  storage.setItem(FOLLOW_KEY, JSON.stringify(next));
+  try {
+    (storage ?? localStorage).setItem(FOLLOW_KEY, JSON.stringify(next));
+  } catch {
+    /* Full or blocked storage keeps the follow in memory. */
+  }
   return next;
 }

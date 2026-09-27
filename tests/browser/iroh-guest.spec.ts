@@ -20,6 +20,11 @@ test('a guest can open Host and chat with Iroh without signing in', async ({
     (await context.cookies()).some((cookie) => cookie.name === 'tea_session'),
   ).toBe(false);
   await openStationPanel(page, 'Host');
+  const transcript = page.getByRole('log', { name: 'Uncle conversation' });
+  await expect(transcript).toContainText('Log in to save this chat.');
+  await expect(
+    transcript.getByRole('link', { name: 'Log in' }),
+  ).toHaveAttribute('href', '/account');
   await page
     .getByRole('textbox', { name: 'Ask an onchain research question' })
     .fill('What is ETH doing?');

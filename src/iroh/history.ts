@@ -46,9 +46,11 @@ export async function appendUserMessage(
   const message = await db.message.create({
     data: { chatId, role: 'user', content },
   });
+  // Prisma skips @updatedAt on an empty update, so set it explicitly.
   await db.chat.update({
     where: { id: chatId, userId },
     data: {
+      updatedAt: new Date(),
       ...(chat.title === 'New chat'
         ? { title: content.replace(/\s+/g, ' ').trim().slice(0, 70) }
         : {}),
@@ -68,7 +70,10 @@ export async function appendAssistantMessage(
   const message = await db.message.create({
     data: { chatId, role: 'assistant', content, status },
   });
-  await db.chat.update({ where: { id: chatId, userId }, data: {} });
+  await db.chat.update({
+    where: { id: chatId, userId },
+    data: { updatedAt: new Date() },
+  });
   return message;
 }
 

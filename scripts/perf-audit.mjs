@@ -443,13 +443,18 @@ async function measure(browser, preset) {
 
 let server = null;
 if (!external) {
-  // The next binary directly, not npx, so the kill below reaches the server.
-  const next = resolve(repoRoot, 'node_modules/.bin/next');
-  server = spawn(next, ['start', '--hostname', '127.0.0.1', '-p', port], {
-    cwd: repoRoot,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PORT: port },
-  });
+  // Node plus the next entry directly, not npx or the .bin shim (a POSIX
+  // script that Windows cannot spawn), so the kill below reaches the server.
+  const next = resolve(repoRoot, 'node_modules/next/dist/bin/next');
+  server = spawn(
+    process.execPath,
+    [next, 'start', '--hostname', '127.0.0.1', '-p', port],
+    {
+      cwd: repoRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, PORT: port },
+    },
+  );
   server.stdout.on('data', (chunk) => process.stderr.write(chunk));
   server.stderr.on('data', (chunk) => process.stderr.write(chunk));
 }
@@ -459,7 +464,7 @@ const browser = await chromium.launch({
   headless: true,
   channel: 'chromium',
   args: [
-    '--use-angle=metal',
+    ...(process.platform === 'darwin' ? ['--use-angle=metal'] : []),
     '--enable-gpu',
     '--ignore-gpu-blocklist',
     '--enable-webgl',

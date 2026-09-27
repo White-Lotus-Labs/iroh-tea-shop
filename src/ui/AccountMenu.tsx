@@ -1,16 +1,27 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PublicUser } from '../auth/service';
 
 export function AccountMenu({ user }: { user: PublicUser | null }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const menu = useRef<HTMLDetailsElement>(null);
+  // Close like the other popovers: a press outside the menu closes it.
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      const details = menu.current;
+      if (details && !details.contains(event.target as Node))
+        details.open = false;
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, []);
   const logout = async () => {
     setBusy(true);
     setError('');
     try {
       const response = await fetch('/api/auth/logout', { method: 'POST' });
-      if (!response.ok) throw new Error('Could not log out. Please try again.');
+      if (!response.ok) throw new Error();
       // Full navigation clears client station state and guest chrome reliably.
       window.location.assign('/');
     } catch {
@@ -48,7 +59,17 @@ export function AccountMenu({ user }: { user: PublicUser | null }) {
   }
 
   return (
-    <details className="account-menu">
+    <details
+      ref={menu}
+      className="account-menu"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !event.currentTarget.open) return;
+        // The shell closes the open panel on Escape; close only this menu.
+        event.stopPropagation();
+        event.currentTarget.open = false;
+        event.currentTarget.querySelector('summary')?.focus();
+      }}
+    >
       <summary
         data-testid="account-control"
         aria-label={`Account: ${user.nickname}`}

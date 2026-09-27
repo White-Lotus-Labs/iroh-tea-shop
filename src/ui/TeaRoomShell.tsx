@@ -235,6 +235,7 @@ export default function TeaRoomShell({
       setShelfFocused(false);
       setStation(next);
       setPanelOpen(false);
+      setUncleDraft(null);
     },
     [station],
   );
@@ -273,7 +274,11 @@ export default function TeaRoomShell({
       const active = document.activeElement;
       const refocus =
         !active || active === document.body || Boolean(paper?.contains(active));
-      flushSync(() => setPanelOpen(false));
+      // The Uncle prefill is a one-shot hand-off; do not replay it on reopen.
+      flushSync(() => {
+        setPanelOpen(false);
+        setUncleDraft(null);
+      });
       if (refocus) openHint.current?.focus();
     };
     if (reduced || !paper || paper.classList.contains('is-rolling-up'))
@@ -336,18 +341,17 @@ export default function TeaRoomShell({
     setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
-  const openThesisDesk = useCallback(() => {
-    // An explicit desk open wins over the thesis saved before asking Uncle.
-    returnThesis.current = null;
-    setSelectedThesis(null);
-    if (station === 'Counter') {
-      setPanelOpen(true);
-      queueMicrotask(() => panel.current?.focus());
-      return;
-    }
-    navigate('Counter');
-    deepLinkOpenOnce.current = true;
-  }, [station, navigate]);
+  const pickThesis = useCallback(
+    (id: ThesisId) => {
+      // An explicit pick wins over the thesis saved before asking Uncle.
+      returnThesis.current = null;
+      setSelectedThesis(id);
+      if (station === 'Counter') return setPanelOpen(true);
+      navigate('Counter');
+      deepLinkOpenOnce.current = true;
+    },
+    [station, navigate],
+  );
   const onTalkToUncle = useCallback(
     (text: string) => {
       returnThesis.current = selectedThesis;
@@ -531,7 +535,7 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
-            onThesisPick={openThesisDesk}
+            onThesisPick={pickThesis}
             onNavigate={navigate}
             onStaged={onStaged}
             hostModel={revealed}

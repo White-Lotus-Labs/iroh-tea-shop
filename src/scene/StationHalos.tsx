@@ -453,8 +453,7 @@ export function StationHalos({
         // The open panel covers the room. Hide this place's seal until it closes.
         if (current && !menuClosed) return null;
         const stays =
-          current &&
-          (id === 'Counter' || id === 'Shelf' || id === 'TeaTable');
+          current && (id === 'Counter' || id === 'Shelf' || id === 'TeaTable');
         const anchor = STATIONS.find((place) => place.id === id)!;
         // The Observatorium has no panel: its ember points at the orrery's own click-to-wind.
         const open = !current

@@ -59,7 +59,9 @@ export function WaitingRoom({
     window.addEventListener('pointermove', move, { passive: true });
     return () => window.removeEventListener('pointermove', move);
   }, [reduced, open]);
-  if (!mounted) return null;
+  // Render in the same commit that `open` turns true, so MusicToggle finds
+  // the header when it looks for its slot.
+  if (!mounted && !open) return null;
   const percent = Math.round(ready ? 100 : Math.min(progress, 99));
   return (
     <div

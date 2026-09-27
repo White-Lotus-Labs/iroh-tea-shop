@@ -11,6 +11,10 @@ import {
   toggleFollowed,
   xIntentUrl,
 } from '../src/ui/deckModel';
+import {
+  readBackgroundMusic,
+  writeBackgroundMusic,
+} from '../src/ui/backgroundMusic';
 
 const ai = findThesis('ai')!;
 const aiSummary = DECK_FIXTURE.theses.find((t) => t.id === 'ai')!;
@@ -74,12 +78,38 @@ describe('deck model', () => {
       getItem: (k: string) => data.get(k) ?? null,
       setItem: (k: string, v: string) => void data.set(k, v),
     };
-    expect(toggleFollowed(storage, 'ai')).toEqual(['ai']);
-    expect(toggleFollowed(storage, 'bullrun')).toEqual(['ai', 'bullrun']);
-    expect(toggleFollowed(storage, 'ai')).toEqual(['bullrun']);
+    expect(toggleFollowed('ai', storage)).toEqual(['ai']);
+    expect(toggleFollowed('bullrun', storage)).toEqual(['ai', 'bullrun']);
+    expect(toggleFollowed('ai', storage)).toEqual(['bullrun']);
     data.set('tea.followedTheses', '["nope", "robinhood"]');
     expect(readFollowed(storage)).toEqual(['robinhood']);
     data.set('tea.followedTheses', '{bad');
     expect(readFollowed(storage)).toEqual([]);
+  });
+
+  it('keeps follows in memory when the browser blocks site data', () => {
+    const saved = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('denied', 'SecurityError');
+      },
+    });
+    try {
+      expect(readFollowed()).toEqual([]);
+      expect(toggleFollowed('ai')).toEqual(['ai']);
+      expect(readBackgroundMusic()).toBe(true);
+      expect(() => writeBackgroundMusic(false)).not.toThrow();
+    } finally {
+      if (saved) Object.defineProperty(globalThis, 'localStorage', saved);
+      else delete (globalThis as { localStorage?: Storage }).localStorage;
+    }
+    const full = {
+      getItem: () => '["bullrun"]',
+      setItem: () => {
+        throw new DOMException('full', 'QuotaExceededError');
+      },
+    };
+    expect(toggleFollowed('ai', full)).toEqual(['bullrun', 'ai']);
   });
 });

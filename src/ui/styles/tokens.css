@@ -19,8 +19,10 @@
   --font-body:
     var(--font-body-face, 'Inter'), system-ui, -apple-system, 'Segoe UI',
     sans-serif;
+  /* Seal glyphs use installed CJK serifs only, so no webfont is fetched. */
   --font-cjk:
-    var(--font-cjk-face, 'Noto Serif SC'), 'Songti SC', 'STSong', serif;
+    'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Songti SC',
+    STSong, SimSun, serif;
 
   --ease-unroll: cubic-bezier(0.45, 0.05, 0.15, 1);
   --ease-lift: cubic-bezier(0.16, 1, 0.3, 1);
