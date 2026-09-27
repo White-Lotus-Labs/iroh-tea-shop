@@ -18,14 +18,16 @@ import {
   TorusGeometry,
   Vector2,
   Vector3,
+  type Curve,
 } from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { useSurfaceMaps } from '../Surfaces';
+import { once, useSurfaceMaps } from '../Surfaces';
 import {
   block,
   canvasTexture,
+  cord,
   merge,
   paint,
   place,
@@ -127,6 +129,10 @@ function drawNeedles(ctx: CanvasRenderingContext2D, alpha: boolean) {
     }
   }
 }
+const needleMaps = once(() => ({
+  needles: canvasTexture(256, 256, (ctx) => drawNeedles(ctx, false)),
+  tuft: canvasTexture(128, 128, (ctx) => drawNeedles(ctx, true)),
+}));
 
 const trunkTile: [number, number] = [0.3, 0.07];
 const GREENS = ['#2c4420', '#3a5526', '#4b652c', '#5d7532'];
@@ -361,21 +367,16 @@ export function Bonsai({
       pot = potGeometry(),
       table = stand ? standGeometry() : null,
       blob = blobGeometry(),
-      card = new CircleGeometry(0.5, 6),
-      needles = canvasTexture(256, 256, (ctx) => drawNeedles(ctx, false)),
-      tuft = canvasTexture(128, 128, (ctx) => drawNeedles(ctx, true));
+      card = new CircleGeometry(0.5, 6);
     return {
       ...tree,
+      ...needleMaps(),
       pot,
       table,
       blob,
       card,
-      needles,
-      tuft,
       dispose() {
-        [tree.bark, pot, table, blob, card, needles, tuft].forEach((item) =>
-          item?.dispose(),
-        );
+        [tree.bark, pot, table, blob, card].forEach((item) => item?.dispose());
       },
     };
   });
@@ -476,6 +477,62 @@ function leafGeometry() {
   return geometry;
 }
 
+const UP = new Vector3(0, 1, 0);
+/**
+ * Leaves on stalks along `stem`, as one vertex-coloured geometry: each stalk starts on
+ * the stem and each blade's base overlaps its stalk, so no leaf floats beside the branch.
+ * `face` points at the room. `turn` swings a leaf off the stem's heading as seen from the
+ * room, `rise` tips it toward the room, and each blade turns its face,
+ * not its edge, to the room and the light above.
+ */
+export function stemLeaves(
+  stem: Curve<Vector3>,
+  leaves: { t: number; turn: number; rise?: number }[],
+  {
+    length = 0.085,
+    width = 0.04,
+    stalk = 0.012,
+    color = '#1f3322',
+    face = [0, 0, 1] as Point,
+  } = {},
+) {
+  const blade = leafGeometry()
+    .scale(length / 0.14, 0.35, width / 0.019)
+    .rotateY(-Math.PI / 2)
+    .translate(0, 0, stalk - 0.002);
+  const room = new Vector3(...face).normalize();
+  const lit = room.clone().addScaledVector(UP, 0.5);
+  const basis = new Matrix4(),
+    rotation = new Quaternion();
+  const parts = leaves.flatMap(({ t, turn, rise = 0.25 }) => {
+    const at = stem.getPointAt(t);
+    const heading = stem
+      .getTangentAt(t)
+      .projectOnPlane(room)
+      .normalize()
+      .applyAxisAngle(room, turn)
+      .addScaledVector(room, Math.sin(rise))
+      .normalize();
+    const normal = lit
+      .clone()
+      .addScaledVector(heading, -lit.dot(heading))
+      .normalize()
+      .applyAxisAngle(heading, 0.3 * Math.sign(turn));
+    basis.makeBasis(normal.clone().cross(heading), normal, heading);
+    rotation.setFromRotationMatrix(basis);
+    const tip = at.clone().addScaledVector(heading, stalk);
+    return [
+      paint(cord(at.toArray(), tip.toArray(), 0.0016), '#3b3a1e'),
+      paint(
+        blade.clone().applyQuaternion(rotation).translate(at.x, at.y, at.z),
+        color,
+      ),
+    ];
+  });
+  blade.dispose();
+  return merge(parts);
+}
+
 function drawLeaf(ctx: CanvasRenderingContext2D) {
   const gradient = ctx.createLinearGradient(0, 0, 0, 32);
   gradient.addColorStop(0, '#b8b8a8');
@@ -488,6 +545,7 @@ function drawLeaf(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = 'rgba(80,90,60,.18)';
   for (const y of [5, 9, 23, 27]) ctx.fillRect(0, y, 256, 1);
 }
+const bambooLeafMap = once(() => canvasTexture(256, 32, drawLeaf));
 
 /** Culms with node rings and bloom bands, twigs, and instanced leaves in a tall planter. */
 function growBamboo(seed: number) {
@@ -603,7 +661,7 @@ export function BambooPot({ position }: { position: Point }) {
   const built = useBuilt(() => {
     const plant = growBamboo(33),
       leaf = leafGeometry(),
-      leafMap = canvasTexture(256, 32, drawLeaf),
+      leafMap = bambooLeafMap(),
       pot = new LatheGeometry(
         [
           [0, 0],
@@ -626,7 +684,7 @@ export function BambooPot({ position }: { position: Point }) {
       leafMap,
       pot,
       dispose() {
-        [plant.culms, leaf, leafMap, pot].forEach((item) => item.dispose());
+        [plant.culms, leaf, pot].forEach((item) => item.dispose());
       },
     };
   });

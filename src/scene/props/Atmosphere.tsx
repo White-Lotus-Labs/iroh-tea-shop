@@ -1,12 +1,16 @@
 import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
+  AddEquation,
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
   Color,
+  CustomBlending,
   DoubleSide,
+  DstColorFactor,
   FogExp2,
+  OneFactor,
   ShaderMaterial,
   Vector3,
   type PerspectiveCamera,
@@ -24,22 +28,24 @@ type Shaft = {
   gain: number;
 };
 
+const VERANDA_DIR: Point = [0.45, -0.55, 1];
+const SHOJI_DIR: Point = [0.15, -0.42, 1];
 const SHAFTS: Shaft[] = [
   {
     origin: [-3.8, 0.35, -6.3],
     across: [1.8, 0, 0],
     up: [0, 2.5, 0],
-    direction: [0.45, -0.55, 1],
+    direction: VERANDA_DIR,
     length: 5.2,
-    gain: 0.65,
+    gain: 0.7,
   },
   {
     origin: [-1.55, 1.05, -6.22],
     across: [2.1, 0, 0],
     up: [0, 1.8, 0],
-    direction: [0.15, -0.42, 1],
+    direction: SHOJI_DIR,
     length: 2.8,
-    gain: 0.34,
+    gain: 0.2,
   },
   {
     origin: [3.93, 1.05, 0.8],
@@ -47,7 +53,7 @@ const SHAFTS: Shaft[] = [
     up: [0, 1.75, 0],
     direction: [-1, -0.42, -0.12],
     length: 3,
-    gain: 0.34,
+    gain: 0.22,
   },
 ];
 
@@ -150,13 +156,15 @@ function shaftMaterial() {
       ${noiseGlsl}
       void main() {
         vec2 uv = clamp(vUv, 0.0, 1.0);
-        float across = pow(max(sin(3.14159 * uv.x), 0.0), 1.6);
-        float along = smoothstep(0.0, 0.12, uv.y) * pow(1.0 - uv.y, 1.8);
-        float streak = 0.55 + 0.45 * noise(vec2(uv.x * 9.0 + uv.y * 2.0, uTime * 0.06));
+        float across = pow(max(sin(3.14159 * uv.x), 0.0), 2.0);
+        float along = smoothstep(0.0, 0.22, uv.y) * pow(1.0 - uv.y, 2.0);
+        float streak = 0.6 + 0.4 * noise(vec2(uv.x * 9.0 + uv.y * 2.0, uTime * 0.06));
         float drift = 0.7 + 0.3 * noise(vWorld.xz * 1.4 + vWorld.y * 0.8 + uTime * 0.07);
-        float edge = smoothstep(0.02, 0.45, vFacing);
+        float edge = smoothstep(0.05, 0.55, vFacing);
+        // Fade out before the sheets cut into the floor, so no hard line or lit wedge.
+        float ground = smoothstep(0.02, 0.6, vWorld.y);
         float fog = exp(-uFog * uFog * vDepth * vDepth);
-        float a = across * along * streak * drift * edge * vGain * fog;
+        float a = across * along * streak * drift * edge * ground * vGain * fog;
         gl_FragColor = vec4(uColor, clamp(a, 0.0, 1.0));
       }`,
     transparent: true,
@@ -165,6 +173,87 @@ function shaftMaterial() {
     side: DoubleSide,
   });
 }
+
+/**
+ * Sun pools on the floor and tatami. Each fragment traces back along its shaft to the
+ * openings in the back wall, so the pool keeps the eave post, rail and shoji stile
+ * shadows, and its edges soften with distance. Numbers mirror BackWall's layout.
+ */
+function poolMaterial() {
+  return new ShaderMaterial({
+    uniforms: {
+      uFog: { value: 0 },
+      uColor: { value: new Color('#ffb477') },
+      uVeranda: { value: v(VERANDA_DIR).normalize() },
+      uShoji: { value: v(SHOJI_DIR).normalize() },
+    },
+    vertexShader: /* glsl */ `
+      varying vec3 vWorld;
+      varying float vDepth;
+      void main() {
+        vec4 world = modelMatrix * vec4(position, 1.0);
+        vWorld = world.xyz;
+        vec4 mv = viewMatrix * world;
+        vDepth = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform float uFog;
+      uniform vec3 uColor;
+      uniform vec3 uVeranda;
+      uniform vec3 uShoji;
+      varying vec3 vWorld;
+      varying float vDepth;
+      float band(float x, float a, float b, float soft) {
+        return smoothstep(a - soft, a + soft, x) * (1.0 - smoothstep(b - soft, b + soft, x));
+      }
+      vec3 back(vec3 p, vec3 dir, float plane) {
+        return p - dir * ((p.z - plane) / dir.z);
+      }
+      void main() {
+        vec3 p = vWorld;
+        vec3 w = back(p, uVeranda, -6.18);
+        float reach = length(w - p);
+        float soft = 0.03 + reach * 0.05;
+        // Opening above the sill; the eave roof cuts the top of the beam.
+        float veranda = band(w.x, -3.87, -1.9, soft) * band(w.y, 0.04, 2.45, soft * 2.0);
+        vec3 post = back(p, uVeranda, -7.8);
+        veranda *= 1.0 - 0.85 * band(post.x, -3.625, -3.475, soft * 1.3);
+        vec3 rail = back(p, uVeranda, -7.84);
+        float bars = max(max(band(rail.y, 0.112, 0.148, soft),
+          band(rail.y, 0.432, 0.468, soft)), band(rail.y, 0.828, 0.872, soft));
+        float posts = (band(rail.x, -3.985, -3.915, soft) + band(rail.x, -3.185, -3.115, soft)
+          + band(rail.x, -2.385, -2.315, soft)) * step(rail.y, 0.87);
+        veranda *= (1.0 - 0.7 * clamp(bars + posts, 0.0, 1.0)) * exp(-reach * 0.12);
+        // Shoji paper diffuses: a dim, very soft pool broken by the panel stiles.
+        vec3 s = back(p, uShoji, -6.25);
+        float sreach = length(s - p);
+        float ssoft = 0.1 + sreach * 0.06;
+        float shoji = band(s.x, -1.65, 0.66, ssoft) * band(s.y, 0.96, 2.93, ssoft);
+        float stiles = band(s.x, -1.65, -1.614, ssoft * 0.4)
+          + band(s.x, -0.531, -0.459, ssoft * 0.4) + band(s.x, 0.624, 0.66, ssoft * 0.4);
+        shoji *= (1.0 - 0.5 * clamp(stiles, 0.0, 1.0)) * exp(-sreach * 0.2);
+        float fog = exp(-uFog * uFog * vDepth * vDepth);
+        gl_FragColor = vec4(uColor * (veranda * 0.55 + shoji * 0.16) * fog, 1.0);
+      }`,
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -4,
+    // Brightens what is under it (dst * (1 + src)), so floor seams stay dark in the light.
+    blending: CustomBlending,
+    blendEquation: AddEquation,
+    blendSrc: DstColorFactor,
+    blendDst: OneFactor,
+  });
+}
+
+/** Floor boards (top at 0) in front of the back wall, and the tatami top (0.052). */
+const POOLS: { size: [number, number]; at: Point }[] = [
+  { size: [5.8, 6.8], at: [-1.1, 0.003, -2.78] },
+  { size: [3.59, 4.485], at: [0, 0.0525, -2.05] },
+];
 
 const MOTES = 320;
 
@@ -247,14 +336,16 @@ export function Atmosphere({ reduced }: { reduced: boolean }) {
     () => ({ geometry: moteGeometry(), material: moteMaterial() }),
     [],
   );
+  const pool = useMemo(poolMaterial, []);
   useEffect(
     () => () => {
       for (const part of [shafts, motes]) {
         part.geometry.dispose();
         part.material.dispose();
       }
+      pool.dispose();
     },
-    [shafts, motes],
+    [shafts, motes, pool],
   );
   useFrame(({ scene, camera, size, viewport }, delta) => {
     const fog = scene.fog instanceof FogExp2 ? scene.fog.density : 0;
@@ -263,11 +354,23 @@ export function Atmosphere({ reduced }: { reduced: boolean }) {
       if (!reduced) material.uniforms.uTime.value += delta;
       material.uniforms.uFog.value = fog;
     }
+    pool.uniforms.uFog.value = fog;
     motes.material.uniforms.uScale.value =
       (size.height * viewport.dpr) / (2 * Math.tan((fov * Math.PI) / 360));
   });
   return (
     <group name="atmosphere">
+      {POOLS.map(({ size, at }) => (
+        <mesh
+          key={at[1]}
+          position={at}
+          rotation={[-Math.PI / 2, 0, 0]}
+          material={pool}
+          renderOrder={1}
+        >
+          <planeGeometry args={size} />
+        </mesh>
+      ))}
       <mesh
         geometry={shafts.geometry}
         material={shafts.material}

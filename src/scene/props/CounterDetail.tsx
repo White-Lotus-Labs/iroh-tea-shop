@@ -11,6 +11,7 @@ import {
 } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
+import { once } from '../Surfaces';
 import {
   block,
   brushText,
@@ -182,11 +183,13 @@ function drawPlaques(ctx: CanvasRenderingContext2D) {
     brushText(ctx, price, x + 64, 330, 52, '150,34,24');
   });
 }
+const plaqueArt = once(() =>
+  canvasTexture(128 * PLAQUES.length, 512, drawPlaques),
+);
 
 /** A row of menu plaques hung from the nageshi on the waiting room's left wall. */
 export function MenuPlaques() {
   const built = useBuilt(() => {
-    const art = canvasTexture(128 * PLAQUES.length, 512, drawPlaques);
     const faces = PLAQUES.map((_, i) => {
       const face = new PlaneGeometry(0.12, 0.48);
       const uv = face.attributes.uv;
@@ -206,11 +209,11 @@ export function MenuPlaques() {
         ]),
       );
     return {
-      art,
+      art: plaqueArt(),
       face,
       wood,
       dispose() {
-        [art, face, wood].forEach((item) => item.dispose());
+        [face, wood].forEach((item) => item.dispose());
       },
     };
   });

@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { Matrix4, type InstancedMesh } from 'three';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { Matrix4, type CanvasTexture, type InstancedMesh } from 'three';
 import { Solid, canvasTexture, useSurfaceMaps } from '../Surfaces';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
@@ -130,6 +130,8 @@ function paintWashi(ctx: Paint, w: number, h: number, seed: number) {
   layer(3, 0.42, 0.9);
 }
 
+const washi = new Map<string, CanvasTexture>();
+
 /** A lit shoji window in the local XY plane facing +z: sliding panels, instanced kumiko, glowing washi. */
 export function ShojiWindow({
   position,
@@ -153,12 +155,15 @@ export function ShojiWindow({
   seed?: number;
 }) {
   const wood = useSurfaceMaps('wood');
-  const paper = useMemo(() => {
-    const px = 512,
-      py = Math.round((px * height) / width);
-    return canvasTexture(px, py, (ctx) => paintWashi(ctx, px, py, seed));
-  }, [width, height, seed]);
-  useEffect(() => () => paper.dispose(), [paper]);
+  const px = 512,
+    py = Math.round((px * height) / width),
+    key = `${py}:${seed}`;
+  let paper = washi.get(key);
+  if (!paper)
+    washi.set(
+      key,
+      (paper = canvasTexture(px, py, (ctx) => paintWashi(ctx, px, py, seed))),
+    );
   const overlap = stile;
   const pw = (width + overlap * (panels - 1)) / panels;
   const layout = Array.from({ length: panels }, (_, i) => ({

@@ -5,19 +5,28 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, type RootState } from '@react-three/fiber';
 import { ContactShadows, useProgress } from '@react-three/drei';
+import { WebGLRenderTarget } from 'three';
 import { CameraRig } from './CameraRig';
 import { StationHalos } from './StationHalos';
 import { TeaRitual, LanternLight } from './TeaRitual';
-import { MechanicalPlanetarySystem } from './MechanicalPlanetarySystem';
+import {
+  MechanicalPlanetarySystem,
+  OrreryLight,
+} from './MechanicalPlanetarySystem';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
-import { TeaShelf } from './TeaShelf';
-import { TeaChamber, WaitingRoom } from './TeaArchitecture';
+import { ShelfLanternLight, TeaShelf } from './TeaShelf';
+import {
+  ChamberDetail,
+  TeaChamber,
+  WaitingDetail,
+  WaitingRoom,
+} from './TeaArchitecture';
 import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
 import { DevShotCamera } from './DevShotCamera';
-import { SceneEffects } from './SceneEffects';
+import { SceneEffects, SceneLighting, Staged } from './SceneEffects';
 import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
@@ -57,8 +66,9 @@ function RoomGeometry({
         color="#ffb877"
         intensity={2.1}
         castShadow
-        shadow-bias={-0.00035}
-        shadow-normalBias={0.025}
+        // About one texel of normal bias: more lifts contact shadows and props look afloat.
+        shadow-bias={-0.0003}
+        shadow-normalBias={0.011}
         shadow-mapSize={[2048, 2048]}
         shadow-radius={3}
         shadow-camera-left={-10}
@@ -83,13 +93,14 @@ function RoomGeometry({
         intensity={2.4}
         distance={3.2}
       />
+      <OrreryLight />
+      <ShelfLanternLight />
+      <SceneLighting reduced={reduced} />
       <WaitingRoom />
-      <ThesisCards
-        halos={station === 'Counter' && menuClosed}
-        reduced={reduced}
-        onPick={onThesisPick}
-      />
-      <TeaChamber reduced={reduced}>
+      {/* Later group: no lights, so the shell's programs stay valid when it arrives. */}
+      <Staged reduced={reduced} precompile={compileRoom}>
+        <WaitingDetail />
+        <ChamberDetail reduced={reduced} />
         <ContactShadows
           position={[0, 0.016, -2.55]}
           opacity={0.3}
@@ -100,16 +111,16 @@ function RoomGeometry({
           frames={1}
           color="#25180f"
         />
-        <LanternLight mood={mood} reduced={reduced} />
-        <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
         <MechanicalPlanetarySystem reduced={reduced} />
-        <Suspense fallback={null}>
-          <TeaHost3D reduced={reduced} activity={irohActivity} />
-        </Suspense>
         <TeaShelf
           onSelect={onShelfSelect}
           revealed={shelfRevealed}
           reduced={reduced}
+        />
+        <ThesisCards
+          halos={station === 'Counter' && menuClosed}
+          reduced={reduced}
+          onPick={onThesisPick}
         />
         <StationHalos
           station={station}
@@ -119,9 +130,30 @@ function RoomGeometry({
           onMenuOpen={onMenuOpen}
           onShelfSelect={onShelfSelect}
         />
+        <SceneEffects reduced={reduced} />
+      </Staged>
+      <TeaChamber>
+        <LanternLight mood={mood} reduced={reduced} />
+        <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
+        <Suspense fallback={null}>
+          <TeaHost3D reduced={reduced} activity={irohActivity} />
+        </Suspense>
       </TeaChamber>
     </>
   );
+}
+
+/**
+ * Builds every program in the room while the loader is up, so the first drag never
+ * compiles a shader. Any offscreen target selects the variants the composer renders with.
+ */
+function compileRoom({ gl, scene, camera }: RootState) {
+  const target = new WebGLRenderTarget(1, 1),
+    previous = gl.getRenderTarget();
+  gl.setRenderTarget(target);
+  const done = gl.compileAsync(scene, camera);
+  gl.setRenderTarget(previous);
+  return done.finally(() => target.dispose());
 }
 
 class SceneBoundary extends Component<
@@ -255,7 +287,6 @@ export default function TeaRoom({
           onArrive={onArrive}
         />
         <DevShotCamera />
-        <SceneEffects reduced={reduced} />
       </Canvas>
     </SceneBoundary>
   );

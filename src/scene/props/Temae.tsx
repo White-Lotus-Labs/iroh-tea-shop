@@ -1,21 +1,20 @@
 import {
   CylinderGeometry,
   LatheGeometry,
-  LineCurve3,
   PlaneGeometry,
   SphereGeometry,
-  TubeGeometry,
   Vector2,
   Vector3,
 } from 'three';
 import { Steam } from '../Steam';
-import { Solid } from '../Surfaces';
+import { once, Solid } from '../Surfaces';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
 import { Chabana } from './BackWall';
 import {
   block,
   canvasTexture,
+  cord,
   inkStroke,
   merge,
   paint,
@@ -43,13 +42,14 @@ const JAR = [
   [0.068, 0.172],
   [0, 0.172],
 ];
+const BOWL_RIM = 0.084;
 const BOWL = [
   [0, 0],
   [0.05, 0],
   [0.058, 0.006],
   [0.07, 0.05],
   [0.076, 0.082],
-  [0.071, 0.084],
+  [0.071, BOWL_RIM],
   [0.064, 0.052],
   [0.05, 0.014],
   [0, 0.014],
@@ -93,66 +93,71 @@ function drawShino(ctx: CanvasRenderingContext2D) {
       );
   }
 }
+const shinoMap = once(() => canvasTexture(512, 256, drawShino));
+
+const KENSUI: Point = [2.02, 0, -1.3];
+const LID_REST: Point = [2.34, 0, -1.03];
+const LID_REST_H = 0.055;
 
 /**
  * Temae utensils beside the brazier: a lidded water jar (mizusashi), a bronze waste
- * bowl (kensui) with a bamboo ladle (hishaku) resting on its lid rest, and a folded fukusa.
+ * bowl (kensui), a bamboo lid rest holding the ladle's upturned cup with the handle
+ * laid on the kensui rim, and a folded fukusa.
  */
 export function TemaeSet() {
   const built = useBuilt(() => {
-    const jar = place(lathe(JAR), [2.24, 0, -1.74]),
-      shino = canvasTexture(512, 256, drawShino),
+    const jarAt: Point = [2.12, 0, -1.8],
+      jar = place(lathe(JAR), jarAt),
       lacquer = merge([
         paint(
-          place(
-            new CylinderGeometry(0.075, 0.075, 0.012, 28),
-            [2.24, 0.186, -1.74],
-          ),
+          place(new CylinderGeometry(0.075, 0.075, 0.012, 28), [
+            jarAt[0],
+            0.186,
+            jarAt[2],
+          ]),
           '#120a06',
         ),
         paint(
-          place(new SphereGeometry(0.012, 12, 8), [2.24, 0.196, -1.74]),
+          place(new SphereGeometry(0.012, 12, 8), [jarAt[0], 0.196, jarAt[2]]),
           '#120a06',
         ),
       ]),
-      bronze = lathe(BOWL);
-    place(bronze, [1.96, 0, -1.34]);
+      bronze = place(lathe(BOWL), KENSUI);
+    const [kx, , kz] = KENSUI,
+      [fx, , fz] = LID_REST,
+      toward = new Vector3(kx - fx, 0, kz - fz).normalize(),
+      cupY = LID_REST_H + 0.0225,
+      joint = new Vector3(fx, cupY, fz).addScaledVector(toward, 0.028),
+      rim = new Vector3(kx, BOWL_RIM + 0.0055, kz).addScaledVector(
+        toward,
+        -0.076,
+      ),
+      tip = rim
+        .clone()
+        .addScaledVector(rim.clone().sub(joint).normalize(), 0.035);
     const bamboo = merge([
       paint(
-        place(
-          new CylinderGeometry(0.028, 0.026, 0.045, 18, 1, true),
-          [1.96, 0.075, -1.34],
-        ),
+        place(new CylinderGeometry(0.026, 0.028, 0.045, 18), [fx, cupY, fz]),
         '#c9a860',
       ),
+      paint(cord(joint.toArray(), tip.toArray(), 0.0055), '#c9a860'),
       paint(
-        new TubeGeometry(
-          new LineCurve3(
-            new Vector3(1.982, 0.092, -1.322),
-            new Vector3(2.29, 0.061, -1.06),
-          ),
-          1,
-          0.0055,
-          6,
-        ),
-        '#c9a860',
-      ),
-      paint(
-        place(
-          new CylinderGeometry(0.024, 0.024, 0.055, 14),
-          [2.28, 0.0275, -1.07],
-        ),
+        place(new CylinderGeometry(0.024, 0.024, LID_REST_H, 14), [
+          fx,
+          LID_REST_H / 2,
+          fz,
+        ]),
         '#a88a48',
       ),
     ]);
     return {
       jar,
-      shino,
+      shino: shinoMap(),
       lacquer,
       bronze,
       bamboo,
       dispose() {
-        [jar, shino, lacquer, bronze, bamboo].forEach((g) => g.dispose());
+        [jar, lacquer, bronze, bamboo].forEach((g) => g.dispose());
       },
     };
   });
@@ -184,15 +189,16 @@ export function TemaeSet() {
       <mesh geometry={built.bamboo} castShadow>
         <meshStandardMaterial vertexColors roughness={0.55} />
       </mesh>
+      {/* Folded flat on the tatami, whose top is at 0.052 m. */}
       <Solid
-        position={[1.24, 0.058, -1.42]}
-        size={[0.13, 0.012, 0.09]}
+        position={[1.24, 0.0565, -1.42]}
+        size={[0.13, 0.009, 0.09]}
         color="#6e2433"
         surface="cloth"
       />
       <Solid
-        position={[1.235, 0.068, -1.425]}
-        size={[0.12, 0.01, 0.07]}
+        position={[1.238, 0.063, -1.44]}
+        size={[0.124, 0.004, 0.046]}
         color="#7a2a3a"
         surface="cloth"
       />
@@ -313,6 +319,17 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = band;
     ctx.fillRect(0, y - 40, w, 80);
   }
+  // Ink wash, not solid black: a blurred pale bleed under a thin, dilute stroke.
+  const wash = (path: [number, number][], width: number) => {
+    ctx.save();
+    ctx.filter = 'blur(7px)';
+    ctx.globalAlpha = 0.3;
+    inkStroke(ctx, path, width * 1.7, random, '92,74,52');
+    ctx.filter = 'none';
+    ctx.globalAlpha = 0.45;
+    inkStroke(ctx, path, width, random, '66,52,38');
+    ctx.restore();
+  };
   const trunk: [number, number][] = [
     [690, 720],
     [676, 600],
@@ -320,7 +337,7 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
     [560, 380],
     [470, 330],
   ];
-  inkStroke(ctx, trunk, 34, random);
+  wash(trunk, 30);
   const branches: [number, number][][] = [
     [
       [640, 480],
@@ -338,7 +355,8 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
       [300, 350],
     ],
   ];
-  branches.forEach((path) => inkStroke(ctx, path, 12, random));
+  branches.forEach((path) => wash(path, 11));
+  ctx.globalAlpha = 0.5;
   for (const [cx, cy] of [
     [840, 410],
     [560, 225],
@@ -359,18 +377,25 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
         ],
         2.2,
         random,
-        '22,34,24',
+        '52,66,50',
       );
     }
+  ctx.globalAlpha = 1;
 }
+const screenArt = once(() => canvasTexture(1024, 720, drawScreen));
 
-/** A folding screen (byobu): lacquer frames, gold ink painting and a paper back. */
+/** Lacquer frame section: face width and depth. The painting sits inside the depth. */
+const FRAME = { face: 0.026, depth: 0.03 };
+/**
+ * A folding screen (byobu): each panel is a lacquer frame that wraps its gold painting
+ * and paper back, and brass hinges join the stiles at every fold.
+ */
 export function Byobu({
   position,
   turn = 0,
   panels: PANELS = 2,
   width: PANEL_W = 0.62,
-  height: PANEL_H = 0.64,
+  height: PANEL_H = 0.68,
 }: {
   position: Point;
   turn?: number;
@@ -379,66 +404,86 @@ export function Byobu({
   height?: number;
 }) {
   const built = useBuilt(() => {
-    const art = canvasTexture(1024, 720, drawScreen);
+    const { face: F, depth: D } = FRAME,
+      innerW = PANEL_W - 2 * F + 0.008,
+      innerH = PANEL_H - 2 * F + 0.008;
     let x = 0,
       z = 0;
     const faces = [],
-      frames = [];
+      frames = [],
+      hinges = [];
     for (let i = 0; i < PANELS; i++) {
       const angle = i % 2 ? FOLD : -FOLD,
         cx = x + (Math.cos(angle) * PANEL_W) / 2,
-        cz = z - (Math.sin(angle) * PANEL_W) / 2;
-      const face = new PlaneGeometry(PANEL_W - 0.03, PANEL_H - 0.05);
+        cz = z - (Math.sin(angle) * PANEL_W) / 2,
+        r: Point = [0, angle, 0],
+        // Panel-local (along, up, out of the painted face) to screen space.
+        at = (dx: number, y: number, dn = 0): Point => [
+          cx + Math.cos(angle) * dx + Math.sin(angle) * dn,
+          y,
+          cz - Math.sin(angle) * dx + Math.cos(angle) * dn,
+        ];
+      const face = new PlaneGeometry(innerW, innerH);
       const uv = face.attributes.uv;
       for (let k = 0; k < uv.count; k++) uv.setX(k, (i + uv.getX(k)) / PANELS);
-      faces.push(place(face, [cx, PANEL_H / 2 + 0.03, cz], [0, angle, 0]));
-      const r: Point = [0, angle, 0],
-        at = (dx: number, y: number): Point => [
-          cx + Math.cos(angle) * dx,
-          y,
-          cz - Math.sin(angle) * dx,
-        ];
+      faces.push(place(face, at(0, PANEL_H / 2, 0.004), r));
+      const lacquer = '#140b07';
       frames.push(
-        block([PANEL_W, 0.022, 0.024], at(0, 0.03), '#140b07', { rotation: r }),
-        block([PANEL_W, 0.022, 0.024], at(0, PANEL_H + 0.03), '#140b07', {
+        block([PANEL_W, F, D], at(0, F / 2), lacquer, { rotation: r }),
+        block([PANEL_W, F, D], at(0, PANEL_H - F / 2), lacquer, {
           rotation: r,
         }),
-        block(
-          [0.018, PANEL_H, 0.024],
-          at(-PANEL_W / 2 + 0.009, PANEL_H / 2 + 0.03),
-          '#140b07',
-          {
-            rotation: r,
-          },
+        ...[-1, 1].map((side) =>
+          block(
+            [F, PANEL_H - 2 * F + 0.002, D],
+            at(side * (PANEL_W / 2 - F / 2), PANEL_H / 2),
+            lacquer,
+            { rotation: r },
+          ),
         ),
-        block(
-          [0.018, PANEL_H, 0.022],
-          at(PANEL_W / 2 - 0.009, PANEL_H / 2 + 0.03),
-          '#140b07',
-          {
-            rotation: r,
-          },
-        ),
-        block(
-          [PANEL_W - 0.02, PANEL_H - 0.04, 0.006],
-          at(0, PANEL_H / 2 + 0.03),
-          '#b9a27a',
-          {
-            rotation: r,
-          },
-        ),
+        block([innerW, innerH, 0.004], at(0, PANEL_H / 2, -0.004), '#b9a27a', {
+          rotation: r,
+        }),
       );
       x += Math.cos(angle) * PANEL_W;
       z -= Math.sin(angle) * PANEL_W;
+      if (i === PANELS - 1) continue;
+      // The knuckle fills the V on the fold's convex side; a leaf sits on each stile there.
+      const next = i % 2 ? -FOLD : FOLD,
+        s = i % 2 ? -1 : 1,
+        nx = x + Math.cos(next) * 0.013 + Math.sin(next) * s * (D / 2),
+        nz = z - Math.sin(next) * 0.013 + Math.cos(next) * s * (D / 2);
+      for (const y of [0.1, PANEL_H / 2, PANEL_H - 0.1])
+        hinges.push(
+          paint(
+            place(new CylinderGeometry(0.0055, 0.0055, 0.05, 12), [
+              x,
+              y,
+              z + s * (D / 2 - 0.001),
+            ]),
+            '#fff',
+          ),
+          block(
+            [0.024, 0.044, 0.002],
+            at(PANEL_W / 2 - 0.013, y, s * (D / 2)),
+            '#fff',
+            { rotation: r },
+          ),
+          block([0.024, 0.044, 0.002], [nx, y, nz], '#fff', {
+            rotation: [0, next, 0],
+          }),
+        );
     }
     const face = merge(faces),
-      frame = merge(frames);
+      frame = merge(frames),
+      hinge = merge(hinges);
     return {
-      art,
+      art: screenArt(),
       face,
       frame,
+      hinge,
       dispose() {
-        [art, face, frame].forEach((item) => item.dispose());
+        [face, frame, hinge].forEach((item) => item.dispose());
       },
     };
   });
@@ -447,11 +492,19 @@ export function Byobu({
       <mesh geometry={built.frame} castShadow receiveShadow>
         <WoodMaterial clearcoat={0.9} />
       </mesh>
-      <mesh geometry={built.face} position={[0, 0, 0.0045]} receiveShadow>
+      <mesh geometry={built.face} receiveShadow>
         <meshStandardMaterial
           map={built.art}
           metalness={0.35}
           roughness={0.5}
+        />
+      </mesh>
+      <mesh geometry={built.hinge} castShadow>
+        <meshStandardMaterial
+          vertexColors
+          color="#9a7a3e"
+          metalness={0.9}
+          roughness={0.35}
         />
       </mesh>
     </group>

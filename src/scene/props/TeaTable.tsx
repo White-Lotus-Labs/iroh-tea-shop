@@ -13,7 +13,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { canvasTexture, Cup, fbm, tiledNoise } from '../Ceramics';
 import { createRandom } from '../motion/dynamics';
-import { Solid } from '../Surfaces';
+import { once, Solid } from '../Surfaces';
 import type { Point } from '../stations';
 import { TeaService } from './TeaService';
 
@@ -290,11 +290,15 @@ function Fringe() {
   );
 }
 
+const tableMaps = once(() => ({
+  wood: woodMaps([102, 67, 46], [76, 48, 32], 301),
+  runner: runnerMaps(),
+}));
+
 /** The host's low tea table, its runner, the guest cups and the tea tools. */
 export function TeaTable() {
   const geometry = useMemo(tableGeometry, []);
-  const wood = useMemo(() => woodMaps([102, 67, 46], [76, 48, 32], 301), []);
-  const runner = useMemo(runnerMaps, []);
+  const { wood, runner } = tableMaps();
   const materials = useMemo(() => {
     const make = (color: string, clearcoat: number, clearcoatRoughness = 0.3) =>
       new MeshPhysicalMaterial({
@@ -316,11 +320,11 @@ export function TeaTable() {
   }, [wood]);
   useEffect(
     () => () => {
-      [geometry, wood, runner, materials].forEach((set) =>
+      [geometry, materials].forEach((set) =>
         Object.values(set).forEach((item) => item.dispose()),
       );
     },
-    [geometry, wood, runner, materials],
+    [geometry, materials],
   );
   return (
     <group>
