@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { PROJECT, REPO_URL, TEAM, xUrl, type Member } from './content';
+import { LotusMark } from './LotusMark';
 
 export type SketchPage = {
   key: string;
@@ -159,6 +160,9 @@ export const SKETCH_PAGES: SketchPage[] = [
     key: 'title',
     render: () => (
       <div className="sb-page-inner sb-title">
+        <span className="sb-mark" aria-hidden="true">
+          <LotusMark variant="sketch" />
+        </span>
         <p className="sb-kicker">{PROJECT.studio}</p>
         <h1 className="sb-name">{PROJECT.name}</h1>
         <p className="sb-tagline">{PROJECT.tagline}</p>

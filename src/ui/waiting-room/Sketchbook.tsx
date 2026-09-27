@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import dynamic from 'next/dynamic';
+import { LotusMark } from './LotusMark';
 import type { PetalArea } from './SakuraPetals';
 import { SKETCH_PAGES, SPREAD_TITLES } from './sketchbookPages';
 import './Sketchbook.css';
@@ -154,21 +155,75 @@ function Leaf({
   );
 }
 
+type Phase = 'shut' | 'opening' | 'open';
+
+/** The front cover, bent with the same strip curl as a page. */
+function Cover({
+  bind,
+}: {
+  bind: (i: number) => (el: HTMLDivElement | null) => void;
+}) {
+  let chain: ReactNode = null;
+  for (let i = N - 1; i >= 0; i--)
+    chain = (
+      <div
+        key={i}
+        ref={bind(i)}
+        className={`strip${i === N - 1 ? ' edge' : ''}`}
+        style={{ '--i': i } as CSSProperties}
+      >
+        <div className="face front">
+          <div className="sb-lid-face">
+            <div className="sb-cloth">
+              <LotusMark />
+              <p className="sb-cloth-studio">White Lotus Labs</p>
+              <p className="sb-cloth-name">Tea After Pour</p>
+            </div>
+          </div>
+          <span className="sh" />
+          <span className="gl" />
+        </div>
+        <div className="face back">
+          <div className="sb-lid-face">
+            <div className="sb-endpaper">
+              <LotusMark variant="sketch" />
+              <p>the seal, drawn once</p>
+            </div>
+          </div>
+          <span className="sh" />
+          <span className="gl" />
+        </div>
+        {chain}
+      </div>
+    );
+  return (
+    <div className="curl single" aria-hidden="true">
+      {chain}
+    </div>
+  );
+}
+
 export function Sketchbook({ reduced }: { reduced: boolean }) {
   const [mode, setMode] = useState<Mode>('spread');
   const [view, setView] = useState(0);
   const [turn, setTurn] = useState<Turn | null>(null);
   const [turned, setTurned] = useState(false);
+  const [phase, setPhase] = useState<Phase>('shut');
   const stage = useRef<HTMLDivElement>(null);
   const book = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const lid = useRef<HTMLDivElement>(null);
   const index = useRef<HTMLElement>(null);
   const strips = useRef<(HTMLDivElement | null)[]>([]);
+  const lidStrips = useRef<(HTMLDivElement | null)[]>([]);
   const progress = useRef(0);
+  const openP = useRef(0);
   const spring = useRef<Spring | null>(null);
+  const openSpring = useRef<Spring | null>(null);
   const drag = useRef<Drag | null>(null);
   const tilt = useRef({ rx: 0, ry: 0, tx: 0, ty: 0 });
-  const live = useRef({ mode, view, turn, reduced });
-  live.current = { mode, view, turn, reduced };
+  const live = useRef({ mode, view, turn, reduced, phase });
+  live.current = { mode, view, turn, reduced, phase };
 
   const count =
     mode === 'spread' ? SKETCH_PAGES.length / 2 : SKETCH_PAGES.length;
@@ -178,6 +233,36 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     },
     [],
   );
+  const bindLid = useCallback(
+    (i: number) => (el: HTMLDivElement | null) => {
+      lidStrips.current[i] = el;
+    },
+    [],
+  );
+
+  const paintCover = useCallback(() => {
+    const t = openP.current;
+    const reveal = Math.max(0, Math.min(1, (t - 0.34) / 0.4));
+    root.current?.style.setProperty('--open', t.toFixed(4));
+    root.current?.style.setProperty('--reveal', reveal.toFixed(4));
+    if (reveal > 0.01) root.current?.setAttribute('data-pages', 'show');
+    const el = lid.current;
+    if (!el) return;
+    const beta = BETA * Math.sin(Math.PI * t);
+    const tt = Math.PI * t + beta;
+    const td = (2 * beta) / N;
+    el.style.setProperty('--tt', `${(tt * DEG).toFixed(2)}deg`);
+    el.style.setProperty('--td', `${(td * DEG).toFixed(3)}deg`);
+    el.style.setProperty('--shade', Math.sin(Math.PI * t).toFixed(3));
+    lidStrips.current.forEach((strip, i) => {
+      if (!strip) return;
+      const l1 = Math.abs(Math.cos(tt - i * td));
+      const l2 = Math.abs(Math.cos(tt - (i + 1) * td));
+      strip.style.setProperty('--lit', l1.toFixed(3));
+      strip.style.setProperty('--a1', ((1 - l1) * 0.62).toFixed(3));
+      strip.style.setProperty('--a2', ((1 - l2) * 0.62).toFixed(3));
+    });
+  }, []);
 
   const paint = useCallback(() => {
     const el = stage.current;
@@ -205,6 +290,10 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     if (turn) paint();
     else stage.current?.style.setProperty('--shade', '0');
   }, [turn, mode, paint]);
+
+  useLayoutEffect(() => {
+    if (phase !== 'open') paintCover();
+  }, [phase, paintCover]);
 
   useEffect(() => {
     const media = window.matchMedia(SINGLE_QUERY);
@@ -240,8 +329,20 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     s.done();
   }, []);
 
+  const finishOpen = useCallback(() => {
+    if (live.current.phase === 'open') return;
+    openSpring.current = null;
+    openP.current = 1;
+    live.current.phase = 'open';
+    root.current?.style.setProperty('--open', '1');
+    root.current?.style.setProperty('--reveal', '1');
+    root.current?.setAttribute('data-pages', 'show');
+    setPhase('open');
+  }, []);
+
   const begin = useCallback(
     (dir: Dir, quiet = false) => {
+      finishOpen();
       settle();
       const { view, mode } = live.current;
       const last =
@@ -255,7 +356,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
       if (!quiet) setTurned(true);
       return true;
     },
-    [settle],
+    [finishOpen, settle],
   );
 
   const release = useCallback((complete: boolean) => {
@@ -306,6 +407,20 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
           s.done();
         } else paint();
       }
+      const os = openSpring.current;
+      if (os) {
+        os.v += (-os.k * (openP.current - os.target) - os.c * os.v) * dt;
+        openP.current += os.v * dt;
+        if (
+          openP.current > 0.42 ||
+          (Math.abs(openP.current - os.target) < 0.02 && Math.abs(os.v) < 0.15)
+        ) {
+          openSpring.current = null;
+          openP.current = os.target;
+          paintCover();
+          os.done();
+        } else paintCover();
+      }
       const tl = tilt.current;
       const dx = tl.tx - tl.rx;
       const dy = tl.ty - tl.ry;
@@ -319,7 +434,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [paint]);
+  }, [paint, paintCover]);
 
   useEffect(() => {
     if (reduced) return;
@@ -356,10 +471,42 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     };
   }, [reduced]);
 
-  // Shortly after arrival the right page lifts at its corner and settles back:
-  // enough to show that paper can be picked up.
+  // The book arrives shut. It opens on its own, unless motion is reduced.
+  // The finish timer does not use requestAnimationFrame. A hidden test page
+  // can stall frames, and the cover would stay in "opening".
   useEffect(() => {
-    if (reduced || turned) return;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (media.matches) {
+      openP.current = 1;
+      setPhase('open');
+      return;
+    }
+    const start = window.setTimeout(() => setPhase('opening'), 1700);
+    const done = window.setTimeout(() => finishOpen(), 3200);
+    return () => {
+      window.clearTimeout(start);
+      window.clearTimeout(done);
+    };
+  }, [finishOpen]);
+
+  useEffect(() => {
+    if (phase !== 'opening') return;
+    openSpring.current = {
+      target: 1,
+      v: 0,
+      k: 4,
+      c: 4,
+      done: () => {
+        openP.current = 1;
+        setPhase('open');
+      },
+    };
+  }, [phase]);
+
+  // Shortly after the book is open, the right page lifts at its corner and
+  // settles back: enough to show that paper can be picked up.
+  useEffect(() => {
+    if (reduced || turned || phase !== 'open') return;
     const timer = window.setTimeout(() => {
       if (live.current.turn || drag.current || !begin('next', true)) return;
       spring.current = {
@@ -371,7 +518,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
       };
     }, 2600);
     return () => window.clearTimeout(timer);
-  }, [reduced, turned, begin, release]);
+  }, [reduced, turned, phase, begin, release]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -395,7 +542,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   }, [view]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || live.current.phase !== 'open') return;
     if ((event.target as HTMLElement).closest('a, button')) return;
     const r = book.current?.getBoundingClientRect();
     if (!r) return;
@@ -461,8 +608,12 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
 
   const leaf = turn ? leafOf(mode, turn) : null;
   const shown = view;
+  const spreadTitle =
+    SPREAD_TITLES[mode === 'spread' ? shown : Math.floor(shown / 2)];
+  const place = `${spreadTitle}, ${mode === 'spread' ? 'spread' : 'page'} ${shown + 1} of ${count}`;
+  const open = phase === 'open';
   return (
-    <div className="sb" data-mode={mode}>
+    <div ref={root} className="sb" data-mode={mode} data-open={phase}>
       <div className="sb-stage">
         <button
           type="button"
@@ -490,7 +641,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
               className="sb-book"
               role="group"
               aria-roledescription="sketchbook"
-              aria-label={`${SPREAD_TITLES[mode === 'spread' ? shown : Math.floor(shown / 2)]}, ${mode === 'spread' ? 'spread' : 'page'} ${shown + 1} of ${count}`}
+              aria-label={open ? place : 'Closed sketchbook, Tea After Pour'}
             >
               <span className="sb-cover" aria-hidden="true" />
               {mode === 'spread' ? (
@@ -499,7 +650,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
                     <PageView
                       index={leaf ? leaf.under[0] : 2 * view}
                       side="left"
-                      live={!turn}
+                      live={open && !turn}
                     />
                     <span className="gutter-shade" aria-hidden="true" />
                   </div>
@@ -507,7 +658,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
                     <PageView
                       index={leaf ? leaf.under[1] : 2 * view + 1}
                       side="right"
-                      live={!turn}
+                      live={open && !turn}
                     />
                     <span className="gutter-shade" aria-hidden="true" />
                   </div>
@@ -517,12 +668,19 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
                   <PageView
                     index={leaf ? leaf.under[0] : view}
                     side="right"
-                    live={!turn}
+                    live={open && !turn}
                   />
                   <span className="gutter-shade" aria-hidden="true" />
                 </div>
               )}
               <span className="sb-ribbon" aria-hidden="true" />
+              {phase !== 'open' && (
+                <div ref={lid} className="sb-lid">
+                  <span className="sb-lid-edge" aria-hidden="true" />
+                  <Cover bind={bindLid} />
+                  <span className="sb-lid-ribbon" aria-hidden="true" />
+                </div>
+              )}
               {leaf && (
                 <Leaf
                   key={`${turn!.dir}-${turn!.from}`}
