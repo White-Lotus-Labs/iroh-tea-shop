@@ -3,95 +3,34 @@ import {
   Suspense,
   type ReactNode,
   useEffect,
-  useRef,
   useState,
 } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Billboard, ContactShadows, useProgress } from '@react-three/drei';
-import type { Group } from 'three';
+import { Canvas, type RootState } from '@react-three/fiber';
+import { ContactShadows, useProgress } from '@react-three/drei';
+import { WebGLRenderTarget } from 'three';
 import { CameraRig } from './CameraRig';
+import { StationHalos } from './StationHalos';
 import { TeaRitual, LanternLight } from './TeaRitual';
-import { MechanicalPlanetarySystem } from './MechanicalPlanetarySystem';
+import {
+  MechanicalPlanetarySystem,
+  OrreryLight,
+} from './MechanicalPlanetarySystem';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
-import { TeaShelf } from './TeaShelf';
-import { TeaChamber, WaitingRoom } from './TeaArchitecture';
+import { ShelfLanternLight, TeaShelf } from './TeaShelf';
+import {
+  ChamberDetail,
+  TeaChamber,
+  WaitingDetail,
+  WaitingRoom,
+} from './TeaArchitecture';
 import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
+import { DevShotCamera } from './DevShotCamera';
+import { SceneEffects, SceneLighting, Staged } from './SceneEffects';
+import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
-
-function StationMenuHalo({
-  station,
-  reduced,
-  onOpen,
-}: {
-  station: Station;
-  reduced: boolean;
-  onOpen: () => void;
-}) {
-  const halo = useRef<Group>(null);
-  const anchor = STATIONS.find((place) => place.id === station)!;
-  useFrame(({ clock }) => {
-    if (!halo.current) return;
-    const pulse = reduced ? 1 : 1 + Math.sin(clock.elapsedTime * 2.4) * 0.09;
-    halo.current.scale.setScalar(pulse);
-  });
-  return (
-    <group position={anchor.hotspot} name={`${station}-menu-halo`}>
-      <pointLight
-        color="#f3c579"
-        intensity={reduced ? 0.55 : 0.9}
-        distance={2.5}
-      />
-      <Billboard follow>
-        <group
-          ref={halo}
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-          onPointerOver={(event) => {
-            event.stopPropagation();
-            document.body.style.cursor = 'pointer';
-          }}
-          onPointerOut={() => {
-            document.body.style.cursor = '';
-          }}
-        >
-          <mesh>
-            <ringGeometry args={[0.11, 0.15, 32]} />
-            <meshBasicMaterial
-              color="#f3c579"
-              transparent
-              opacity={0.9}
-              depthTest={false}
-              depthWrite={false}
-            />
-          </mesh>
-          <mesh scale={1.48}>
-            <ringGeometry args={[0.11, 0.12, 32]} />
-            <meshBasicMaterial
-              color="#fff0ca"
-              transparent
-              opacity={0.7}
-              depthTest={false}
-              depthWrite={false}
-            />
-          </mesh>
-          <mesh>
-            <circleGeometry args={[0.24, 32]} />
-            <meshBasicMaterial
-              transparent
-              opacity={0}
-              depthTest={false}
-              depthWrite={false}
-            />
-          </mesh>
-        </group>
-      </Billboard>
-    </group>
-  );
-}
+import type { ThesisId } from '../thesis/types';
 
 function RoomGeometry({
   mood,
@@ -103,6 +42,8 @@ function RoomGeometry({
   station,
   menuClosed,
   onMenuOpen,
+  onThesisPick,
+  onNavigate,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -113,20 +54,23 @@ function RoomGeometry({
   station: Station;
   menuClosed: boolean;
   onMenuOpen: () => void;
+  onThesisPick?: (id: ThesisId) => void;
+  onNavigate: (station: Station) => void;
 }) {
   return (
     <>
       <color attach="background" args={['#2f2119']} />
-      <hemisphereLight args={['#b6bfcb', '#604a36', 0.9]} />
-      <ambientLight intensity={0.58} color="#ffe8ce" />
+      <hemisphereLight args={['#c9c0b6', '#5a3b25', 0.3]} />
       <directionalLight
         position={[-5, 6, -4]}
-        color="#ffce8d"
-        intensity={2.25}
+        color="#ffb877"
+        intensity={2.1}
         castShadow
-        shadow-bias={-0.00035}
-        shadow-normalBias={0.025}
+        // About one texel of normal bias: more lifts contact shadows and props look afloat.
+        shadow-bias={-0.0003}
+        shadow-normalBias={0.011}
         shadow-mapSize={[2048, 2048]}
+        shadow-radius={3}
         shadow-camera-left={-10}
         shadow-camera-right={10}
         shadow-camera-top={9}
@@ -134,17 +78,29 @@ function RoomGeometry({
       />
       <directionalLight
         position={[3, 3.8, 2.5]}
-        color="#e8d6be"
-        intensity={0.88}
+        color="#b8c2d6"
+        intensity={0.32}
       />
       <pointLight
         position={[1.1, 1.75, -0.7]}
-        color="#e8d7bf"
-        intensity={2.2}
+        color="#f5dcc0"
+        intensity={1}
         distance={5.3}
       />
+      <pointLight
+        position={[0.55, 2.3, -4.75]}
+        color="#ffc27a"
+        intensity={2.4}
+        distance={3.2}
+      />
+      <OrreryLight />
+      <ShelfLanternLight />
+      <SceneLighting reduced={reduced} />
       <WaitingRoom />
-      <TeaChamber>
+      {/* Later group: no lights, so the shell's programs stay valid when it arrives. */}
+      <Staged reduced={reduced} precompile={compileRoom}>
+        <WaitingDetail />
+        <ChamberDetail reduced={reduced} />
         <ContactShadows
           position={[0, 0.016, -2.55]}
           opacity={0.3}
@@ -155,23 +111,49 @@ function RoomGeometry({
           frames={1}
           color="#25180f"
         />
+        <MechanicalPlanetarySystem reduced={reduced} />
+        <TeaShelf
+          onSelect={onShelfSelect}
+          revealed={shelfRevealed}
+          reduced={reduced}
+        />
+        <ThesisCards
+          halos={station === 'Counter' && menuClosed}
+          reduced={reduced}
+          onPick={onThesisPick}
+        />
+        <StationHalos
+          station={station}
+          menuClosed={menuClosed}
+          reduced={reduced}
+          onNavigate={onNavigate}
+          onMenuOpen={onMenuOpen}
+          onShelfSelect={onShelfSelect}
+        />
+        <SceneEffects reduced={reduced} />
+      </Staged>
+      <TeaChamber>
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
-        <MechanicalPlanetarySystem reduced={reduced} />
         <Suspense fallback={null}>
           <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>
-        <TeaShelf onSelect={onShelfSelect} revealed={shelfRevealed} />
-        {menuClosed && (
-          <StationMenuHalo
-            station={station}
-            reduced={reduced}
-            onOpen={onMenuOpen}
-          />
-        )}
       </TeaChamber>
     </>
   );
+}
+
+/**
+ * Builds every program in the room while the loader is up, so the first drag never
+ * compiles a shader. Any offscreen target selects the variants the composer renders with.
+ */
+function compileRoom({ gl, scene, camera }: RootState) {
+  const target = new WebGLRenderTarget(1, 1),
+    previous = gl.getRenderTarget();
+  gl.setRenderTarget(target);
+  const done = gl.compileAsync(scene, camera);
+  gl.setRenderTarget(previous);
+  return done.finally(() => target.dispose());
 }
 
 class SceneBoundary extends Component<
@@ -208,6 +190,8 @@ export default function TeaRoom({
   shelfRevealed,
   menuClosed,
   onMenuOpen,
+  onThesisPick,
+  onNavigate,
 }: {
   station: Station;
   reduced: boolean;
@@ -226,6 +210,8 @@ export default function TeaRoom({
   shelfRevealed: boolean;
   menuClosed: boolean;
   onMenuOpen: () => void;
+  onThesisPick?: (id: ThesisId) => void;
+  onNavigate: (station: Station) => void;
 }) {
   const [lost, setLost] = useState(false);
   // Textures load through three's default manager, which useProgress observes.
@@ -286,6 +272,8 @@ export default function TeaRoom({
             station={station}
             menuClosed={menuClosed}
             onMenuOpen={onMenuOpen}
+            onThesisPick={onThesisPick}
+            onNavigate={onNavigate}
           />
         </Surfaces>
         <CameraRig
@@ -298,6 +286,7 @@ export default function TeaRoom({
           allowTravelWhileTyping={allowTravelWhileTyping}
           onArrive={onArrive}
         />
+        <DevShotCamera />
       </Canvas>
     </SceneBoundary>
   );

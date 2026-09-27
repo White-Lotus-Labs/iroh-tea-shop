@@ -82,10 +82,10 @@ export function TeaHost3D({
   position?: Point;
   rotation?: Point;
 }) {
-  const bodyTexture = useTexture('/images/tea-host-diorama-body.png');
-  const bodyNormal = useTexture('/images/tea-host-diorama-body-normal.png');
-  const headTexture = useTexture('/images/tea-host-diorama-head.png');
-  const headNormal = useTexture('/images/tea-host-diorama-head-normal.png');
+  const bodyTexture = useTexture('/images/tea-host-diorama-body.5c7c91.webp');
+  const bodyNormal = useTexture('/images/tea-host-diorama-body-normal.07c541.webp');
+  const headTexture = useTexture('/images/tea-host-diorama-head.47063b.webp');
+  const headNormal = useTexture('/images/tea-host-diorama-head-normal.79d02a.webp');
   bodyTexture.colorSpace = SRGBColorSpace;
   headTexture.colorSpace = SRGBColorSpace;
   bodyNormal.colorSpace = LinearSRGBColorSpace;

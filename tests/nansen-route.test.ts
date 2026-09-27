@@ -51,7 +51,10 @@ describe('Nansen agent route', () => {
       'https://api.nansen.ai/api/v1/agent/fast',
     );
     const init = fetch.mock.calls[0][1] as RequestInit;
-    expect(JSON.parse(init.body as string)).toEqual({ text: 'hello' });
+    expect(JSON.parse(init.body as string)).toEqual({
+      text: expect.stringContaining('You are Uncle'),
+    });
+    expect(JSON.parse(init.body as string).text).toContain('Question: hello');
     expect(new Headers(init.headers).get('apikey')).toBe('test-only-secret');
     expect(await response.text()).toContain('"text":"Hello"');
     expect(await request({ text: 'x' }).text()).not.toContain(

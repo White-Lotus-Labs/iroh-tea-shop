@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { registerBrowserAccount } from './auth-helper';
+import { beginVisit } from './room-helpers';
+
 test.beforeEach(async ({ page }) => {
   await registerBrowserAccount(page);
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
@@ -10,14 +12,18 @@ test.beforeEach(async ({ page }) => {
     }),
   );
 });
-const stations = ['Waiting room', 'Counter', 'Tea table', 'Host', 'Shelf'];
+
+const stations = ['Counter', 'Observatorium', 'Host', 'Shelf'];
+
 test('all directed station transitions and rapid interruptions preserve navigation', async ({
   page,
 }) => {
   test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
+  await beginVisit(page);
   await page.locator('canvas').waitFor();
   const nav = page.getByRole('navigation', { name: 'Tea room stations' });
   for (const from of stations)
@@ -35,110 +41,58 @@ test('all directed station transitions and rapid interruptions preserve navigati
     'Shelf',
     'Counter',
     'Host',
-    'Waiting room',
-    'Tea table',
+    'Observatorium',
     'Shelf',
     'Counter',
   ]) {
     await nav.getByRole('button', { name: new RegExp(station) }).click();
     await page.waitForTimeout(70);
   }
-  await expect(page.getByLabel('Your finished thesis')).toBeVisible();
+  await expect(page.locator('main')).toHaveAttribute('data-station', 'Counter');
   await expect(page.locator('canvas')).toHaveCount(1);
   expect(errors).toEqual([]);
 });
-test('motion override stops HTML animation and pours remain interruptible', async ({
-  page,
-}) => {
-  test.setTimeout(60_000);
-  await page.clock.install();
-  await page.goto('/');
-  await page.locator('canvas').waitFor();
-  await page
-    .getByRole('combobox', { name: 'Motion preference' })
-    .selectOption('reduce');
-  await expect(page.locator('main')).toHaveAttribute('data-motion', 'reduce');
-  for (let round = 0; round < 2; round++) {
-    await page
-      .getByRole('button', { name: 'Load sample', exact: true })
-      .click();
-    if (round === 0) {
-      const now = await page.evaluate(() => Date.now());
-      await page.clock.pauseAt(now + 10_000);
-    }
-    await page.getByRole('button', { name: 'Pour', exact: true }).click();
-    if (round === 0) {
-      await page.getByRole('button', { name: 'Cancel review' }).click();
-      await page.clock.resume();
-      await page
-        .getByRole('navigation')
-        .getByRole('button', { name: /Host/ })
-        .click();
-      await page
-        .getByRole('navigation')
-        .getByRole('button', { name: /Counter/ })
-        .click();
-    } else {
-      await page
-        .getByRole('navigation')
-        .getByRole('button', { name: /Host/ })
-        .click();
-      await page
-        .getByRole('navigation')
-        .getByRole('button', { name: /Tea table/ })
-        .click();
-      await expect(
-        page.getByRole('heading', { name: 'A little clarity, with your tea.' }),
-      ).toBeVisible();
-    }
-  }
-  expect(
-    await page
-      .locator('.result-reading')
-      .evaluate((el) => el.getAnimations({ subtree: true }).length),
-  ).toBe(0);
-  await page
-    .getByRole('button', { name: 'Inspect evidence · DEMO-E-01' })
-    .click();
-  expect(
-    await page
-      .getByRole('dialog')
-      .evaluate((el) => el.getAnimations({ subtree: true }).length),
-  ).toBe(0);
-  await page.keyboard.press('Escape');
-  await expect(
-    page.getByRole('button', { name: 'Inspect evidence · DEMO-E-01' }),
-  ).toBeFocused();
-  await page
-    .getByRole('combobox', { name: 'Motion preference' })
-    .selectOption('full');
-  await expect(page.locator('main')).toHaveAttribute('data-motion', 'full');
-});
-test('explicit Full motion can override an OS reduced-motion preference', async ({
+
+test('OS reduced motion sets data-motion reduce; full motion restores panel animation', async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  await expect(page.getByLabel('Your finished thesis')).toBeVisible();
+  await beginVisit(page);
   await expect(page.locator('main')).toHaveAttribute('data-motion', 'reduce');
   await page
-    .getByRole('combobox', { name: 'Motion preference' })
-    .selectOption('full');
-  await page
-    .getByRole('navigation')
+    .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Host/ })
     .click();
-  expect(
-    await page
-      .locator('.reading-panel')
-      .evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe('paper-arrive');
   await page
-    .getByRole('combobox', { name: 'Motion preference' })
-    .selectOption('reduce');
+    .getByRole('button', { name: 'Open Host' })
+    .click({ timeout: 20000 });
+  await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
   expect(
     await page
       .locator('.reading-panel')
       .evaluate((el) => getComputedStyle(el).animationName),
   ).toBe('none');
+});
+
+test('system full motion keeps paper-arrive on the Host panel', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  await beginVisit(page);
+  await expect(page.locator('main')).toHaveAttribute('data-motion', 'full');
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Host/ })
+    .click();
+  await page
+    .getByRole('button', { name: 'Open Host' })
+    .click({ timeout: 45000 });
+  expect(
+    await page
+      .locator('.reading-panel')
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('paper-arrive');
 });

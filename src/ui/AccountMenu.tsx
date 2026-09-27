@@ -1,10 +1,8 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { PublicUser } from '../auth/service';
 
 export function AccountMenu({ user }: { user: PublicUser | null }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const logout = async () => {
@@ -13,7 +11,8 @@ export function AccountMenu({ user }: { user: PublicUser | null }) {
     try {
       const response = await fetch('/api/auth/logout', { method: 'POST' });
       if (!response.ok) throw new Error('Could not log out. Please try again.');
-      router.refresh();
+      // Full navigation clears client station state and guest chrome reliably.
+      window.location.assign('/');
     } catch {
       setError('Could not log out. Please try again.');
       setBusy(false);
@@ -57,7 +56,7 @@ export function AccountMenu({ user }: { user: PublicUser | null }) {
         <span className="account-avatar" aria-hidden="true">
           ◒
         </span>
-        <span>{user.nickname}</span>
+        <span className="account-name">{user.nickname}</span>
         <span className="account-chevron" aria-hidden="true">
           ⌄
         </span>

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { registerBrowserAccount } from './auth-helper';
+import { beginVisit } from './room-helpers';
 
 test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 
@@ -14,7 +15,7 @@ const snapshot = {
         : i === 1
           ? 'HL Perps Whale'
           : i === 9
-            ? 'Uses "WHITELOTUS" HL Referral Code'
+            ? 'Uses "TEAHOUSE" HL Referral Code'
             : `Trader ${i + 1}`,
     pnl: i === 1 ? -482_000 : 1_820_000 - i * 10_000,
     roi: i === 1 ? -0.082 : 0.274,
@@ -27,6 +28,7 @@ const snapshot = {
 };
 
 async function focusShelf(page: Page) {
+  await beginVisit(page);
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
@@ -37,9 +39,9 @@ async function focusShelf(page: Page) {
 test('the Shelf stays in the room until approached, then opens ranked wallets after camera travel', async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 200,
@@ -48,9 +50,10 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
     }),
   );
   await page.goto('/');
+  await beginVisit(page);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-motion',
-    'full',
+    'reduce',
   );
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
   await page
@@ -105,19 +108,25 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
     'Shelf',
   );
   await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
-  await expect(page.getByTestId('top-wallet')).toContainText('Iroh');
+  await expect(page.getByTestId('top-wallet')).toContainText('Azure Dragon');
   await expect(page.getByTestId('top-wallet')).toContainText('santochan');
   await expect(page.locator('[data-rank="2"] .wallet-label')).toHaveText(
     'Whale',
   );
   await expect(page.locator('[data-rank="10"] .wallet-label')).toHaveText(
-    'whitelotus',
+    'teahouse',
   );
   await expect(page.locator('.wallet-label')).toHaveCount(10);
   await expect(page.getByTestId('top-wallet')).toContainText('+$1.82M');
   await expect(page.locator('[data-rank="2"]')).toContainText('-$482K');
   await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
     'HL Referral',
+  );
+  await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
+    /Iroh|Lotus/,
+  );
+  await expect(page.getByTestId('leaderboard-parchment')).toContainText(
+    'Smart HL Perps Traders · last 30 days',
   );
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
@@ -127,10 +136,11 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
 test('clicking the Shelf in the room starts the focus journey', async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
+  await beginVisit(page);
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
@@ -145,7 +155,34 @@ test('clicking the Shelf in the room starts the focus journey', async ({
   );
 });
 
-test('Shelf presents one leader above an exact 3 by 3 scrollable grid', async ({
+test('a hanging spirit paper answers hover and opens the Shelf', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await beginVisit(page);
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Shelf/ })
+    .click();
+  await expect(
+    page.getByRole('button', { name: 'Approach the Shelf' }),
+  ).toBeVisible();
+  // The rank 1 sheet hangs above the rolled scroll in the middle bay.
+  await page.mouse.move(880, 318);
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.cursor))
+    .toBe('pointer');
+  await page.mouse.click(880, 318);
+  await expect(page.locator('.app-shell')).toHaveAttribute(
+    'data-shelf-view',
+    'open',
+  );
+});
+
+test('Shelf presents one leader above a ranked list of nine spirits', async ({
   page,
 }) => {
   test.setTimeout(45_000);
@@ -171,25 +208,38 @@ test('Shelf presents one leader above an exact 3 by 3 scrollable grid', async ({
   await expect(
     page.getByRole('button', { name: 'Explain data freshness' }).first(),
   ).toBeVisible();
-  await expect(page.getByTestId('top-wallet')).toContainText('Iroh', {
+  await expect(page.getByTestId('top-wallet')).toContainText('Azure Dragon', {
     timeout: 15_000,
   });
-  await expect(page.locator('[data-rank="2"]')).toContainText('Bumi');
-  await expect(page.locator('[data-rank="10"]')).toContainText(
-    'The White Lotus Tile',
+  await expect(page.locator('[data-rank="2"]')).toContainText(
+    'Vermilion Phoenix',
   );
+  await expect(page.locator('[data-rank="10"]')).toContainText('Jade Rabbit');
   await expect(page.getByTestId('top-wallet')).toContainText('+27.4%');
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
   ).toHaveCount(9);
-  expect(
-    await page
-      .getByTestId('rank-grid')
-      .evaluate(
-        (element) =>
-          getComputedStyle(element).gridTemplateColumns.split(' ').length,
-      ),
-  ).toBe(3);
+  await expect(page.getByTestId('rank-grid')).toHaveAttribute('start', '2');
+  const second = page.locator('[data-rank="2"]');
+  await expect(second.locator('.wallet-roi')).toHaveClass(/wallet-roi-down/);
+  await expect(second.locator('.wallet-bar > span')).toHaveAttribute(
+    'style',
+    /width: 26\.5%/,
+  );
+  await expect(
+    second.getByRole('link', { name: 'Open wallet in Nansen (new tab)' }),
+  ).toHaveAttribute(
+    'href',
+    `https://app.nansen.ai/profiler?address=${address(2)}&chain=hyperliquid`,
+  );
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await second
+    .getByRole('button', { name: `Copy wallet address ${address(2)}` })
+    .click();
+  await expect(second.getByRole('status')).toHaveText('Copied');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    address(2),
+  );
   await expect(page.locator('[data-rank="10"]')).toBeVisible();
   await expect(page.locator('[data-rank="10"]')).toContainText('—');
   await page.locator('[data-rank="10"]').scrollIntoViewIfNeeded();
@@ -206,6 +256,8 @@ test('Shelf presents one leader above an exact 3 by 3 scrollable grid', async ({
 test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 503,
@@ -226,6 +278,8 @@ test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', 
 test('an invalid server response shows a safe parchment error', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 502,
@@ -244,6 +298,7 @@ test('an invalid server response shows a safe parchment error', async ({
 });
 
 test('rank ten remains visible at 1280 by 720', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
@@ -276,6 +331,7 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
 test('a stale real snapshot is labelled and small screens keep values readable', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>

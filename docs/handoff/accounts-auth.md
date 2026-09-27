@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provide optional nickname/password accounts and persistent identity for Tea After Pour while keeping the room usable by guests.
+Provide optional nickname/password accounts and persistent identity for Iroh's Tea Shop while keeping the room usable by guests.
 
 ## Completed
 

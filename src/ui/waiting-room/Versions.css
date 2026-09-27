@@ -1,0 +1,64 @@
+.waiting-versions {
+  position: fixed;
+  top: 26px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--wr-rule);
+  border-radius: 999px;
+  background: var(--wr-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
+}
+.waiting-versions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--wr-cream-dim);
+  background: transparent;
+  cursor: pointer;
+}
+.waiting-versions button b {
+  font-family: var(--wr-serif);
+  font-size: 13px;
+  font-weight: 400;
+}
+.waiting-versions button[aria-pressed='true'] {
+  color: #1f160f;
+  background: var(--wr-gold);
+}
+.waiting-versions button:focus-visible {
+  outline: 2px solid var(--wr-gold-hi);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .waiting-versions {
+    top: 70px;
+  }
+  .waiting-stage:has(> .waiting-versions) {
+    margin-top: 44px;
+  }
+  .waiting-versions button span {
+    display: none;
+  }
+}
+/* Landscape phones: the switcher rides in the slim header row. */
+@media (max-height: 500px) {
+  .waiting-versions {
+    top: 9px;
+  }
+  .waiting-stage:has(> .waiting-versions) {
+    margin-top: 0;
+  }
+}

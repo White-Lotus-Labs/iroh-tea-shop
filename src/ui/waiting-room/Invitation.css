@@ -1,0 +1,319 @@
+.waiting-room:has(.inv) {
+  --wr-backdrop-blur: 2.4px;
+}
+
+.inv {
+  position: absolute;
+  inset: 0;
+}
+.inv-canvas {
+  position: absolute !important;
+  inset: -96px 0 0;
+  width: auto !important;
+  height: auto !important;
+  touch-action: none;
+  animation: waiting-rise 1.2s var(--wr-ease-out) 0.15s both;
+}
+
+.inv-label {
+  margin: 0 0 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.6px;
+  text-transform: uppercase;
+  color: var(--wr-gold-hi);
+}
+.inv-controls {
+  display: contents;
+}
+.inv-signers,
+.inv-turn {
+  position: absolute;
+  top: 50%;
+  width: 250px;
+  transform: translateY(-50%);
+  animation: waiting-rise 0.9s var(--wr-ease-out) 0.55s both;
+}
+.inv-signers {
+  left: max(28px, calc(50% - 590px));
+}
+/* The lanterns glow right behind the side columns; a soft shade keeps the
+   small caps readable without drawing a box. */
+.inv-signers::before,
+.inv-turn::before {
+  content: '';
+  position: absolute;
+  inset: -56px -72px;
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    rgba(12, 8, 6, 0.52),
+    rgba(12, 8, 6, 0.28) 60%,
+    transparent
+  );
+  pointer-events: none;
+}
+.inv-turn {
+  right: max(28px, calc(50% - 590px));
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  text-align: right;
+}
+.inv-signers ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--wr-rule);
+}
+.inv-signers li {
+  border-bottom: 1px solid var(--wr-rule);
+}
+.inv-signers a {
+  display: grid;
+  gap: 4px;
+  padding: 11px 2px;
+  text-decoration: none;
+  color: var(--wr-cream);
+  text-shadow: 0 1px 12px rgba(10, 7, 5, 0.8);
+  transition:
+    color 0.2s ease,
+    padding-left 0.2s var(--wr-ease-out);
+}
+.inv-signers a span {
+  font-family: var(--wr-serif);
+  font-size: 19px;
+  font-variant-numeric: lining-nums;
+}
+.inv-signers a small {
+  font-size: 9.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--wr-cream-dim);
+}
+.inv-signers a:hover {
+  color: var(--wr-gold-hi);
+  padding-left: 8px;
+}
+.inv-signers a:focus-visible,
+.inv-flip:focus-visible {
+  outline: 2px solid var(--wr-gold-hi);
+  outline-offset: 3px;
+}
+
+.inv-flip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px 0 14px;
+  border: 1px solid var(--wr-rule);
+  border-radius: 999px;
+  background: var(--wr-glass);
+  color: var(--wr-cream);
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+.inv-flip svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--wr-gold-hi);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.5s var(--wr-ease-out);
+}
+.inv-flip:hover {
+  border-color: rgba(230, 189, 132, 0.6);
+  color: var(--wr-gold-hi);
+}
+.inv-flip:hover svg {
+  transform: rotate(180deg);
+}
+.inv-flip:active {
+  transform: scale(0.97);
+}
+.inv-hint {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: rgba(246, 236, 216, 0.5);
+}
+.inv-hint .on-touch {
+  display: none;
+}
+.inv-honesty {
+  max-width: 220px;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--wr-rule);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--wr-cream-dim);
+  text-shadow: 0 1px 10px rgba(10, 7, 5, 0.8);
+}
+.inv-read {
+  display: none;
+}
+@media (hover: none) {
+  .inv-hint .on-touch {
+    display: inline;
+  }
+  .inv-hint .on-mouse {
+    display: none;
+  }
+}
+
+/* Everything that is not WIDE_QUERY in Invitation.tsx. */
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
+  /* One column under the sheet, so the chips can wrap without overlap. */
+  .inv-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 14px;
+    width: min(720px, calc(100vw - 24px));
+    transform: translateX(-50%);
+  }
+  .inv-signers,
+  .inv-turn {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: auto;
+    transform: none;
+  }
+  .inv-turn {
+    justify-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .inv-label,
+  .inv-honesty,
+  .inv-signers::before,
+  .inv-turn::before {
+    display: none;
+  }
+  .inv-signers ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    border: 0;
+  }
+  .inv-signers li {
+    border: 0;
+  }
+  .inv-signers a {
+    display: block;
+    padding: 9px 13px;
+    border: 1px solid var(--wr-rule);
+    border-radius: 999px;
+    background: var(--wr-glass);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .inv-signers a:hover {
+    padding-left: 13px;
+  }
+  .inv-signers a span {
+    font-size: 15px;
+  }
+  .inv-signers a small {
+    display: none;
+  }
+}
+/* Landscape phones (SIDE_QUERY): the controls stand in a column beside the sheet. */
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
+  @media (max-height: 500px) and (min-aspect-ratio: 3/2) {
+    .inv-controls {
+      top: 50%;
+      right: max(16px, env(safe-area-inset-right));
+      bottom: auto;
+      left: auto;
+      gap: 10px;
+      width: 200px;
+      transform: translateY(-50%);
+    }
+    .inv-hint {
+      display: none;
+    }
+    .inv-signers ul {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      gap: 4px;
+    }
+    .inv-signers a {
+      padding: 7px 13px;
+      text-align: center;
+    }
+    /* The sheet is too small to read here, so its words stand beside it. */
+    .inv-read {
+      position: absolute;
+      top: 50%;
+      left: max(16px, env(safe-area-inset-left));
+      display: grid;
+      gap: 8px;
+      width: min(260px, calc(50vw - 150px));
+      transform: translateY(-50%);
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--wr-cream-dim);
+      text-shadow: 0 1px 10px rgba(10, 7, 5, 0.9);
+      animation: waiting-rise 0.9s var(--wr-ease-out) 0.5s both;
+    }
+    .inv-read p {
+      margin: 0;
+    }
+    .inv-read-tagline {
+      font-family: var(--wr-serif);
+      font-size: 15px;
+      font-style: italic;
+      line-height: 1.3;
+      color: var(--wr-gold-hi);
+    }
+    .inv-read-honesty {
+      padding-top: 8px;
+      border-top: 1px solid var(--wr-rule);
+      font-size: 11.5px;
+    }
+  }
+  @media (max-height: 500px) and (min-aspect-ratio: 3/2) and (max-width: 700px) {
+    .inv-read-honesty {
+      display: none;
+    }
+  }
+}
+/* The five handles still fit two rows on the narrowest phones. */
+@media (max-width: 360px) {
+  .inv-signers ul {
+    gap: 5px;
+  }
+  .inv-signers a {
+    padding: 8px 10px;
+  }
+  .inv-signers a span {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inv-canvas,
+  .inv-signers,
+  .inv-turn,
+  .inv-read {
+    animation: none;
+  }
+}

@@ -8,7 +8,14 @@ export default defineConfig({
     baseURL,
     headless: true,
     launchOptions: {
-      args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl'],
+      // Metal headless matches scripts/visual-shots.mjs; swiftshader stalls this scene.
+      channel: 'chromium',
+      args: [
+        '--use-angle=metal',
+        '--enable-gpu',
+        '--ignore-gpu-blocklist',
+        '--enable-webgl',
+      ],
     },
   },
   webServer: {

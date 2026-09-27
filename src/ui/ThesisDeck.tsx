@@ -1,0 +1,800 @@
+'use client';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type Ref,
+} from 'react';
+import { flushSync } from 'react-dom';
+import { formatMoney } from '../leaderboard/model';
+import type { NansenAvailability } from '../nansen/availability';
+import { THESES } from '../thesis/deck';
+import type {
+  ConvictionLevel,
+  DeckSnapshot,
+  Thesis,
+  ThesisId,
+  ThesisSummary,
+} from '../thesis/types';
+import {
+  LEVEL_GLYPH,
+  LEVEL_LABEL,
+  accumulatingLine,
+  buildUncleDraft,
+  convictionSentence,
+  formatRelative,
+  readFollowed,
+  shareText,
+  thesisLink,
+  toggleFollowed,
+  xIntentUrl,
+  type DeckState,
+} from './deckModel';
+import { ThesisLeaf } from './ThesisLeaf';
+import './styles/deck.css';
+
+export interface ThesisDeckProps {
+  nansen: NansenAvailability;
+  reduced: boolean;
+  initialThesis: ThesisId | null;
+  /** A thesis picked outside the panel (a card on the 3D counter). */
+  selectedThesis?: ThesisId | null;
+  onOpenThesis: (id: ThesisId, conviction: ConvictionLevel | null) => void;
+  onCloseThesis: () => void;
+  onTalkToUncle: (draft: string) => void;
+}
+
+// Short cover lines keep the title inside the paper band; the full title stays
+// in the accessible name and on the reading view.
+const COVER_LINES: Partial<
+  Record<ThesisId, { title: string; subtitle: string }>
+> = {
+  robinhood: { title: 'Robinhood Chain', subtitle: 'Tokenization' },
+};
+
+const OWN_THESIS_DRAFT =
+  'Here is my own thesis. Help me test it against smart money data:\n\n';
+
+// The ?thesis= deep link opens its thesis once per page load, not on every
+// panel reopen.
+let deepLinkConsumed = false;
+
+function withViewTransition(
+  reduced: boolean,
+  update: () => void,
+  done?: () => void,
+) {
+  if (reduced || typeof document.startViewTransition !== 'function') {
+    update();
+    done?.();
+    return;
+  }
+  const root = document.documentElement;
+  root.classList.add('thesis-vt');
+  const transition = document.startViewTransition(() => flushSync(update));
+  void transition.finished.finally(() => {
+    root.classList.remove('thesis-vt');
+    done?.();
+  });
+}
+
+function summaryFor(deck: DeckState, id: ThesisId): ThesisSummary | null {
+  return deck.status === 'ready'
+    ? (deck.snapshot.theses.find((t) => t.id === id) ?? null)
+    : null;
+}
+
+/**
+ * One window, two layouts. `deck` shows the three books on the lacquer stage;
+ * `reading` shrinks the same book buttons into a tab strip and fills the
+ * panel with one thesis. A view transition carries each book into its tab.
+ */
+export function ThesisDeck({
+  nansen,
+  reduced,
+  initialThesis,
+  selectedThesis = null,
+  onOpenThesis,
+  onCloseThesis,
+  onTalkToUncle,
+}: ThesisDeckProps) {
+  const [deck, setDeck] = useState<DeckState>({ status: 'loading' });
+  const [readingId, setReadingId] = useState<ThesisId | null>(selectedThesis);
+  const [followed, setFollowed] = useState<ThesisId[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+  const books = useRef<Partial<Record<ThesisId, HTMLButtonElement | null>>>({});
+  const shelf = useRef<HTMLUListElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const readingRef = useRef(readingId);
+  readingRef.current = readingId;
+  const focusTitle = useRef(readingId !== null);
+  const reported = useRef<ThesisId | null>(null);
+  const lastPick = useRef(selectedThesis);
+
+  useEffect(() => {
+    if (nansen === 'unavailable') {
+      setDeck({ status: 'offline', reason: 'Nansen is not configured.' });
+      return;
+    }
+    const controller = new AbortController();
+    setDeck({ status: 'loading' });
+    fetch('/api/theses', { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        if (response.ok) {
+          const snapshot = (await response.json()) as DeckSnapshot;
+          setDeck({ status: 'ready', snapshot });
+          return;
+        }
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setDeck({
+          status: 'offline',
+          reason:
+            response.status === 503
+              ? 'Nansen is not configured.'
+              : (body?.error ?? 'Nansen is unavailable right now.'),
+        });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setDeck({
+            status: 'offline',
+            reason: 'Nansen is unavailable right now.',
+          });
+      });
+    return () => controller.abort();
+  }, [nansen]);
+
+  useEffect(() => {
+    setFollowed(readFollowed(window.localStorage));
+    const tick = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(tick);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (readingRef.current) onCloseThesis();
+      reported.current = null;
+    },
+    [onCloseThesis],
+  );
+
+  // The tea pour follows the reading thesis once its conviction is known.
+  useEffect(() => {
+    if (!readingId || reported.current === readingId) return;
+    if (deck.status === 'loading') return;
+    reported.current = readingId;
+    onOpenThesis(
+      readingId,
+      summaryFor(deck, readingId)?.conviction.level ?? null,
+    );
+  }, [readingId, deck, onOpenThesis]);
+
+  useEffect(() => {
+    if (!readingId || !focusTitle.current) return;
+    focusTitle.current = false;
+    title.current?.focus({ preventScroll: true });
+  }, [readingId]);
+
+  const show = useCallback(
+    (id: ThesisId, moveFocus: boolean) => {
+      if (readingRef.current === id) return;
+      focusTitle.current = moveFocus;
+      withViewTransition(reduced, () => setReadingId(id));
+    },
+    [reduced],
+  );
+
+  const close = useCallback(() => {
+    const id = readingRef.current;
+    if (!id) return;
+    reported.current = null;
+    withViewTransition(reduced, () => {
+      setReadingId(null);
+      books.current[id]?.focus({ preventScroll: true });
+    });
+    onCloseThesis();
+  }, [onCloseThesis, reduced]);
+
+  useEffect(() => {
+    if (selectedThesis === lastPick.current) return;
+    lastPick.current = selectedThesis;
+    if (selectedThesis) show(selectedThesis, true);
+  }, [selectedThesis, show]);
+
+  useEffect(() => {
+    if (deepLinkConsumed || !initialThesis) return;
+    deepLinkConsumed = true;
+    show(initialThesis, true);
+  }, [initialThesis, show]);
+
+  useEffect(() => {
+    if (!readingId) return;
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      // Capture phase: Escape returns to the deck and keeps the panel open.
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [readingId, close]);
+
+  const onToggleFollow = useCallback((id: ThesisId) => {
+    setFollowed(toggleFollowed(window.localStorage, id));
+  }, []);
+
+  // On phones the books sit in a snap carousel; start on the middle one.
+  useEffect(() => {
+    const row = shelf.current;
+    if (row && row.scrollWidth > row.clientWidth)
+      row.scrollLeft = (row.scrollWidth - row.clientWidth) / 2;
+  }, []);
+
+  const reading = THESES.find((t) => t.id === readingId) ?? null;
+
+  return (
+    <div
+      className="thesis-deck"
+      data-layout={reading ? 'reading' : 'deck'}
+      data-reduced={reduced ? 'true' : 'false'}
+    >
+      <header className="deck-head">
+        <h1 className="deck-title">
+          Thesis <em>Desk</em>
+          <span className="deck-kicker">three scrolls</span>
+        </h1>
+        <div className="deck-head-actions">
+          <DeckStatus deck={deck} now={now} />
+          <button
+            type="button"
+            className="primary deck-discuss"
+            onClick={() => onTalkToUncle(OWN_THESIS_DRAFT)}
+          >
+            <span className="deck-discuss-seal" aria-hidden="true">
+              茶
+            </span>
+            Discuss your own thesis with Uncle
+          </button>
+        </div>
+      </header>
+
+      <div className="deck-stage">
+        <p className="deck-word" aria-hidden="true">
+          Theses
+        </p>
+        {reading && (
+          <button type="button" className="deck-back" onClick={close}>
+            <span aria-hidden="true">←</span>
+            <span className="deck-back-label">All scrolls</span>
+          </button>
+        )}
+        <ul ref={shelf} className="deck-books" aria-label="Thesis scrolls">
+          {THESES.map((thesis, index) => (
+            <li key={thesis.id} className="deck-slot" data-slot={index}>
+              <ThesisBook
+                thesis={thesis}
+                deck={deck}
+                summary={summaryFor(deck, thesis.id)}
+                followed={followed.includes(thesis.id)}
+                reduced={reduced}
+                current={readingId === thesis.id}
+                buttonRef={(node) => {
+                  books.current[thesis.id] = node;
+                }}
+                onOpen={() => show(thesis.id, readingRef.current === null)}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {reading && (
+        <ThesisReading
+          key={reading.id}
+          thesis={reading}
+          summary={summaryFor(deck, reading.id)}
+          deck={deck}
+          now={now}
+          followed={followed.includes(reading.id)}
+          titleRef={title}
+          onToggleFollow={() => onToggleFollow(reading.id)}
+          onTalkToUncle={onTalkToUncle}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
+  if (deck.status === 'loading')
+    return (
+      <p className="deck-status" data-state="loading" role="status">
+        <span className="deck-status-dot" aria-hidden="true" />
+        Reading Nansen…
+      </p>
+    );
+  if (deck.status === 'offline')
+    return (
+      <p className="deck-status" data-state="offline" role="status">
+        <span className="deck-status-dot" aria-hidden="true" />
+        Offline · {deck.reason}
+      </p>
+    );
+  return (
+    <p className="deck-status" data-state="live">
+      <span className="deck-status-dot" aria-hidden="true" />
+      Live · Nansen · updated {formatRelative(deck.snapshot.fetchedAt, now)}
+      {deck.snapshot.stale && <span className="deck-stale">Stale</span>}
+    </p>
+  );
+}
+
+function sealWords(
+  thesis: Thesis,
+  deck: DeckState,
+  summary: ThesisSummary | null,
+): string {
+  if (deck.status === 'loading') return 'Conviction loading.';
+  if (!summary) return 'Conviction offline.';
+  const { conviction } = summary;
+  return `Conviction ${LEVEL_LABEL[conviction.level]}, ${accumulatingLine(conviction, thesis.tickers.length)}, net 7-day smart money flow ${formatMoney(conviction.netFlowUsd, true)}.`;
+}
+
+function ThesisBook({
+  thesis,
+  deck,
+  summary,
+  followed,
+  reduced,
+  current,
+  buttonRef,
+  onOpen,
+}: {
+  thesis: Thesis;
+  deck: DeckState;
+  summary: ThesisSummary | null;
+  followed: boolean;
+  reduced: boolean;
+  current: boolean;
+  buttonRef: (node: HTMLButtonElement | null) => void;
+  onOpen: () => void;
+}) {
+  const frame = useRef(0);
+  const onPointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    if (reduced || event.pointerType === 'touch') return;
+    const el = event.currentTarget;
+    const { clientX, clientY } = event;
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
+      const box = el.getBoundingClientRect();
+      const px = Math.min(
+        0.5,
+        Math.max(-0.5, (clientX - box.left) / box.width - 0.5),
+      );
+      const py = Math.min(
+        0.5,
+        Math.max(-0.5, (clientY - box.top) / box.height - 0.5),
+      );
+      el.style.setProperty('--px', px.toFixed(3));
+      el.style.setProperty('--py', py.toFixed(3));
+    });
+  };
+  const onPointerLeave = (event: PointerEvent<HTMLButtonElement>) => {
+    cancelAnimationFrame(frame.current);
+    event.currentTarget.style.removeProperty('--px');
+    event.currentTarget.style.removeProperty('--py');
+  };
+  const style = {
+    '--book': thesis.colors.primary,
+    '--book-accent': thesis.colors.accent,
+    '--book-ink': thesis.colors.ink,
+    '--chars': (COVER_LINES[thesis.id] ?? thesis).title.length,
+  } as CSSProperties;
+  const level = summary?.conviction.level ?? null;
+  const cover = COVER_LINES[thesis.id] ?? thesis;
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      className="deck-book"
+      data-thesis={thesis.id}
+      aria-current={current ? 'true' : undefined}
+      style={style}
+      aria-label={`Open ${thesis.title}. Scroll ${thesis.numeral}: ${thesis.subtitle}. ${sealWords(thesis, deck, summary)}${followed ? ' Following.' : ''}`}
+      onClick={onOpen}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+    >
+      <span
+        className="book-frame"
+        aria-hidden="true"
+        // The name pairs this book with its tab across the layout switch.
+        style={{
+          viewTransitionName: reduced ? undefined : `thesis-book-${thesis.id}`,
+        }}
+      >
+        <span className="book-contact" />
+        <span className="book-pose">
+          <span className="book-tilt">
+            <span className="book-shadow" />
+            <span className="book-back" />
+            <span className="book-pages" />
+            <span className="book-top" />
+            <span className="book-spine">
+              <span className="book-spine-band" />
+              <span className="book-spine-title">{thesis.title}</span>
+              <span className="book-spine-numeral">{thesis.numeral}</span>
+              <span className="book-spine-band" />
+            </span>
+            <span className="book-cover">
+              <img
+                className="book-art"
+                src={thesis.image}
+                alt=""
+                width={900}
+                height={1200}
+                draggable={false}
+              />
+              <span className="book-copy">
+                <span className="book-kicker">Scroll · {thesis.numeral}</span>
+                <span className="book-name">{cover.title}</span>
+                <span className="book-sub">{cover.subtitle}</span>
+              </span>
+              <span className="book-hinge" />
+              <span className="book-sheen" />
+              {followed && (
+                <span className="book-stamp" title="Following">
+                  追
+                </span>
+              )}
+            </span>
+          </span>
+        </span>
+      </span>
+      <span className="book-tab" aria-hidden="true">
+        <span className="book-tab-numeral">{thesis.numeral}</span>
+        <span className="book-tab-title">{cover.title}</span>
+      </span>
+      <span className="book-plaque" aria-hidden="true">
+        {deck.status === 'loading' ? (
+          <>
+            <span className="plaque-seal" data-level="loading" />
+            <span className="plaque-text">
+              <span className="plaque-shimmer" />
+              <span className="plaque-shimmer plaque-shimmer--short" />
+            </span>
+          </>
+        ) : summary && level ? (
+          <>
+            <span className="plaque-seal" data-level={level}>
+              {LEVEL_GLYPH[level]}
+            </span>
+            <span className="plaque-text">
+              <span className="plaque-level">{LEVEL_LABEL[level]}</span>
+              <span className="plaque-meta">
+                {accumulatingLine(summary.conviction, thesis.tickers.length)}
+              </span>
+              <span className="plaque-flow">
+                {formatMoney(summary.conviction.netFlowUsd, true)} net · 7d
+              </span>
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="plaque-seal" data-level="offline">
+              —
+            </span>
+            <span className="plaque-text">
+              <span className="plaque-level">Offline</span>
+              <span className="plaque-meta">Seal returns with Nansen</span>
+            </span>
+          </>
+        )}
+      </span>
+    </button>
+  );
+}
+
+function LeafIcon() {
+  return (
+    <svg viewBox="0 0 24 32" aria-hidden="true">
+      <path d="M12 1C5 8 2.5 14 2.5 19.5 2.5 25.3 6.8 30 12 30s9.5-4.7 9.5-10.5C21.5 14 19 8 12 1Z" />
+      <path className="vein" d="M12 6v24M12 14l-4-3M12 19l5-4M12 24l-5-4" />
+    </svg>
+  );
+}
+
+function Meter({
+  thesis,
+  summary,
+  deck,
+}: {
+  thesis: Thesis;
+  summary: ThesisSummary | null;
+  deck: DeckState;
+}) {
+  if (deck.status === 'loading')
+    return (
+      <div className="scroll-meter ink" style={{ '--i': 4 } as CSSProperties}>
+        <span className="meter-seal" data-level="loading" aria-hidden="true" />
+        <div className="meter-copy" role="status">
+          <span className="plaque-shimmer" />
+          <span className="plaque-shimmer plaque-shimmer--short" />
+          <span className="sr-only">Reading conviction from Nansen…</span>
+        </div>
+      </div>
+    );
+  if (!summary)
+    return (
+      <div className="scroll-meter ink" style={{ '--i': 4 } as CSSProperties}>
+        <span className="meter-seal" data-level="offline" aria-hidden="true">
+          —
+        </span>
+        <div className="meter-copy">
+          <p className="meter-level">Conviction offline</p>
+          <p className="meter-line">
+            {deck.status === 'offline' ? deck.reason : 'No reading yet.'} The
+            thesis still reads; the live seal returns when Nansen answers.
+          </p>
+        </div>
+      </div>
+    );
+  const { conviction } = summary;
+  return (
+    <div
+      className="scroll-meter ink"
+      data-level={conviction.level}
+      style={{ '--i': 4 } as CSSProperties}
+    >
+      <span
+        className="meter-seal"
+        data-level={conviction.level}
+        aria-hidden="true"
+      >
+        {LEVEL_GLYPH[conviction.level]}
+      </span>
+      <div className="meter-copy">
+        <p className="meter-level">
+          {LEVEL_LABEL[conviction.level]} conviction
+          <span className="meter-flow">
+            {formatMoney(conviction.netFlowUsd, true)} net · 7 days
+          </span>
+        </p>
+        <ol className="meter-leaves" aria-label="Accumulation by leaf">
+          {thesis.tickers.map((ticker) => {
+            const signal = summary.tickers.find(
+              (s) => s.symbol === ticker.symbol,
+            );
+            const flow =
+              signal?.status === 'ok' ? signal.smartMoneyNetFlowUsd : null;
+            const state = flow === null ? 'none' : flow > 0 ? 'up' : 'down';
+            return (
+              <li key={ticker.symbol} data-state={state}>
+                <LeafIcon />
+                <span>
+                  {ticker.symbol}
+                  <span className="sr-only">
+                    {state === 'up'
+                      ? ': accumulating'
+                      : state === 'down'
+                        ? ': distributing'
+                        : ': no data'}
+                  </span>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="meter-line">
+          {convictionSentence(conviction, thesis.tickers.length)}.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** The reading layout's body: one thesis, inked onto the panel paper. */
+function ThesisReading({
+  thesis,
+  summary,
+  deck,
+  now,
+  followed,
+  titleRef,
+  onToggleFollow,
+  onTalkToUncle,
+}: {
+  thesis: Thesis;
+  summary: ThesisSummary | null;
+  deck: DeckState;
+  now: number;
+  followed: boolean;
+  titleRef: Ref<HTMLHeadingElement>;
+  onToggleFollow: () => void;
+  onTalkToUncle: (draft: string) => void;
+}) {
+  const titleId = useId();
+  const [origin, setOrigin] = useState('');
+  const [canShare, setCanShare] = useState(false);
+  const [toast, setToast] = useState('');
+  const [stampKey, setStampKey] = useState(0);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    setCanShare(typeof navigator.share === 'function');
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(''), 2200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const link = origin ? thesisLink(origin, thesis.id) : '';
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setToast('Link copied.');
+    } catch {
+      setToast('Copy failed. The link is in the address bar.');
+    }
+  };
+  const nativeShare = async () => {
+    try {
+      await navigator.share({
+        title: thesis.title,
+        text: shareText(thesis, summary),
+        url: link,
+      });
+    } catch {
+      /* The person closed the share sheet. */
+    }
+  };
+  const follow = () => {
+    onToggleFollow();
+    if (!followed) setStampKey((k) => k + 1);
+    setToast(followed ? 'No longer following.' : 'Following this thesis.');
+  };
+
+  const style = {
+    '--book': thesis.colors.primary,
+    '--book-accent': thesis.colors.accent,
+    '--book-ink': thesis.colors.ink,
+    '--hue': thesis.hue,
+  } as CSSProperties;
+
+  return (
+    <section
+      className="thesis-reading"
+      role="dialog"
+      aria-labelledby={titleId}
+      style={style}
+    >
+      <div className="scroll-grid">
+        <figure
+          className="scroll-art ink"
+          style={{ '--i': 0 } as CSSProperties}
+        >
+          <img
+            src={thesis.image}
+            alt={`${thesis.spirit}, the spirit of this thesis`}
+            width={900}
+            height={1200}
+          />
+          {followed && (
+            <span key={stampKey} className="scroll-stamp" aria-hidden="true">
+              追
+            </span>
+          )}
+          <figcaption>{thesis.spirit}</figcaption>
+        </figure>
+
+        <div className="scroll-text">
+          <p
+            className="scroll-kicker ink"
+            style={{ '--i': 0 } as CSSProperties}
+          >
+            Scroll · {thesis.numeral} · Thesis
+          </p>
+          <h2
+            id={titleId}
+            ref={titleRef}
+            tabIndex={-1}
+            className="scroll-title ink"
+            style={{ '--i': 1 } as CSSProperties}
+          >
+            {thesis.title}
+          </h2>
+          <p className="scroll-sub ink" style={{ '--i': 2 } as CSSProperties}>
+            {thesis.subtitle}
+          </p>
+          <p className="scroll-body ink" style={{ '--i': 3 } as CSSProperties}>
+            {thesis.body}
+          </p>
+          <Meter thesis={thesis} summary={summary} deck={deck} />
+          <div
+            className="scroll-actions ink"
+            role="group"
+            aria-label="Thesis actions"
+            style={{ '--i': 5 } as CSSProperties}
+          >
+            <button
+              type="button"
+              className="scroll-action scroll-action--primary"
+              onClick={() => onTalkToUncle(buildUncleDraft(thesis, summary))}
+            >
+              Talk to Uncle
+            </button>
+            <a
+              className="scroll-action"
+              href={origin ? xIntentUrl(thesis, summary, origin) : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Share the thesis on X
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            <button type="button" className="scroll-action" onClick={copyLink}>
+              Copy link
+            </button>
+            {canShare && (
+              <button
+                type="button"
+                className="scroll-action"
+                onClick={nativeShare}
+              >
+                Share…
+              </button>
+            )}
+            <button
+              type="button"
+              className="scroll-action scroll-action--seal"
+              aria-pressed={followed}
+              onClick={follow}
+            >
+              <span className="scroll-action-seal" aria-hidden="true">
+                追
+              </span>
+              {followed ? 'Following the thesis' : 'Follow the thesis'}
+            </button>
+          </div>
+          <p className="scroll-toast" role="status" aria-live="polite">
+            {toast}
+          </p>
+        </div>
+
+        <section
+          className="scroll-leaves ink"
+          aria-labelledby={`${titleId}-leaves`}
+          style={{ '--i': 6 } as CSSProperties}
+        >
+          <h3 id={`${titleId}-leaves`} className="scroll-section-title">
+            Four leaves in the pot
+          </h3>
+          <ul className="leaf-list-root">
+            {thesis.tickers.map((ticker) => (
+              <ThesisLeaf
+                key={ticker.symbol}
+                thesisId={thesis.id}
+                ticker={ticker}
+                signal={summary?.tickers.find(
+                  (s) => s.symbol === ticker.symbol,
+                )}
+                offline={deck.status === 'offline'}
+                now={now}
+              />
+            ))}
+          </ul>
+        </section>
+      </div>
+    </section>
+  );
+}
