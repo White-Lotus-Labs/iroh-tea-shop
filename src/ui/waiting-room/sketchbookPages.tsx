@@ -65,10 +65,10 @@ const NOTES: Record<string, Note[]> = {
   ],
   PandaCoderexe: [
     { text: 'the studio', x: 0, y: 14, to: [18, 30] },
-    { text: 'no coffee', x: 83, y: 62, to: [80, 76] },
+    { text: 'no coffee', x: 90, y: 60, to: [83, 79] },
   ],
   tldde: [
-    { text: 'the Observatorium', x: 0, y: 44, to: [22, 36] },
+    { text: 'the Observatorium', x: -2, y: 2, to: [19, 19] },
     { text: 'the cat', x: 82, y: 6, to: [74, 18] },
   ],
 };
@@ -254,12 +254,14 @@ export const SKETCH_PAGES: SketchPage[] = [
         >
           Read the source on GitHub <span aria-hidden="true">↗</span>
         </a>
-        <p className="sb-caption-hand">
-          When the lanterns are lit, step inside.
-        </p>
-        <span className="sb-seal" aria-hidden="true">
-          白蓮
-        </span>
+        <div className="sb-sign">
+          <p className="sb-caption-hand">
+            When the lanterns are lit, step inside.
+          </p>
+          <span className="sb-seal" aria-hidden="true">
+            白蓮
+          </span>
+        </div>
         <Folio n={10} />
       </div>
     ),

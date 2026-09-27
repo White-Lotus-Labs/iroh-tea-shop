@@ -651,13 +651,22 @@
 .sb-hello .sb-link {
   margin-top: 0;
 }
-.sb-hello .sb-caption-hand {
+.sb-sign {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4cqi;
   margin-top: auto;
-  padding-right: 12cqi;
+  padding-top: 3cqi;
+}
+.sb-sign .sb-caption-hand {
+  margin: 0;
   text-align: left;
 }
-.sb-hello .sb-seal {
-  bottom: 10cqi;
+.sb-sign .sb-seal {
+  position: static;
+  flex: none;
+  margin-right: 1cqi;
 }
 
 /* ---- controls around the book ---- */

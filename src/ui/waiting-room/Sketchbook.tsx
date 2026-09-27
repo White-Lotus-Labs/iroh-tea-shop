@@ -258,7 +258,10 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     const turn = live.current.turn;
     if (!turn) return;
     const done = () => {
-      if (complete) setView(turn.to);
+      if (complete) {
+        live.current.view = turn.to;
+        setView(turn.to);
+      }
       live.current.turn = null;
       setTurn(null);
     };
