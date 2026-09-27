@@ -7,11 +7,12 @@ import {
   SRGBColorSpace,
   Vector2,
 } from 'three';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { Cup } from './Ceramics';
 import { Solid, SurfaceMaterial } from './Surfaces';
 import type { Point } from './stations';
 import { createRandom } from './motion/dynamics';
+import { Counter } from './props/Counter';
+import { ChamberDressing, WaitingDressing } from './props/Dressing';
+import { TeaTable } from './props/TeaTable';
 
 const timber = '#3a2419';
 const plaster = '#917354';
@@ -470,45 +471,6 @@ function FramedWall({
   );
 }
 
-function Vase({ position }: { position: Point }) {
-  return (
-    <group position={position}>
-      <mesh castShadow>
-        <sphereGeometry args={[0.17, 20, 16]} />
-        <meshPhysicalMaterial
-          color="#394638"
-          roughness={0.35}
-          clearcoat={0.25}
-        />
-      </mesh>
-      <mesh position={[0, 0.14, 0]} castShadow>
-        <cylinderGeometry args={[0.075, 0.11, 0.16, 18]} />
-        <meshPhysicalMaterial
-          color="#394638"
-          roughness={0.35}
-          clearcoat={0.25}
-        />
-      </mesh>
-      {[
-        [-0.2, 0.33],
-        [0.08, 0.44],
-        [0.24, 0.26],
-      ].map(([x, y], index) => (
-        <group key={index}>
-          <mesh position={[x / 2, y / 2 + 0.16, 0]} rotation={[0, 0, -x * 0.7]}>
-            <cylinderGeometry args={[0.008, 0.012, y, 5]} />
-            <meshStandardMaterial color="#48583a" />
-          </mesh>
-          <mesh position={[x, y + 0.12, 0]} scale={[0.45, 1, 0.32]}>
-            <sphereGeometry args={[0.11, 8, 6]} />
-            <meshStandardMaterial color="#506346" roughness={1} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
 function TeaBackdrop() {
   const texture = useTexture('/images/tea-back-wall.jpg');
   texture.colorSpace = SRGBColorSpace;
@@ -527,36 +489,6 @@ function RightWallBackdrop() {
     <mesh position={[3.994, 1.85, -3.05]} rotation={[0, -Math.PI / 2, 0]}>
       <planeGeometry args={[9.55, 3.65]} />
       <meshBasicMaterial map={texture} color={backdropTint} />
-    </mesh>
-  );
-}
-
-function CounterBackdrop() {
-  const texture = useTexture('/images/counter-wall.jpg');
-  texture.colorSpace = SRGBColorSpace;
-  return (
-    <mesh position={[-3.99, 1.85, 7.35]} rotation={[0, Math.PI / 2, 0]}>
-      <planeGeometry args={[7.1, 4]} />
-      <meshBasicMaterial map={texture} color={backdropTint} />
-    </mesh>
-  );
-}
-
-function Cushion({ position }: { position: Point }) {
-  const geometry = useMemo(
-    () => new RoundedBoxGeometry(0.74, 0.11, 0.8, 4, 0.045),
-    [],
-  );
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return (
-    <mesh
-      geometry={geometry}
-      position={position}
-      rotation={[0, 0.18, 0]}
-      castShadow
-      receiveShadow
-    >
-      <SurfaceMaterial surface="cloth" color="#3f4a37" />
     </mesh>
   );
 }
@@ -601,9 +533,6 @@ export function WaitingRoom() {
         color={plaster}
         surface="plaster"
       />
-      <Suspense fallback={null}>
-        <CounterBackdrop />
-      </Suspense>
       <Solid
         position={[4.1, 1.85, 7.3]}
         size={[0.19, 3.7, 8.1]}
@@ -668,28 +597,8 @@ export function WaitingRoom() {
         />
       ))}
       <Shoji x={3.95} z={6.8} width={2.15} />
-      <Solid
-        position={[-2.2, 0.62, 6.07]}
-        size={[3.3, 1.24, 0.96]}
-        color="#3d2517"
-      />
-      <Solid
-        position={[-2.2, 1.26, 6.07]}
-        size={[3.55, 0.14, 1.11]}
-        color="#6a3f25"
-        clearcoat={0.35}
-      />
-      {Array.from({ length: 17 }, (_, index) => (
-        <Beam
-          key={index}
-          position={[-3.72 + index * 0.19, 0.62, 6.565]}
-          size={[0.05, 1.1, 0.035]}
-          color="#2a1a10"
-        />
-      ))}
-      <Cup position={[-2.86, 1.4, 5.93]} color="#a5a077" />
-      <Cup position={[-2.4, 1.4, 5.93]} color="#b98755" />
-      <Vase position={[2.55, 0.17, 4.46]} />
+      <Counter />
+      <WaitingDressing />
       <PaperLantern position={[-2.3, 2.5, 5.55]} drop={0.92} light={7} />
     </group>
   );
@@ -748,35 +657,8 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
         frames={1}
         color="#1c110a"
       />
-      <Solid
-        position={[0, 0.575, -2.41]}
-        size={[2.58, 0.07, 1.37]}
-        color="#5b3522"
-        clearcoat={0.55}
-      />
-      <Solid
-        position={[0, 0.505, -2.41]}
-        size={[2.3, 0.07, 1.15]}
-        color="#3a2216"
-      />
-      {[-1.04, 1.04].flatMap((x) =>
-        [-0.51, 0.51].map((z) => (
-          <Beam
-            key={`${x}${z}`}
-            position={[x, 0.27, -2.41 + z]}
-            size={[0.14, 0.47, 0.16]}
-          />
-        )),
-      )}
-      <Solid
-        position={[0, 0.6115, -2.36]}
-        size={[2.05, 0.003, 0.36]}
-        color="#bba98a"
-        surface="cloth"
-      />
-      <Cup position={[-0.58, 0.68, -2.18]} color="#828069" />
-      <Cup position={[0.58, 0.68, -2.34]} color="#a9a18a" />
-      <Cushion position={[-0.76, 0.105, -0.93]} />
+      <TeaTable />
+      <ChamberDressing />
       <PaperLantern position={[-1.05, 2.45, -2.6]} drop={0.96} light={3.6} />
       <pointLight
         position={[-2.3, 2.45, -5.25]}
