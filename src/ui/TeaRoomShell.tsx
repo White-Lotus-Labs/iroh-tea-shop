@@ -28,6 +28,7 @@ import { EvidenceDrawer } from './EvidenceDrawer';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
 import { SceneLoader } from './SceneLoader';
+import { StationDock } from './StationDock';
 
 // SceneLoader covers the stage while the scene chunk downloads.
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
@@ -418,32 +419,12 @@ export default function TeaRoomShell({
         )}
       </div>
 
-      {station !== 'Entrance' && (
-        <nav className="station-nav is-expanded" aria-label="Tea room stations">
-          <div className="station-list" role="list">
-            {STATIONS.map((s, i) => {
-              const isActive = s.id === station;
-              return (
-                <button
-                  key={s.id}
-                  className={`station-item ${isActive ? 'active' : ''}`}
-                  onClick={() => navigate(s.id)}
-                  aria-current={isActive ? 'step' : undefined}
-                  role="listitem"
-                >
-                  <span className="station-number">0{i + 1}</span>
-                  <span className="station-text">
-                    {s.label}
-                    <small>{s.purpose}</small>
-                  </span>
-                  <span className="station-dot" aria-hidden="true">
-                    {isActive ? '●' : '○'}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+      {!isEntrance && (
+        <StationDock
+          station={station}
+          reduced={reduced}
+          onNavigate={navigate}
+        />
       )}
 
       {evidenceOpen && data.result?.evidence[0] && (
