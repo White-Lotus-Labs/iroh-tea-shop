@@ -13,6 +13,8 @@ test('the open hint keeps its name, describes the teaser, and gets focus back af
   await expect(hint).toHaveAccessibleDescription(
     'Draw a thesis. Smart money signals are inside.',
   );
+  await expect(page.locator('.halo-label')).toBeAttached({ timeout: 15000 });
+  await expect(page.locator('.panel-open-hint-teaser')).toBeHidden();
   await hint.click();
   await expect(page.getByRole('heading', { name: 'Thesis Desk' })).toBeVisible();
   await page.getByRole('button', { name: 'Close Counter menu' }).click();

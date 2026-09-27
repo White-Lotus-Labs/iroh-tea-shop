@@ -144,11 +144,15 @@ export default function TeaRoomShell({
     queueMicrotask(() => panel.current?.focus());
   }, [station]);
   const closePanel = useCallback(() => {
-    const finish = () => {
-      flushSync(() => setPanelOpen(false));
-      openHint.current?.focus();
-    };
     const paper = panel.current;
+    const finish = () => {
+      // Keep focus where the user moved it (e.g. a dock click mid roll-up).
+      const active = document.activeElement;
+      const refocus =
+        !active || active === document.body || Boolean(paper?.contains(active));
+      flushSync(() => setPanelOpen(false));
+      if (refocus) openHint.current?.focus();
+    };
     if (reduced || !paper || paper.classList.contains('is-rolling-up'))
       return finish();
     // Let the scroll roll up to its top rod before it unmounts.

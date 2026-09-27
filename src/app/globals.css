@@ -3366,6 +3366,12 @@ body:has(.auth-shell) {
     500 13px / 1.35 var(--font-body);
   color: var(--scroll-muted);
 }
+/* On desktop the in-world halo label carries the teaser; the tag stays short. */
+@media (min-width: 761px) {
+  .app-shell:has(.halo-label) .panel-open-hint-teaser {
+    display: none;
+  }
+}
 .panel-open-hint:hover {
   box-shadow:
     inset 0 0 0 1px var(--gold-bright),
