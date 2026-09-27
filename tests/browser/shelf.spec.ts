@@ -264,6 +264,14 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await expect(page.getByTestId('top-wallet')).toContainText('Azure Dragon', {
     timeout: 15_000,
   });
+  const spiritWindow = page.getByTestId('shelf-spirit-window');
+  await expect(spiritWindow).toContainText('Azure Dragon');
+  await page.locator('[data-rank="2"]').click();
+  await expect(spiritWindow).toContainText('Vermilion Phoenix');
+  await expect(page.locator('[data-rank="2"]')).toHaveAttribute(
+    'data-selected',
+    'true',
+  );
   await expect(page.locator('[data-rank="2"]')).toContainText(
     'Vermilion Phoenix',
   );
