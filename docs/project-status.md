@@ -6,7 +6,7 @@
 
 **Review state:** Local feature branch `feature/iroh-nansen-chat`. The site has not been deployed.
 
-Tea After Pour demonstrates the complete intended _room journey_ with synthetic thesis-review data. Iroh at the Host has a separate live Nansen Research Agent chat when `NANSEN_API_KEY` is configured. The thesis review is not a live analysis service. Optional nickname/password accounts and SQLite-backed sessions provide stable identity; guests can also use the room and Iroh chat. There is no public sharing service.
+Iroh's Tea Shop demonstrates the complete intended _room journey_ with synthetic thesis-review data. Iroh at the Host has a separate live Nansen Research Agent chat when `NANSEN_API_KEY` is configured. The thesis review is not a live analysis service. Optional nickname/password accounts and SQLite-backed sessions provide stable identity; guests can also use the room and Iroh chat. There is no public sharing service.
 
 ## What is implemented
 

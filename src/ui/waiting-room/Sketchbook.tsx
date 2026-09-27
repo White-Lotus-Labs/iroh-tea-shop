@@ -179,7 +179,7 @@ function Cover({
             <div className="sb-cloth">
               <LotusMark />
               <p className="sb-cloth-studio">White Lotus Labs</p>
-              <p className="sb-cloth-name">Tea After Pour</p>
+              <p className="sb-cloth-name">Iroh&apos;s Tea Shop</p>
             </div>
           </div>
           <span className="sh" />
@@ -676,7 +676,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
               className="sb-book"
               role="group"
               aria-roledescription="sketchbook"
-              aria-label={open ? place : 'Closed sketchbook, Tea After Pour'}
+              aria-label={open ? place : "Closed sketchbook, Iroh's Tea Shop"}
             >
               <span className="sb-cover" aria-hidden="true" />
               {mode === 'spread' ? (

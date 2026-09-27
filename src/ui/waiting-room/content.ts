@@ -44,11 +44,11 @@ export const xUrl = (handle: string) => `https://x.com/${handle}`;
 export const REPO_URL = 'https://github.com/White-Lotus-Labs/iroh-tea-shop';
 
 export const PROJECT = {
-  name: 'Tea After Pour',
+  name: "Iroh's Tea Shop",
   studio: 'White Lotus Labs',
   tagline: 'A quiet room for a finished thesis.',
   summary:
-    'Tea After Pour is a tea room for a crypto thesis you have already written. You bring the reasoning. The room helps you see what it rests on, one cup at a time.',
+    "Iroh's Tea Shop is a tea room for a crypto thesis you have already written. You bring the reasoning. The room helps you see what it rests on, one cup at a time.",
   // Same names and captions as the station dock inside.
   steps: [
     {

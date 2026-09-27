@@ -12,13 +12,12 @@ const HANDLES = [
 // longer than the default timeouts. Reduced motion settles turns at once.
 test.use({ reducedMotion: 'reduce' });
 
-// ?waiting= only matters on the compare branch; elsewhere it is ignored.
 test('sketchbook turns by button, key, drag and index, and links the team', async ({
   page,
 }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/?waiting=sketchbook');
+  await page.goto('/');
   const book = page.locator('.sb-book');
   const next = page.getByRole('button', { name: 'Next page' });
   await expect(book).toHaveAttribute(
@@ -78,7 +77,7 @@ test('on a phone every page is one tap away, not only a swipe', async ({
 }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/?waiting=sketchbook');
+  await page.goto('/');
   const book = page.locator('.sb-book');
   await expect(book).toHaveAttribute(
     'aria-label',
@@ -91,7 +90,7 @@ test('on a phone every page is one tap away, not only a swipe', async ({
     'The tea shop, page 2 of 10',
   );
   await expect(
-    book.getByRole('heading', { name: 'Tea After Pour' }),
+    book.getByRole('heading', { name: "Iroh's Tea Shop" }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Previous page' }).click();
   await expect(book).toHaveAttribute(
@@ -109,7 +108,7 @@ test('the sketchbook starts open, riffles forward once, and lands on the first s
     viewport: { width: 1440, height: 900 },
   });
   const page = await context.newPage();
-  await page.goto('/?waiting=sketchbook');
+  await page.goto('/');
   const book = page.locator('.sb');
   await book.waitFor();
   await expect(book).toHaveAttribute('data-open', 'open');
@@ -145,7 +144,7 @@ test('on a phone held sideways one page keeps a size its text fits', async ({
 }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/?waiting=sketchbook');
+  await page.goto('/');
   const book = page.locator('.sb-book');
   await page.getByRole('button', { name: 'Next page' }).click();
   await expect(book).toHaveAttribute(

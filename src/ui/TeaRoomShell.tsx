@@ -346,7 +346,7 @@ export default function TeaRoomShell({
             ◒
           </span>
           <span className="brand-text">
-            Tea After Pour
+            Iroh&apos;s Tea Shop
             <small>A QUIET ROOM FOR A FINISHED THESIS</small>
           </span>
         </a>

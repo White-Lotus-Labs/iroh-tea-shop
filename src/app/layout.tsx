@@ -27,7 +27,7 @@ const cjk = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  title: 'Tea After Pour — A quiet room for a finished thesis',
+  title: "Iroh's Tea Shop — A quiet room for a finished thesis",
   description:
     'Bring your reasoning. Separate observation from inference in a warm, guided tea room. PASS A uses clearly labeled synthetic demo data.',
 };
