@@ -124,7 +124,7 @@ function memberPage(member: Member, n: number, folio: number): SketchPage {
         <p className="sb-roles">{member.roles}</p>
         <p className="sb-note">{member.bio}</p>
         <a
-          className="sb-link"
+          className="sb-link sb-link-x"
           href={xUrl(member.handle)}
           target="_blank"
           rel="noreferrer"

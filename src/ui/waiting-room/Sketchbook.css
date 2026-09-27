@@ -450,6 +450,12 @@
 .sb-link:hover {
   color: var(--sb-earth);
 }
+/* X handles are case-sensitive; show them exactly. */
+.sb-link-x {
+  font-size: max(12px, 2.7cqi);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
 .sb-link:focus-visible,
 .sb-hello a:focus-visible {
   outline: 2px solid var(--sb-earth);
@@ -704,9 +710,9 @@
   border-radius: 999px;
   background: transparent;
   color: var(--wr-cream-dim);
-  font-size: 11px;
-  letter-spacing: 1.6px;
-  text-transform: uppercase;
+  font-family: var(--wr-serif);
+  font-size: 14px;
+  letter-spacing: 0.2px;
   white-space: nowrap;
   transition:
     color 0.2s ease,
