@@ -73,7 +73,6 @@ export function IrohChat({
       data.chat.nansenConversationId,
     );
     setSelectedId(chatId);
-    setDraft('');
     input.current?.focus();
   };
 
@@ -151,9 +150,10 @@ export function IrohChat({
     };
   }, [session, user?.id]);
 
+  // The composer is disabled while chats load, so focus it once loading ends.
   useEffect(() => {
-    input.current?.focus();
-  }, []);
+    if (!historyLoading) input.current?.focus();
+  }, [historyLoading]);
   useEffect(() => {
     if (!draftPrefill) return;
     setDraft(draftPrefill.text);

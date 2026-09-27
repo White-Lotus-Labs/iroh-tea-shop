@@ -43,6 +43,8 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   await mockNansen(page);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // A saved chat makes the Host restore it; the hand-off prefill must survive.
+  await page.request.post('/api/iroh/chats');
   await openCounter(page);
 
   const books = page.locator('.deck-book');
