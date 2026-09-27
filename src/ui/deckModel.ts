@@ -2,11 +2,17 @@ import { formatMoney } from '../leaderboard/model';
 import type {
   Conviction,
   ConvictionLevel,
+  DeckSnapshot,
   Thesis,
   ThesisId,
   ThesisSummary,
   TickerSignal,
 } from '../thesis/types';
+
+export type DeckState =
+  | { status: 'loading' }
+  | { status: 'offline'; reason: string }
+  | { status: 'ready'; snapshot: DeckSnapshot };
 
 export const LEVEL_LABEL: Record<ConvictionLevel, string> = {
   weak: 'Weak',
@@ -35,7 +41,10 @@ export function formatRelative(iso: string | null, now = Date.now()): string {
   return `${Math.round(hours / 24)} d ago`;
 }
 
-export function accumulatingLine(conviction: Conviction, total: number): string {
+export function accumulatingLine(
+  conviction: Conviction,
+  total: number,
+): string {
   return `${conviction.accumulating} of ${total} accumulating`;
 }
 
