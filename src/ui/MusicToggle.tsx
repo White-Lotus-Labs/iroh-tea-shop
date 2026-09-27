@@ -93,7 +93,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
     (next: boolean) => {
       want.current = next;
       setOn(next);
-      writeBackgroundMusic(window.localStorage, next);
+      writeBackgroundMusic(next);
       if (next) start();
       else fade();
     },
@@ -101,7 +101,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
   );
 
   useEffect(() => {
-    if (!readBackgroundMusic(window.localStorage)) return;
+    if (!readBackgroundMusic()) return;
     want.current = true;
     setOn(true);
   }, []);

@@ -156,7 +156,7 @@ export function ThesisDeck({
   }, [nansen]);
 
   useEffect(() => {
-    setFollowed(readFollowed(window.localStorage));
+    setFollowed(readFollowed());
     const tick = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(tick);
   }, []);
@@ -232,7 +232,7 @@ export function ThesisDeck({
   }, [readingId, close]);
 
   const onToggleFollow = useCallback((id: ThesisId) => {
-    setFollowed(toggleFollowed(window.localStorage, id));
+    setFollowed(toggleFollowed(id));
   }, []);
 
   // On phones the books sit in a snap carousel; start on the middle one.

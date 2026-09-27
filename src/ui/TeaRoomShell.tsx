@@ -324,16 +324,15 @@ export default function TeaRoomShell({
     setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
-  const openThesisDesk = useCallback(() => {
-    setSelectedThesis(null);
-    if (station === 'Counter') {
-      setPanelOpen(true);
-      queueMicrotask(() => panel.current?.focus());
-      return;
-    }
-    navigate('Counter');
-    deepLinkOpenOnce.current = true;
-  }, [station, navigate]);
+  const pickThesis = useCallback(
+    (id: ThesisId) => {
+      setSelectedThesis(id);
+      if (station === 'Counter') return setPanelOpen(true);
+      navigate('Counter');
+      deepLinkOpenOnce.current = true;
+    },
+    [station, navigate],
+  );
   const onTalkToUncle = useCallback((text: string) => {
     setUncleDraft({ text, key: Date.now() });
     setCameraAt(null);
@@ -492,7 +491,7 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
-            onThesisPick={openThesisDesk}
+            onThesisPick={pickThesis}
             onNavigate={navigate}
             onStaged={onStaged}
             hostModel={revealed}
