@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { DockPaints, stationGlyph } from '../StationDock';
 import { PROJECT, REPO_URL, TEAM, xUrl, type Member } from './content';
 import { LotusMark } from './LotusMark';
 
@@ -273,12 +274,13 @@ export const SKETCH_PAGES: SketchPage[] = [
     label: 'Four stops',
     render: () => (
       <div className="sb-page-inner sb-stations">
+        <DockPaints />
         <p className="sb-kicker">How the room works</p>
         <ol>
-          {PROJECT.steps.map((step, i) => (
+          {PROJECT.steps.map((step) => (
             <li key={step.label}>
-              <span className="sb-step-n" aria-hidden="true">
-                {['一', '二', '三', '四'][i]}
+              <span className="sb-step-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32">{stationGlyph(step.label)}</svg>
               </span>
               <div>
                 <h3>
