@@ -395,11 +395,13 @@ function FramedWall({
   from,
   to,
   posts,
+  cast = true,
 }: {
   face: number;
   from: number;
   to: number;
   posts: number[];
+  cast?: boolean;
 }) {
   const side = Math.sign(face),
     length = to - from,
@@ -408,17 +410,39 @@ function FramedWall({
   return (
     <group>
       {posts.map((z) => (
-        <Beam key={z} position={[at(0.06), 1.85, z]} size={[0.13, 3.7, 0.14]} />
+        <Beam
+          cast={cast}
+          key={z}
+          position={[at(0.06), 1.85, z]}
+          size={[0.13, 3.7, 0.14]}
+        />
       ))}
-      <Beam position={[at(0.045), 2.32, center]} size={[0.09, 0.12, length]} />
-      <Beam position={[at(0.035), 3.3, center]} size={[0.07, 0.07, length]} />
+      <Beam
+        cast={cast}
+        position={[at(0.045), 2.32, center]}
+        size={[0.09, 0.12, length]}
+      />
+      <Beam
+        cast={cast}
+        position={[at(0.035), 3.3, center]}
+        size={[0.07, 0.07, length]}
+      />
       <Solid
+        cast={cast}
         position={[at(0.02), 0.47, center]}
         size={[0.04, 0.94, length]}
         color="#4a2e1d"
       />
-      <Beam position={[at(0.04), 0.96, center]} size={[0.07, 0.05, length]} />
-      <Beam position={[at(0.04), 0.035, center]} size={[0.07, 0.07, length]} />
+      <Beam
+        cast={cast}
+        position={[at(0.04), 0.96, center]}
+        size={[0.07, 0.05, length]}
+      />
+      <Beam
+        cast={cast}
+        position={[at(0.04), 0.035, center]}
+        size={[0.07, 0.07, length]}
+      />
       {[0.33, 0.64].map((y) => (
         <Beam
           key={y}
@@ -696,9 +720,27 @@ export function WaitingRoom() {
         surface="plaster"
       />
       <TeaHouseDoorway />
-      {[4.05, 7.4, 10.74].map((z) => (
-        <Beam key={z} position={[-3.94, 1.85, z]} size={[0.16, 3.7, 0.16]} />
-      ))}
+      <FramedWall
+        face={-4.005}
+        from={3.35}
+        to={11.2}
+        posts={[4.05, 7.4, 10.74]}
+        cast={false}
+      />
+      <FramedWall
+        face={4.005}
+        from={3.35}
+        to={5.66}
+        posts={[5.66]}
+        cast={false}
+      />
+      <FramedWall
+        face={4.005}
+        from={7.94}
+        to={11.2}
+        posts={[7.94, 10.74]}
+        cast={false}
+      />
       {[4.1, 7.45, 10.7].map((z) => (
         <Beam
           key={z}

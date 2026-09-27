@@ -109,7 +109,7 @@ export function WallTrim({
       },
     };
   });
-  const edges = [from, ...posts, to].sort((a, b) => a - b);
+  const edges = [...new Set([from, ...posts, to])].sort((a, b) => a - b);
   const map = wearTexture();
   return (
     <group>
@@ -123,6 +123,7 @@ export function WallTrim({
         const z0 = edges[i] + 0.07,
           width = z1 - 0.07 - z0;
         const mid = (z0 + z1) / 2;
+        if (width < 0.1) return [];
         return BANDS.filter(
           (_, band) =>
             band > 0 || !window || mid < window[0] || mid > window[1],

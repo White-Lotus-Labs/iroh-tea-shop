@@ -23,6 +23,7 @@ const ALL_SHOTS = [
   'observatorium',
   'shelf',
   'brazier',
+  'entrance',
 ];
 // Steam is hidden under reduced motion, so the tea-set shot runs with full motion.
 const FULL_MOTION_SHOTS = new Set(['tea-set', 'brazier']);

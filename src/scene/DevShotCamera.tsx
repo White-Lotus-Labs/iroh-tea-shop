@@ -18,6 +18,7 @@ export const SHOTS: Record<string, Shot> = {
     target: [0.25, 1.0, -3.4],
     fov: 64,
   },
+  entrance: stationShot('Entrance'),
   counter: stationShot('Counter'),
   'tea-table': stationShot('TeaTable'),
   'host-full': stationShot('AvatarSeat'),

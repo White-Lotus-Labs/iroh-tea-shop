@@ -29,6 +29,7 @@ import {
   useBuilt,
   WoodMaterial,
 } from './craft';
+import { CounterDetail } from './CounterDetail';
 import { CounterShelves } from './CounterShelves';
 import { JarSet, type JarSpec } from './Jars';
 import { Bonsai } from './Plants';
@@ -487,6 +488,7 @@ export function Counter() {
   return (
     <group>
       <CounterShelves />
+      <CounterDetail top={TOP_Y} />
       <group position={[-2.2, 1.92, 3.445]} rotation={[0.04, 0, 0]}>
         <mesh castShadow>
           <boxGeometry args={[1.02, 0.34, 0.03]} />
