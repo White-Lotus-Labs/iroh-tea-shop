@@ -41,11 +41,11 @@ export function woodMaps(
       const s = x / width,
         t = y / height,
         warp = fbm(noise, s * 4, t * 4, 4, 3, 4),
-        phase = (((t * 9 + warp * 1.8) % 1) + 1) % 1,
+        phase = (((t * 10 + warp * 1.5) % 1) + 1) % 1,
         band = smooth(0.5, 0.82, phase) * (1 - smooth(0.9, 1, phase)),
         streak = fbm(fine, s * 6, t * 48, 6, 2, 64),
         pore = random() < 0.012 * (1 - band) ? 1 : 0,
-        tone = 0.92 + (streak - 0.5) * 0.3 - pore * 0.25,
+        tone = 0.92 + (streak - 0.5) * 0.42 - pore * 0.25,
         i = (y * width + x) * 4;
       for (let c = 0; c < 3; c++)
         color.data[i + c] = (early[c] + (late[c] - early[c]) * band) * tone;
@@ -293,7 +293,7 @@ function Fringe() {
 /** The host's low tea table, its runner, the guest cups and the tea tools. */
 export function TeaTable() {
   const geometry = useMemo(tableGeometry, []);
-  const wood = useMemo(() => woodMaps([106, 70, 48], [70, 44, 30], 301), []);
+  const wood = useMemo(() => woodMaps([102, 67, 46], [76, 48, 32], 301), []);
   const runner = useMemo(runnerMaps, []);
   const materials = useMemo(() => {
     const make = (color: string, clearcoat: number, clearcoatRoughness = 0.3) =>

@@ -117,6 +117,23 @@ Changes: a customer-side chochin that lights the counter front, a brighter tokon
 | Mood/color grade             | 8     | The counter is no longer murky; warm interior against the violet dusk is consistent across all shots. |
 | Prop and architecture detail | 7     | The brazier and tokonoma gained parts; small props are still sparse at wide framing.                  |
 
+## Round 6: table grain, warm haze
+
+Shots: `_scratch/shots/round-6`. Frame rate: mean 82 fps, min 65 fps (`tea-set`). The p95 frame time has single spikes near 33 ms on `counter` and `tea-set`, so watch these two shots.
+
+Changes: calmer walnut figure on the table, with finer rings, less warp, and more streaking. A warmer, denser `FogExp2` (`#5c3c26`, 0.045) for aerial depth between the counter and the chamber.
+
+| Part                         | Score | Reason                                                                                           |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| Lighting and shadows         | 8     | No change.                                                                                       |
+| Environment/atmosphere       | 7     | The haze softens the far wall; the wide view still has no visible beam.                          |
+| Walls/architecture           | 7     | No change.                                                                                       |
+| Floor and table              | 8     | The table now reads as oiled walnut in close-up; boards, tatami borders and joinery all hold up. |
+| Tea set and steam            | 7     | No change.                                                                                       |
+| Orrery                       | 8     | No change.                                                                                       |
+| Mood/color grade             | 8     | No change.                                                                                       |
+| Prop and architecture detail | 7     | No change.                                                                                       |
+
 ## Proposed
 
 Items that need an off-limits file, a dependency, or a big architecture change.

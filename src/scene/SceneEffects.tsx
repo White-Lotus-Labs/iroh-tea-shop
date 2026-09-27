@@ -215,7 +215,7 @@ export function SceneEffects({ reduced }: { reduced: boolean }) {
         onIncline={() => setTier((current) => Math.min(2, current + 1))}
         onFallback={() => setTier(0)}
       />
-      <fogExp2 attach="fog" args={['#2a1c13', 0.028]} />
+      <fogExp2 attach="fog" args={['#5c3c26', 0.045]} />
       <RoomEnvironment />
       <Atmosphere reduced={reduced} />
       <Composer reduced={reduced} ao={tier === 2} />
