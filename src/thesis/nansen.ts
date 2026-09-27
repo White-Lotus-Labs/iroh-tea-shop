@@ -317,6 +317,30 @@ export function preferExistingDeck(
   return null;
 }
 
+const DETAIL_SECTIONS = ['movements', 'holders', 'supply', 'perps'] as const;
+const countUnavailable = (detail: TickerDetail) =>
+  DETAIL_SECTIONS.filter((key) => detail[key].status === 'unavailable').length;
+
+/** Keep a better cached ticker page: the loader turns Nansen errors into 'unavailable'. */
+export function preferExistingDetail(
+  fresh: TickerDetail,
+  existing: TickerDetail,
+): string | null {
+  if (countUnavailable(fresh) > countUnavailable(existing))
+    return 'Fresh detail had more unavailable sections than the cached snapshot.';
+  return null;
+}
+
+/** Every ticker errored: the fresh deck holds no usable reading. */
+export const deckFailed = (fresh: { theses: ThesisSummary[] }) =>
+  fresh.theses.every((thesis) =>
+    thesis.tickers.every((ticker) => ticker.status === 'error'),
+  );
+
+/** Every section is unavailable: the fresh page holds no usable reading. */
+export const detailFailed = (fresh: TickerDetail) =>
+  countUnavailable(fresh) === DETAIL_SECTIONS.length;
+
 async function fetchTickerSignal(
   ticker: Ticker,
   apiKey: string,

@@ -255,6 +255,11 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
   page,
 }) => {
   test.setTimeout(90_000);
+  // Configured Nansen renders 'Try again' on other errors, so the count-0
+  // check below guards the daily-cap branch.
+  await page.route('**/api/nansen-status', (route) =>
+    route.fulfill({ json: { nansen: 'configured' } }),
+  );
   await page.route('**/api/nansen-agent', (route) =>
     route.fulfill({
       status: 429,
@@ -279,9 +284,15 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
   const cta = page.getByRole('link', { name: /Keep exploring with Nansen/ });
   await expect(cta).toHaveAttribute('href', 'https://nsn.ai/iroh0x');
   await expect(cta).toHaveAttribute('target', '_blank');
-  await expect(
-    page.getByRole('button', { name: 'Retry question' }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+  const composer = page.getByRole('textbox', {
+    name: 'Ask an onchain research question',
+  });
+  await expect(composer).toBeDisabled();
+  await expect(composer).toHaveAttribute(
+    'placeholder',
+    'Daily limit reached. Come back tomorrow.',
+  );
 });
 
 test('Iroh keeps a completed answer when Nansen returns no conversation ID', async ({
@@ -346,4 +357,24 @@ test('Iroh keeps follow-ups in the same saved chat without a conversation ID', a
   expect(requests[1].text).toBe('How does that compare with the last 7 days?');
   expect(requests[1].chatId).toBe(requests[0].chatId);
   expect(requests[1].conversation_id).toBeUndefined();
+});
+
+test('the Uncle hand-off prefill is used once, not on every reopen', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.goto('/');
+  await openStationPanel(page, 'Counter');
+  await page
+    .getByRole('button', { name: 'Ask Uncle about your own thesis' })
+    .click();
+  const composer = page.getByRole('textbox', {
+    name: 'Ask an onchain research question',
+  });
+  await expect(composer).toHaveValue('Uncle, test my thesis: ');
+  await composer.fill('');
+  await page.getByRole('button', { name: 'Close Host menu' }).click();
+  await page.getByRole('button', { name: 'Ask Uncle', exact: true }).click();
+  await expect(composer).toBeEnabled();
+  await expect(composer).toHaveValue('');
 });

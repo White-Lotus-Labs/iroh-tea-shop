@@ -37,12 +37,22 @@ export function IrohChat({
   const input = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
-  const refreshHistory = async () => {
-    if (!user) return;
+  const fetchChats = async () => {
     const response = await fetch('/api/iroh/chats', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Could not load your chats.');
-    const data = (await response.json()) as { chats: ChatSummary[] };
-    setHistory(data.chats);
+    if (!response.ok) throw new Error();
+    return ((await response.json()) as { chats: ChatSummary[] }).chats;
+  };
+  // Failures show fixed copy, never raw fetch text such as 'Failed to fetch'.
+  // Skip the result when an unmount, openChat, or newer newChat made it stale.
+  const createChat = async () => {
+    const generation = loadGeneration.current;
+    const response = await fetch('/api/iroh/chats', { method: 'POST' });
+    if (!response.ok) throw new Error();
+    const { chat } = (await response.json()) as { chat: ChatSummary };
+    if (generation !== loadGeneration.current) return;
+    session.restore(chat.id, [], null);
+    setSelectedId(chat.id);
+    setHistory((current) => [chat, ...current]);
   };
 
   const openChat = async (chatId: string) => {
@@ -53,7 +63,7 @@ export function IrohChat({
       `/api/iroh/chats/${encodeURIComponent(chatId)}`,
       { cache: 'no-store' },
     );
-    if (!response.ok) throw new Error('Could not open this chat.');
+    if (!response.ok) throw new Error();
     const data = (await response.json()) as {
       chat: {
         id: string;
@@ -65,42 +75,27 @@ export function IrohChat({
     session.restore(
       data.chat.id,
       data.chat.messages.map((message) => ({
+        ...message,
         id: String(message.id),
-        role: message.role,
-        content: message.content,
-        status: message.status,
       })),
       data.chat.nansenConversationId,
     );
     setSelectedId(chatId);
-    setDraft('');
     input.current?.focus();
   };
 
   const newChat = async () => {
-    if (!user) {
-      session.reset();
-      setDraft('');
-      input.current?.focus();
-      return;
-    }
+    setDraft('');
+    input.current?.focus();
+    if (!user) return session.reset();
     ++loadGeneration.current;
     session.stop();
     setHistoryError(null);
     try {
-      const response = await fetch('/api/iroh/chats', { method: 'POST' });
-      if (!response.ok) throw new Error('Could not create a chat.');
-      const data = (await response.json()) as { chat: ChatSummary };
-      session.restore(data.chat.id, [], null);
-      setSelectedId(data.chat.id);
-      setHistory((current) => [data.chat, ...current]);
-      setDraft('');
-      input.current?.focus();
-    } catch (error) {
+      await createChat();
+    } catch {
       setHistoryOpen(true);
-      setHistoryError(
-        error instanceof Error ? error.message : 'Could not create a chat.',
-      );
+      setHistoryError('Could not create a chat.');
     }
   };
 
@@ -109,36 +104,24 @@ export function IrohChat({
     let cancelled = false;
     const initialize = async () => {
       try {
-        const response = await fetch('/api/iroh/chats', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Could not load your chats.');
-        const data = (await response.json()) as { chats: ChatSummary[] };
+        const chats = await fetchChats();
         if (cancelled) return;
-        setHistory(data.chats);
+        setHistory(chats);
         const current = session.getSnapshot().chatId;
         const target =
-          current && data.chats.some((chat) => chat.id === current)
+          current && chats.some((chat) => chat.id === current)
             ? current
-            : data.chats[0]?.id;
+            : chats[0]?.id;
         if (target) {
           setSelectedId(target);
           if (current !== target) await openChat(target);
         } else {
-          const created = await fetch('/api/iroh/chats', { method: 'POST' });
-          if (!created.ok) throw new Error('Could not create a chat.');
-          const result = (await created.json()) as { chat: ChatSummary };
-          if (cancelled) return;
-          session.restore(result.chat.id, [], null);
-          setSelectedId(result.chat.id);
-          setHistory([result.chat]);
+          await createChat();
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setHistoryOpen(true);
-          setHistoryError(
-            error instanceof Error
-              ? error.message
-              : 'Could not load your chats.',
-          );
+          setHistoryError('Could not load your chats.');
         }
       } finally {
         if (!cancelled) setHistoryLoading(false);
@@ -151,9 +134,10 @@ export function IrohChat({
     };
   }, [session, user?.id]);
 
+  // The composer is disabled while chats load, so focus it once loading ends.
   useEffect(() => {
-    input.current?.focus();
-  }, []);
+    if (!historyLoading) input.current?.focus();
+  }, [historyLoading]);
   useEffect(() => {
     if (!draftPrefill) return;
     setDraft(draftPrefill.text);
@@ -166,11 +150,12 @@ export function IrohChat({
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [chat.messages.at(-1)?.content, chat.error]);
+  const dailyCap = chat.errorCode === 'nansen_agent_daily_limit';
   const send = () => {
     const pending = session.send(draft);
     if (pending) {
       setDraft('');
-      void pending.then(() => refreshHistory().catch(() => {}));
+      if (user) void pending.then(fetchChats).then(setHistory, () => {});
     }
   };
   return (
@@ -227,8 +212,8 @@ export function IrohChat({
                 className={item.id === selectedId ? 'is-selected' : ''}
                 aria-current={item.id === selectedId ? 'page' : undefined}
                 onClick={() =>
-                  void openChat(item.id).catch((error) =>
-                    setHistoryError(error.message),
+                  void openChat(item.id).catch(() =>
+                    setHistoryError('Could not open this chat.'),
                   )
                 }
               >
@@ -257,11 +242,19 @@ export function IrohChat({
                   onchain evidence.
                 </p>
               )}
+              {!user && (
+                <p>
+                  <a href="/account">Log in</a> to save this chat.
+                </p>
+              )}
             </div>
           )}
           {chat.messages
-            // A failed reply with no text would render as an empty card.
-            .filter((message) => message.content || message.status !== 'error')
+            // An empty reply shows no card: the activity line below is the
+            // one waiting signal, and a failed reply shows the error box.
+            .filter(
+              (message) => message.content || message.status === 'stopped',
+            )
             .map((message) => (
               <article
                 className={`iroh-message is-${message.role}`}
@@ -270,15 +263,7 @@ export function IrohChat({
                 <div className="iroh-speaker">
                   {message.role === 'user' ? 'You' : 'Uncle'}
                 </div>
-                {message.content ? (
-                  <IrohMessage content={message.content} />
-                ) : message.status === 'streaming' ? (
-                  <p className="iroh-waiting">
-                    {nansen === 'configured'
-                      ? 'Waiting for Nansen…'
-                      : 'Nansen research is offline'}
-                  </p>
-                ) : null}
+                {message.content && <IrohMessage content={message.content} />}
                 {message.status === 'stopped' && (
                   <small>Stopped · partial answer</small>
                 )}
@@ -295,11 +280,11 @@ export function IrohChat({
           )}
           {chat.error && (
             <div
-              className={`iroh-error${chat.errorCode === 'nansen_agent_daily_limit' ? ' is-limit' : ''}`}
+              className={`iroh-error${dailyCap ? ' is-limit' : ''}`}
               role="alert"
             >
               <p>{chat.error}</p>
-              {chat.errorCode === 'nansen_agent_daily_limit' ? (
+              {dailyCap ? (
                 <a
                   className="iroh-limit-cta"
                   href="https://nsn.ai/iroh0x"
@@ -309,14 +294,11 @@ export function IrohChat({
                   Keep exploring with Nansen ↗
                 </a>
               ) : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    chat.lastQuestion && session.send(chat.lastQuestion)
-                  }
-                >
-                  Retry question
-                </button>
+                nansen === 'configured' && (
+                  <button type="button" onClick={() => session.retry()}>
+                    Try again
+                  </button>
+                )
               )}
             </div>
           )}
@@ -349,11 +331,18 @@ export function IrohChat({
               send();
             }
           }}
-          placeholder="What is smart money doing with BTC this week?"
+          placeholder={
+            historyLoading
+              ? 'Loading your chats…'
+              : dailyCap
+                ? 'Daily limit reached. Come back tomorrow.'
+                : 'What is smart money doing with BTC this week?'
+          }
           rows={2}
           disabled={
             chat.isStreaming ||
             historyLoading ||
+            dailyCap ||
             (Boolean(user) && !chat.chatId)
           }
         />
@@ -377,6 +366,7 @@ export function IrohChat({
               disabled={
                 !draft.trim() ||
                 historyLoading ||
+                dailyCap ||
                 (Boolean(user) && !chat.chatId)
               }
             >

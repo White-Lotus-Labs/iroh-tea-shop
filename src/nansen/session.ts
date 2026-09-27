@@ -31,6 +31,8 @@ const initial = (): ChatSnapshot => ({
   lastQuestion: null,
 });
 
+const INTERRUPTED = 'The research connection was interrupted. You can retry.';
+
 class ChatError extends Error {
   constructor(
     message: string,
@@ -116,6 +118,20 @@ export class IrohSession {
     );
   }
 
+  /** Resend the last question in place of its failed turn, not below it. */
+  // ponytail: a signed-in chat can keep the first user row in SQLite until
+  // reload; the server rollback owns that half.
+  retry(): Promise<void> | false {
+    const question = this.state.lastQuestion;
+    // An error is set only after a failed send, so the failed turn is the last
+    // two messages: the question and its reply. No request is active then.
+    // Drop that turn only when no answer text arrived; partial text stays.
+    if (!this.state.error || !question) return false;
+    if (!this.state.messages.at(-1)?.content)
+      this.update({ messages: this.state.messages.slice(0, -2) });
+    return this.send(question);
+  }
+
   private async run(
     text: string,
     question: string,
@@ -155,10 +171,7 @@ export class IrohSession {
           typeof data.code === 'string' ? data.code : null,
         );
       }
-      if (!response.body)
-        throw new ChatError(
-          'The research connection was interrupted. You can retry.',
-        );
+      if (!response.body) throw new ChatError(INTERRUPTED);
       const reader = response.body.getReader();
       this.reader = reader;
       const decoder = new TextDecoder();
@@ -192,18 +205,12 @@ export class IrohSession {
       }
       if (!current()) return;
       parser.end(consume);
-      if (!finished)
-        throw new ChatError(
-          'The research connection was interrupted. You can retry.',
-        );
+      if (!finished) throw new ChatError(INTERRUPTED);
       this.updateMessage(assistantId, { status: 'complete' });
       this.update({ currentTool: null, isStreaming: false });
     } catch (error) {
       if (!current()) return;
-      const message =
-        error instanceof ChatError
-          ? error.message
-          : 'The research connection was interrupted. You can retry.';
+      const message = error instanceof ChatError ? error.message : INTERRUPTED;
       this.updateMessage(assistantId, { status: 'error' });
       this.update({
         error: message,

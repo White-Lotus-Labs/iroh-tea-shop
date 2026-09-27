@@ -73,7 +73,7 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   const parchment = page.getByTestId('leaderboard-parchment');
   await expect(parchment).toContainText('Nansen research is offline.');
   await expect(
-    page.getByRole('button', { name: 'Retry', exact: true }),
+    page.getByRole('button', { name: 'Try again', exact: true }),
   ).toBeVisible();
   await expect(parchment).not.toContainText('Top 10 Smart Wallets');
   await expect(parchment).not.toContainText('Illustrated ranks');

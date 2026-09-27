@@ -158,6 +158,8 @@ export default function TeaRoomShell({
   const openHint = useRef<HTMLButtonElement>(null);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
+  const focusHintOnArrive = useRef(false);
+  const returnThesis = useRef<ThesisId | null>(null);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
   useEffect(() => {
@@ -222,10 +224,18 @@ export default function TeaRoomShell({
         }
         return;
       }
+      // Back from asking Uncle: reopen the thesis the guest was reading.
+      if (next === 'Counter' && returnThesis.current) {
+        const back = returnThesis.current;
+        returnThesis.current = null;
+        setSelectedThesis(back);
+        deepLinkOpenOnce.current = true;
+      }
       setCameraAt(null);
       setShelfFocused(false);
       setStation(next);
       setPanelOpen(false);
+      setUncleDraft(null);
     },
     [station],
   );
@@ -264,7 +274,11 @@ export default function TeaRoomShell({
       const active = document.activeElement;
       const refocus =
         !active || active === document.body || Boolean(paper?.contains(active));
-      flushSync(() => setPanelOpen(false));
+      // The Uncle prefill is a one-shot hand-off; do not replay it on reopen.
+      flushSync(() => {
+        setPanelOpen(false);
+        setUncleDraft(null);
+      });
       if (refocus) openHint.current?.focus();
     };
     if (reduced || !paper || paper.classList.contains('is-rolling-up'))
@@ -303,13 +317,16 @@ export default function TeaRoomShell({
     if (!panelOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      if (station !== 'Counter' && station !== 'AvatarSeat') return;
+      // Keep a half-typed question to Uncle, wherever focus is.
+      const box =
+        panel.current?.querySelector<HTMLTextAreaElement>('#iroh-question');
+      if (box?.value) return;
       event.preventDefault();
       closePanel();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [panelOpen, station, closePanel]);
+  }, [panelOpen, closePanel]);
   const onOpenThesis = useCallback(
     (id: ThesisId, conviction: ConvictionLevel | null) => {
       setSelectedThesis(id);
@@ -324,24 +341,29 @@ export default function TeaRoomShell({
     setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
-  const openThesisDesk = useCallback(() => {
-    setSelectedThesis(null);
-    if (station === 'Counter') {
+  const pickThesis = useCallback(
+    (id: ThesisId) => {
+      // An explicit pick wins over the thesis saved before asking Uncle.
+      returnThesis.current = null;
+      setSelectedThesis(id);
+      if (station === 'Counter') return setPanelOpen(true);
+      navigate('Counter');
+      deepLinkOpenOnce.current = true;
+    },
+    [station, navigate],
+  );
+  const onTalkToUncle = useCallback(
+    (text: string) => {
+      returnThesis.current = selectedThesis;
+      setUncleDraft({ text, key: Date.now() });
+      setCameraAt(null);
+      setShelfFocused(false);
+      setStation('AvatarSeat');
       setPanelOpen(true);
       queueMicrotask(() => panel.current?.focus());
-      return;
-    }
-    navigate('Counter');
-    deepLinkOpenOnce.current = true;
-  }, [station, navigate]);
-  const onTalkToUncle = useCallback((text: string) => {
-    setUncleDraft({ text, key: Date.now() });
-    setCameraAt(null);
-    setShelfFocused(false);
-    setStation('AvatarSeat');
-    setPanelOpen(true);
-    queueMicrotask(() => panel.current?.focus());
-  }, []);
+    },
+    [selectedThesis],
+  );
   const active = STATIONS.find((s) => s.id === station)!;
   const isEntrance = station === 'Entrance';
   const mood: SceneMood = isEntrance ? 'waiting' : pour.mood;
@@ -357,9 +379,10 @@ export default function TeaRoomShell({
           ? 'focusing'
           : 'browse'
       : undefined;
+  // After a close the camera keeps its Shelf pose; this button reopens it.
   const canApproachShelf =
     station === 'Shelf' &&
-    !shelfFocused &&
+    !(shelfFocused && panelOpen) &&
     (cameraAt === 'Shelf' || sceneFailed);
   const cameraSettled = cameraAt === station || sceneFailed;
   const panelStation =
@@ -370,7 +393,22 @@ export default function TeaRoomShell({
         : null;
   const showOpenHint =
     Boolean(panelStation) && !panelOpen && !isEntrance && cameraSettled;
+  // After Enter, focus would drop to <body> as the waiting room unmounts.
+  useEffect(() => {
+    if (!showOpenHint || !focusHintOnArrive.current) return;
+    focusHintOnArrive.current = false;
+    const current = document.activeElement;
+    if (
+      !current ||
+      current === document.body ||
+      current.closest('.waiting-room')
+    )
+      openHint.current?.focus({ preventScroll: true });
+  }, [showOpenHint]);
   const teaser = STATION_TEASERS[station];
+  useEffect(() => {
+    if (shelfOpen) panel.current?.focus({ preventScroll: true });
+  }, [shelfOpen]);
   const showPanel =
     !isEntrance &&
     panelOpen &&
@@ -396,12 +434,13 @@ export default function TeaRoomShell({
         reduced={reduced}
         onEnter={() => {
           onReveal();
+          focusHintOnArrive.current = true;
           navigate('Counter');
         }}
       >
         <WaitingVersions reduced={reduced} />
       </WaitingRoom>
-      <header className="topbar">
+      <header className="topbar" inert={isEntrance || undefined}>
         <a href="#main-panel" className="brand">
           <span className="brand-mark" aria-hidden="true">
             ◒
@@ -415,7 +454,11 @@ export default function TeaRoomShell({
         <div className="topbar-right">
           <MusicToggle floating={isEntrance} />
           <div className="status-indicator">
-            <button className="status-icon" aria-label="Data source status">
+            <button
+              className="status-icon"
+              aria-label="Data source status"
+              aria-describedby="status-popup"
+            >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <circle
                   cx="8"
@@ -434,7 +477,7 @@ export default function TeaRoomShell({
               </svg>
             </button>
 
-            <div className="status-popup" role="tooltip">
+            <div className="status-popup" id="status-popup" role="tooltip">
               <div className="status-row">
                 <span className="status-label">Thesis</span>
                 <span
@@ -469,7 +512,7 @@ export default function TeaRoomShell({
         </div>
       </header>
 
-      <div className="room-layout">
+      <div className="room-layout" inert={isEntrance || undefined}>
         <section
           className="room-stage"
           aria-label="Guided three-dimensional tea room"
@@ -492,7 +535,7 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
-            onThesisPick={openThesisDesk}
+            onThesisPick={pickThesis}
             onNavigate={navigate}
             onStaged={onStaged}
             hostModel={revealed}
@@ -512,6 +555,7 @@ export default function TeaRoomShell({
 
           {canApproachShelf && (
             <button
+              ref={openHint}
               type="button"
               className="panel-open-hint shelf-approach"
               aria-label={STATION_TEASERS.Shelf!.cta!.join(' ')}
@@ -558,82 +602,49 @@ export default function TeaRoomShell({
           )}
         </section>
 
-        {isEntrance ? (
-          <div className="entrance-hero">
-            <div className="entrance-hero-content">
-              <span className="entrance-hero-mark" aria-hidden="true">
-                ◒
-              </span>
-              <div className="eyebrow">WELCOME · FOLLOW THE EVIDENCE</div>
-              <h1>
-                A market story
-                <br />
-                <em>is only the beginning.</em>
-              </h1>
-              <span className="entrance-hero-rule" aria-hidden="true" />
-              <p className="intro">
-                Choose a thesis. Check its live Nansen conviction signal. Then
-                open each asset to see the smart-money flows, holders, trades,
-                and positions behind it.
-              </p>
-              <button
-                type="button"
-                className="primary entrance-hero-cta"
-                onClick={() => navigate('Counter')}
-              >
-                <span>Open the Thesis Desk</span>
-                <span className="entrance-hero-cta-arrow" aria-hidden="true">
-                  →
-                </span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          showPanel && (
-            <section
-              key={station}
-              className="reading-panel"
-              id="main-panel"
-              ref={panel}
-              tabIndex={-1}
-              aria-label={active.label}
+        {showPanel && (
+          <section
+            key={station}
+            className="reading-panel"
+            id="main-panel"
+            ref={panel}
+            tabIndex={-1}
+            aria-label={active.label}
+          >
+            <button
+              type="button"
+              className="panel-close"
+              aria-label={`Close ${active.label} menu`}
+              onClick={closePanel}
             >
-              <button
-                type="button"
-                className="panel-close"
-                aria-label={`Close ${active.label} menu`}
-                onClick={closePanel}
-              >
-                <span aria-hidden="true">×</span>
-                <span className="sr-only">Close menu</span>
-              </button>
-              <span
-                className="scroll-ornament"
-                aria-hidden="true"
-                data-seal={teaser?.glyph ?? '茶'}
+              <span aria-hidden="true">×</span>
+              <span className="sr-only">Close menu</span>
+            </button>
+            <span
+              className="scroll-ornament"
+              aria-hidden="true"
+              data-seal={teaser?.glyph ?? '茶'}
+            />
+            {station === 'Counter' && (
+              <ThesisDeck
+                reduced={reduced}
+                initialThesis={initialThesis}
+                selectedThesis={selectedThesis}
+                onOpenThesis={onOpenThesis}
+                onCloseThesis={onCloseThesis}
+                onTalkToUncle={onTalkToUncle}
               />
-              {station === 'Counter' && (
-                <ThesisDeck
-                  nansen={nansen}
-                  reduced={reduced}
-                  initialThesis={initialThesis}
-                  selectedThesis={selectedThesis}
-                  onOpenThesis={onOpenThesis}
-                  onCloseThesis={onCloseThesis}
-                  onTalkToUncle={onTalkToUncle}
-                />
-              )}
-              {station === 'AvatarSeat' && (
-                <IrohChat
-                  session={irohSession}
-                  user={user}
-                  nansen={nansen}
-                  draft={uncleDraft}
-                />
-              )}
-              {shelfOpen && <SmartWalletShelf nansen={nansen} />}
-            </section>
-          )
+            )}
+            {station === 'AvatarSeat' && (
+              <IrohChat
+                session={irohSession}
+                user={user}
+                nansen={nansen}
+                draft={uncleDraft}
+              />
+            )}
+            {shelfOpen && <SmartWalletShelf nansen={nansen} />}
+          </section>
         )}
       </div>
 

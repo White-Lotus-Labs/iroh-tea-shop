@@ -20,16 +20,18 @@ You need Node.js 22.12 or newer, npm, and a current browser.
 
 ```sh
 npm ci
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Put your Nansen key in `.env.local`:
+Put your Nansen key in `.env`:
 
 ```sh
 NANSEN_API_KEY=your-key
 ```
 
-The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env.local`.
+The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env`.
+
+`scripts/tripo.mjs` reads `TRIPO_API_KEY` from `.env.local`, not `.env`.
 
 ```sh
 npm run db:migrate
@@ -38,9 +40,9 @@ npm run dev
 
 Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101`.
 
-`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL` in `.env` (not `.env.local`, because the Prisma CLI reads only `.env`). Copy the line from `.env.example`: `file:./dev.db`, which Prisma stores as `prisma/dev.db` (git ignores it). Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
+`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL` in `.env` (`file:./dev.db`, which Prisma stores as `prisma/dev.db`; git ignores it). Keep it in `.env`, because the Prisma CLI does not read `.env.local`. Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
 
-Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env.local`. The default is 1.
+Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env`. The default is 1.
 
 When the server starts, it fills the database in the background, then does it again about every hour. The first minute after boot, the thesis desk and the shelf can say the readings are still being saved. That is the fill running. It is not a visitor waiting on a live call.
 

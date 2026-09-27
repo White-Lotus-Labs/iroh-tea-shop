@@ -11,7 +11,6 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { formatMoney } from '../leaderboard/model';
-import type { NansenAvailability } from '../nansen/availability';
 import { THESES } from '../thesis/deck';
 import type {
   ConvictionLevel,
@@ -41,7 +40,6 @@ import { ThesisLeaf } from './ThesisLeaf';
 import './styles/deck.css';
 
 export interface ThesisDeckProps {
-  nansen: NansenAvailability;
   reduced: boolean;
   initialThesis: ThesisId | null;
   /** A thesis picked outside the panel (a card on the 3D counter). */
@@ -96,7 +94,6 @@ function summaryFor(deck: DeckState, id: ThesisId): ThesisSummary | null {
  * panel with one thesis. A view transition carries each book into its tab.
  */
 export function ThesisDeck({
-  nansen,
   reduced,
   initialThesis,
   selectedThesis = null,
@@ -119,11 +116,9 @@ export function ThesisDeck({
   const reported = useRef<ThesisId | null>(null);
   const lastPick = useRef(selectedThesis);
 
+  // Saved readings are served without an API key, so always ask the server.
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (nansen === 'unavailable') {
-      setDeck({ status: 'offline', reason: 'Nansen is not configured.' });
-      return;
-    }
     const controller = new AbortController();
     setDeck({ status: 'loading' });
     fetch('/api/theses', { cache: 'no-store', signal: controller.signal })
@@ -153,10 +148,10 @@ export function ThesisDeck({
           });
       });
     return () => controller.abort();
-  }, [nansen]);
+  }, [attempt]);
 
   useEffect(() => {
-    setFollowed(readFollowed(window.localStorage));
+    setFollowed(readFollowed());
     const tick = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(tick);
   }, []);
@@ -232,7 +227,7 @@ export function ThesisDeck({
   }, [readingId, close]);
 
   const onToggleFollow = useCallback((id: ThesisId) => {
-    setFollowed(toggleFollowed(window.localStorage, id));
+    setFollowed(toggleFollowed(id));
   }, []);
 
   // On phones the books sit in a snap carousel; start on the middle one.
@@ -257,7 +252,11 @@ export function ThesisDeck({
           <h1 className="deck-title">
             Thesis <em>Desk</em>
           </h1>
-          <DeckStatus deck={deck} now={now} />
+          <DeckStatus
+            deck={deck}
+            now={now}
+            onRetry={() => setAttempt((a) => a + 1)}
+          />
         </div>
         <button
           type="button"
@@ -319,17 +318,28 @@ export function ThesisDeck({
   );
 }
 
-function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
+function DeckStatus({
+  deck,
+  now,
+  onRetry,
+}: {
+  deck: DeckState;
+  now: number;
+  onRetry: () => void;
+}) {
   if (deck.status === 'loading')
     return (
       <p className="deck-status" data-state="loading" role="status">
-        Reading saved Nansen data…
+        Loading saved Nansen readings…
       </p>
     );
   if (deck.status === 'offline')
     return (
       <p className="deck-status" data-state="offline" role="status">
-        Offline · {deck.reason}
+        {deck.reason}{' '}
+        <button type="button" className="leaf-retry" onClick={onRetry}>
+          Try again
+        </button>
       </p>
     );
   return (
@@ -453,6 +463,8 @@ function ThesisBook({
               <img
                 className="book-art"
                 src={thesis.image}
+                srcSet={`${thesis.image.replace(/\.webp$/, '-360w.webp')} 360w, ${thesis.image.replace(/\.webp$/, '-600w.webp')} 600w, ${thesis.image} 900w`}
+                sizes="(max-width: 760px) 236px, 300px"
                 alt=""
                 width={900}
                 height={1200}
@@ -544,7 +556,7 @@ function Meter({
         <div className="meter-copy" role="status">
           <span className="plaque-shimmer" />
           <span className="plaque-shimmer plaque-shimmer--short" />
-          <span className="sr-only">Reading conviction from Nansen…</span>
+          <span className="sr-only">Loading saved Nansen readings…</span>
         </div>
       </div>
     );
@@ -701,6 +713,8 @@ function ThesisReading({
         >
           <img
             src={thesis.image}
+            srcSet={`${thesis.image.replace(/\.webp$/, '-360w.webp')} 360w, ${thesis.image.replace(/\.webp$/, '-600w.webp')} 600w, ${thesis.image} 900w`}
+            sizes="(max-width: 760px) 190px, 280px"
             alt={`${thesis.spirit}, the spirit of this thesis`}
             width={900}
             height={1200}

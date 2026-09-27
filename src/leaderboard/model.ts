@@ -1,3 +1,5 @@
+import type { SnapshotMeta } from '../nansen/snapshot-store';
+
 export interface WalletPosition {
   coin: string;
   side: 'long' | 'short';
@@ -29,14 +31,9 @@ export interface SmartWalletLeaderboardEntry {
   entity?: string;
 }
 
-export interface SmartWalletLeaderboardSnapshot {
+export type SmartWalletLeaderboardSnapshot = {
   entries: SmartWalletLeaderboardEntry[];
-  fetchedAt: string;
-  expiresAt: string;
-  source: 'nansen';
-  stale: boolean;
-  refreshError?: string;
-}
+} & SnapshotMeta;
 
 export function shortenAddress(address: string): string {
   return address.length > 13

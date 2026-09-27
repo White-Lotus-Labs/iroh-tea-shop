@@ -266,6 +266,9 @@ export function ScenePolish({ covered }: { covered: boolean }) {
   const capped = lightExperience();
   const ceiling = capped ? 2 : LADDER.length - 1;
   const rung = LADDER[tier] ?? LADDER[0];
+  // drei's `flipflops` counts every incline, so a steady 60 fps would hit its
+  // fallback in ~10 s. Stop climbing after the first decline instead.
+  const declined = useRef(false);
   useEffect(() => {
     setDpr(Math.min(window.devicePixelRatio || 1, rung.dpr));
   }, [rung, setDpr]);
@@ -273,13 +276,16 @@ export function ScenePolish({ covered }: { covered: boolean }) {
     <>
       {measuring && (
         <PerformanceMonitor
-          flipflops={3}
-          onDecline={() => setTier((current) => Math.max(0, current - 1))}
+          onDecline={() => {
+            declined.current = true;
+            setTier((current) => Math.max(0, current - 1));
+          }}
           // Skipped draws inflate the measured fps, so no climbing while covered.
           onIncline={() =>
-            covered || setTier((current) => Math.min(ceiling, current + 1))
+            covered ||
+            declined.current ||
+            setTier((current) => Math.min(ceiling, current + 1))
           }
-          onFallback={() => setTier(0)}
         />
       )}
       <Composer

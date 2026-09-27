@@ -1,6 +1,8 @@
 // Frozen contract shared by the deck config, the /api/theses routes, and the deck UI.
 // Change it only through the orchestrator.
 
+import type { SnapshotMeta } from '../nansen/snapshot-store';
+
 export type ThesisId = 'robinhood' | 'bullrun' | 'ai';
 
 export type NansenChain =
@@ -64,14 +66,7 @@ export interface ThesisSummary {
   tickers: TickerSignal[];
 }
 
-export interface DeckSnapshot {
-  theses: ThesisSummary[];
-  fetchedAt: string;
-  expiresAt: string;
-  source: 'nansen';
-  stale: boolean;
-  refreshError?: string;
-}
+export type DeckSnapshot = { theses: ThesisSummary[] } & SnapshotMeta;
 
 export type Section<T> =
   | { status: 'ok'; data: T }

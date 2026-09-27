@@ -96,6 +96,8 @@ describe('Nansen call plan', () => {
     const readme = readFileSync('README.md', 'utf8');
     expect(readme).toContain('103 Nansen requests');
     expect(readme).toContain('agent/fast');
+    // The Prisma CLI reads DATABASE_URL only from .env.
+    expect(readme).toMatch(/cp \.env\.example \.env\r?\n/);
   });
 });
 
@@ -140,9 +142,8 @@ describe('saved Nansen readings', () => {
         '../src/nansen/snapshot-store'
       );
       const { DECK_CACHE_KEY } = await import('../src/thesis/nansen');
-      const { LEADERBOARD_CACHE_KEY } = await import(
-        '../src/leaderboard/snapshot'
-      );
+      const { DEFAULT_LEADERBOARD_CACHE_KEY: LEADERBOARD_CACHE_KEY } =
+        await import('../src/leaderboard/boards');
       const now = Date.parse('2026-09-27T12:00:00Z');
       const report = await refreshSavedNansenData(
         temp.db,
@@ -208,9 +209,8 @@ describe('saved Nansen readings', () => {
       const { readNansenSnapshot } = await import(
         '../src/nansen/snapshot-store'
       );
-      const { LEADERBOARD_CACHE_KEY } = await import(
-        '../src/leaderboard/snapshot'
-      );
+      const { DEFAULT_LEADERBOARD_CACHE_KEY: LEADERBOARD_CACHE_KEY } =
+        await import('../src/leaderboard/boards');
       const now = Date.parse('2026-09-27T12:00:00Z');
       await refreshSavedNansenData(temp.db, 'key', now);
       failBoard = true;
@@ -265,6 +265,67 @@ describe('saved Nansen readings', () => {
         expect(board?.entries).toHaveLength(10);
         expect(board?.fetchedAt).toBe('2026-09-27T12:00:00.000Z');
       }
+    } finally {
+      await temp.close();
+    }
+  });
+
+  test('keeps a good ticker page when a later refresh gets only errors', async () => {
+    const temp = openTempDb();
+    let fail: (path: string) => boolean = () => false;
+    mockNansen((path) => {
+      if (fail(path)) throw new Error('HTTP:402');
+      if (path === 'tgm/position-intelligence') return positionOk;
+      if (path === 'tgm/flow-intelligence') return flowOk;
+      return { data: [] };
+    });
+    try {
+      const { refreshSavedNansenData } = await import('../src/nansen/refresh');
+      const { readNansenSnapshot } = await import(
+        '../src/nansen/snapshot-store'
+      );
+      const { DECK_CACHE_KEY, detailCacheKey } = await import(
+        '../src/thesis/nansen'
+      );
+      const now = Date.parse('2026-09-27T12:00:00Z');
+      await refreshSavedNansenData(temp.db, 'key', now);
+      fail = () => true;
+      const later = now + NANSEN_REFRESH_MS;
+      const again = await refreshSavedNansenData(temp.db, 'key', later);
+      const key = detailCacheKey('robinhood', 'UNI');
+      expect(again.kept).toContain(key);
+      const detail = await readNansenSnapshot<{ perps: { status: string } }>(
+        temp.db,
+        key,
+        later,
+      );
+      expect(detail?.perps.status).toBe('ok');
+      expect(detail?.stale).toBe(true);
+      // A total outage keeps the saved rows, however old they are.
+      const much = now + 2 * NANSEN_REFRESH_MS;
+      const third = await refreshSavedNansenData(temp.db, 'key', much);
+      expect(third.kept).toEqual(expect.arrayContaining([key, DECK_CACHE_KEY]));
+      // A lasting partial failure must not freeze the page on one old reading.
+      fail = (path) => path === 'tgm/holders';
+      const fourth = await refreshSavedNansenData(temp.db, 'key', much);
+      expect(fourth.saved).toContain(key);
+    } finally {
+      await temp.close();
+    }
+  });
+
+  test('a reading stays fresh while the next hourly refresh runs', async () => {
+    const temp = openTempDb();
+    try {
+      const { readNansenSnapshot, writeNansenSnapshot } = await import(
+        '../src/nansen/snapshot-store'
+      );
+      const t0 = Date.parse('2026-09-27T12:00:00Z');
+      await writeNansenSnapshot(temp.db, 'k', { entries: [] }, t0);
+      const during = t0 + NANSEN_REFRESH_MS + 60_000;
+      const read = await readNansenSnapshot(temp.db, 'k', during);
+      expect(read?.stale).toBe(false);
+      expect(Date.parse(read!.expiresAt)).toBeGreaterThan(during);
     } finally {
       await temp.close();
     }

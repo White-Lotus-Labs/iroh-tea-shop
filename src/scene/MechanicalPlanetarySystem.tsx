@@ -736,7 +736,6 @@ export function MechanicalPlanetarySystem({
             </mesh>
           </group>
         </group>
-
       </group>
     </group>
   );
