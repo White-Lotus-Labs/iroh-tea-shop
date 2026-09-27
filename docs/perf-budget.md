@@ -109,7 +109,7 @@ The light path is used when any of these is true:
 
 On the light path the sketchbook still riffles and still turns by drag, keys, and the index:
 
-- the curl uses 16 strips instead of 18. Each bending face is a JPEG snapshot of the real page (type and pictures), not a title or cover placeholder and not 16 live DOM clones
+- the curl uses 16 strips instead of 18. Each bending face is a snapshot of the real page that the browser itself draws (SVG `foreignObject`, with the page's CSS, fonts, and pictures inlined), not a title or cover placeholder and not 16 live DOM clones. Snapshots bake one page per idle slot after the book opens
 - the riffle is shorter, and a drag or button turn uses a short wall-clock tween (about 220 ms) so a missed frame does not leave the spring running in slow motion
 - the pages under the leaf are not blurred
 - the cast shadow and the petals in front of the book drop their blur
@@ -123,3 +123,14 @@ On the light path the thesis deck still opens, switches, and closes:
 - the 3D counter cards write their spring once when they are already at rest, instead of every frame
 
 A capable machine keeps the 18-strip curl, the riffle blur, the view transitions, and the full petal counts.
+
+### Page turn at 4× CPU
+
+Production `next start` on the isolated sketchbook, headless Chromium, `Emulation.setCPUThrottlingRate` 4, on battery power (the browser caps frames at 33.3 ms, even on a blank page). Two runs each.
+
+| | PR #21 (canvas walker) | Browser-drawn snapshots |
+| --- | --- | --- |
+| Riffle p90 frame, full / light | 33–67 ms / 67–100 ms | 33.4 ms / 33.4 ms |
+| Riffle long tasks, full / light | 2–3 (50–61 ms) / 3–5 (50–79 ms) | 0 / 0 |
+| Drag long tasks | 0 | 0 |
+| Bake tasks over 50 ms | not split out | 1 (78 ms, SVG layout of the text-heaviest page, in idle time) |
