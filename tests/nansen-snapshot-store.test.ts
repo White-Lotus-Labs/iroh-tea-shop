@@ -194,6 +194,23 @@ describe('saved Nansen readings', () => {
     }
   });
 
+  test('a reading stays fresh while the next hourly refresh runs', async () => {
+    const temp = openTempDb();
+    try {
+      const { readNansenSnapshot, writeNansenSnapshot } = await import(
+        '../src/nansen/snapshot-store'
+      );
+      const t0 = Date.parse('2026-09-27T12:00:00Z');
+      await writeNansenSnapshot(temp.db, 'k', { entries: [] }, t0);
+      const during = t0 + NANSEN_REFRESH_MS + 60_000;
+      const read = await readNansenSnapshot(temp.db, 'k', during);
+      expect(read?.stale).toBe(false);
+      expect(Date.parse(read!.expiresAt)).toBeGreaterThan(during);
+    } finally {
+      await temp.close();
+    }
+  });
+
   test('does not call Nansen when the key is missing', async () => {
     const temp = openTempDb();
     const upstream = vi.fn();
