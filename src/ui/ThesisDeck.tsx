@@ -11,7 +11,6 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { formatMoney } from '../leaderboard/model';
-import type { NansenAvailability } from '../nansen/availability';
 import { THESES } from '../thesis/deck';
 import type {
   ConvictionLevel,
@@ -41,7 +40,6 @@ import { ThesisLeaf } from './ThesisLeaf';
 import './styles/deck.css';
 
 export interface ThesisDeckProps {
-  nansen: NansenAvailability;
   reduced: boolean;
   initialThesis: ThesisId | null;
   /** A thesis picked outside the panel (a card on the 3D counter). */
@@ -96,7 +94,6 @@ function summaryFor(deck: DeckState, id: ThesisId): ThesisSummary | null {
  * panel with one thesis. A view transition carries each book into its tab.
  */
 export function ThesisDeck({
-  nansen,
   reduced,
   initialThesis,
   selectedThesis = null,
@@ -151,7 +148,7 @@ export function ThesisDeck({
           });
       });
     return () => controller.abort();
-  }, [nansen, attempt]);
+  }, [attempt]);
 
   useEffect(() => {
     setFollowed(readFollowed(window.localStorage));

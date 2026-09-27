@@ -227,11 +227,10 @@ export default function TeaRoomShell({
         return;
       }
       // Back from asking Uncle: reopen the thesis the guest was reading.
-      // A thesis picked on the way (a counter card) still wins.
       if (next === 'Counter' && returnThesis.current) {
         const back = returnThesis.current;
         returnThesis.current = null;
-        setSelectedThesis((current) => current ?? back);
+        setSelectedThesis(back);
         deepLinkOpenOnce.current = true;
       }
       setCameraAt(null);
@@ -315,9 +314,10 @@ export default function TeaRoomShell({
     if (!panelOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      // Keep a half-typed question to Uncle.
-      const target = event.target as HTMLTextAreaElement | null;
-      if (target?.tagName === 'TEXTAREA' && target.value) return;
+      // Keep a half-typed question to Uncle, wherever focus is.
+      const box =
+        panel.current?.querySelector<HTMLTextAreaElement>('#iroh-question');
+      if (box?.value) return;
       event.preventDefault();
       closePanel();
     };
@@ -339,6 +339,8 @@ export default function TeaRoomShell({
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
   const openThesisDesk = useCallback(() => {
+    // An explicit desk open wins over the thesis saved before asking Uncle.
+    returnThesis.current = null;
     setSelectedThesis(null);
     if (station === 'Counter') {
       setPanelOpen(true);
@@ -622,7 +624,6 @@ export default function TeaRoomShell({
             />
             {station === 'Counter' && (
               <ThesisDeck
-                nansen={nansen}
                 reduced={reduced}
                 initialThesis={initialThesis}
                 selectedThesis={selectedThesis}

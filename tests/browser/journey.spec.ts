@@ -198,6 +198,10 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   await box.fill('Is SOL');
   await box.press('Escape');
   await expect(box).toHaveValue('Is SOL');
+  // Focus off the composer still keeps the draft.
+  await box.blur();
+  await page.keyboard.press('Escape');
+  await expect(box).toHaveValue('Is SOL');
   await box.fill('');
   await box.press('Escape');
   await expect(box).toHaveCount(0);
