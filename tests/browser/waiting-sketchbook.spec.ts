@@ -141,7 +141,7 @@ test('the sketchbook starts open, riffles forward once, and lands on the first s
   await context.close();
 });
 
-test('a light machine riffles fewer, plainer strips and skips the page blur', async ({
+test('a light machine riffles snapshot strips and skips the page blur', async ({
   browser,
 }) => {
   test.setTimeout(60_000);
@@ -174,8 +174,27 @@ test('a light machine riffles fewer, plainer strips and skips the page blur', as
   await expect(book).toHaveAttribute('data-riffle', /on|fast/, {
     timeout: 10_000,
   });
-  await expect(page.locator('.curl .strip')).toHaveCount(8);
-  await expect(page.locator('.curl .is-plain').first()).toBeAttached();
+  await expect(page.locator('.curl[data-shot="on"]').first()).toBeAttached();
+  await expect(page.locator('.curl .is-plain')).toHaveCount(0);
+  const curl = await page.evaluate(() => {
+    const strips = document.querySelectorAll('.curl .strip').length;
+    const faces = [...document.querySelectorAll('.curl .face-page.is-shot')].map(
+      (el) => {
+        const style = getComputedStyle(el);
+        return {
+          position: style.backgroundPosition,
+          jpeg: style.backgroundImage.startsWith('url("data:image/jpeg'),
+        };
+      },
+    );
+    return { strips, faces };
+  });
+  expect(curl.strips).toBe(16);
+  expect(curl.faces.length).toBeGreaterThanOrEqual(16);
+  expect(curl.faces.every((face) => face.jpeg)).toBe(true);
+  expect(
+    curl.faces.every((face) => /^0(px|%) 0(px|%)$/.test(face.position)),
+  ).toBe(true);
   const filter = await page
     .locator('.sb-half .sb-page-inner')
     .first()
