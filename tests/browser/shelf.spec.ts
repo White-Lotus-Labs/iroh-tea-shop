@@ -174,7 +174,7 @@ test('the Shelf stays in the room until opened, then reveals ranked wallets with
   );
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
-  ).toHaveCount(9);
+  ).toHaveCount(10);
 });
 
 test('clicking the Shelf in the room starts the focus journey', async ({
@@ -261,9 +261,9 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await expect(
     page.getByText('Fund and Smart Trader wallets · last 30 days').first(),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'Meme Traders' }).click();
+  await page.getByRole('tab', { name: 'Whales' }).click();
   await expect(
-    page.getByText('Token Millionaire wallets · last 30 days').first(),
+    page.getByText('Accounts worth $10M or more · last 30 days').first(),
   ).toBeVisible();
   await page.getByRole('tab', { name: 'Perps Traders' }).click();
   await page.getByLabel('Rank by').selectOption('roi');
@@ -278,23 +278,15 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await expect(page.getByTestId('top-wallet')).toContainText('Azure Dragon', {
     timeout: 15_000,
   });
-  const spiritWindow = page.getByTestId('shelf-spirit-window');
-  await expect(spiritWindow).toContainText('Azure Dragon');
-  await page.locator('[data-rank="2"]').click();
-  await expect(spiritWindow).toContainText('Vermilion Phoenix');
-  await expect(page.locator('[data-rank="2"]')).toHaveAttribute(
+  await expect(page.getByTestId('top-wallet')).toContainText('+27.4%');
+  await expect(page.locator('[data-rank="1"]')).toHaveAttribute(
     'data-selected',
     'true',
   );
-  await expect(page.locator('[data-rank="2"]')).toContainText(
-    'Vermilion Phoenix',
-  );
   await expect(page.locator('[data-rank="10"]')).toContainText('Jade Rabbit');
-  await expect(page.getByTestId('top-wallet')).toContainText('+27.4%');
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
-  ).toHaveCount(9);
-  await expect(page.getByTestId('rank-grid')).toHaveAttribute('start', '2');
+  ).toHaveCount(10);
   const second = page.locator('[data-rank="2"]');
   await expect(second.locator('.wallet-roi')).toHaveClass(/wallet-roi-down/);
   await expect(second.locator('.wallet-bar > span')).toHaveAttribute(
@@ -309,6 +301,19 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
     'href',
     `https://app.nansen.ai/profiler?address=${address(2)}&chain=hyperliquid`,
   );
+  // Opening a row moves the full card to that spirit and folds rank 1 back into a row.
+  await second.getByRole('button', { expanded: false }).click();
+  await expect(second).toHaveAttribute('data-selected', 'true');
+  await expect(page.getByTestId('top-wallet')).toContainText(
+    'Vermilion Phoenix',
+  );
+  await expect(page.getByTestId('top-wallet')).toContainText(
+    '#2 by 30-day PnL',
+  );
+  await expect(page.getByTestId('top-wallet')).toBeFocused();
+  await expect(
+    page.locator('[data-rank="1"]').getByRole('button', { expanded: false }),
+  ).toBeVisible();
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await second
     .getByRole('button', { name: `Copy wallet address ${address(2)}` })

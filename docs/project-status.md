@@ -20,7 +20,7 @@ Each book shows a conviction seal. The seal is a summary of smart-money numbers,
 
 **Host.** Uncle answers in a chat. He uses Nansen's Research Agent. This part is live. Sending a message calls Nansen at that moment. Guests keep the thread until they reload. If you sign in, your chats are kept in the database and you can reopen them.
 
-**Shelf.** Ten spirits stand in for the wallets on the saved Hyperliquid leaderboard. The scroll has three boards: Perps Traders, Smart Wallets, and Meme Traders. The default sort is 30-day PnL. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. Clicking through opens that address in Nansen's profiler.
+**Shelf.** Ten spirits stand in for the wallets on the saved Hyperliquid leaderboard. The scroll has three boards: Perps Traders, Smart Wallets, and Whales (accounts worth $10M or more). Nansen has no meme-trader label for Hyperliquid perps, so Whales replaced the Meme board. The default sort is 30-day PnL. Rank 1 is open by default. Clicking another rank opens it in place with realized and unrealized PnL, 30-day volume, trade count, and its three largest open positions. That detail comes back with the same leaderboard call, so it adds no Nansen requests. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. Clicking through opens that address in Nansen's profiler.
 
 **Observatorium.** A brass orrery you can wind. It is not connected to market data.
 
