@@ -4,11 +4,11 @@ import { registerBrowserAccount } from './auth-helper';
 import { beginVisit } from './room-helpers';
 
 // Begin lands on the Counter; re-clicking its dock button would reset the
-// camera and hide the Open Counter hint, so open the panel directly.
+// camera and hide the Open the Thesis Desk hint, so open the panel directly.
 async function openCounter(page: Page) {
   await page.goto('/');
   await beginVisit(page);
-  const hint = page.getByRole('button', { name: 'Open Counter' });
+  const hint = page.getByRole('button', { name: 'Open the Thesis Desk' });
   await expect(hint).toBeVisible({ timeout: 45000 });
   // The hint idles with a gentle motion, so skip the stability wait.
   await hint.click({ force: true });
@@ -49,28 +49,28 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   await expect(books).toHaveCount(3);
   await expect(
     page.getByRole('button', {
-      name: /Open Crypto Bullrun.*Conviction Strong, 4 of 4 accumulating/,
+      name: /Open The Crypto Bull Market.*Strong conviction, 4 of 4 accumulating/,
     }),
   ).toBeVisible();
-  await expect(page.locator('.deck-status')).toContainText('Live · Nansen');
+  await expect(page.locator('.deck-status')).toContainText('Live Nansen data');
 
   const aiBook = page.getByRole('button', {
-    name: /Open AI taking over the world/,
+    name: /Open AI Taking Over the World/,
   });
   await aiBook.click();
-  const scroll = page.getByRole('dialog', { name: 'AI taking over the world' });
+  const scroll = page.getByRole('dialog', { name: 'AI Taking Over the World' });
   await expect(scroll).toBeVisible();
   await expect(scroll).toContainText(
-    'Nansen smart money is accumulating 1 of 4 leaves this week (3 with data).',
+    'Smart money is accumulating 1 of 4 assets (3 with data).',
   );
 
   const nvda = scroll.getByRole('button', { name: /NVDA/ });
   await expect(nvda).toHaveAttribute('aria-expanded', 'false');
   await nvda.click();
   await expect(nvda).toHaveAttribute('aria-expanded', 'true');
-  await expect(scroll.getByText('Smart money moves')).toBeVisible();
+  await expect(scroll.getByText('Who is buying and selling')).toBeVisible();
   await expect(scroll.getByText('4,812')).toBeVisible();
-  await expect(scroll.getByText('Perps positioning')).toHaveCount(0);
+  await expect(scroll.getByText('Perpetuals positioning')).toHaveCount(0);
 
   await page.keyboard.press('Escape');
   await expect(scroll).toHaveCount(0);
@@ -81,18 +81,18 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
 
   await aiBook.click();
   await page
-    .getByRole('dialog', { name: 'AI taking over the world' })
-    .getByRole('button', { name: 'Talk to Uncle' })
+    .getByRole('dialog', { name: 'AI Taking Over the World' })
+    .getByRole('button', { name: 'Ask Uncle about this thesis' })
     .click();
   await expect(page.locator('main')).toHaveAttribute(
     'data-station',
     'AvatarSeat',
   );
   const composer = page.getByRole('textbox', {
-    name: 'Ask Uncle a research question',
+    name: 'Ask an onchain research question',
   });
   await expect(composer).toHaveValue(
-    'Uncle, Nansen rates “AI taking over the world” weak. What could disprove it?',
+    'Uncle, conviction on “AI Taking Over the World” is weak. What could disprove it?',
   );
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(errors).toEqual([]);
@@ -111,9 +111,11 @@ test('deck shows an honest offline state when Nansen answers 503', async ({
   await expect(
     page.locator('.plaque-level', { hasText: 'Offline' }),
   ).toHaveCount(3);
-  await page.getByRole('button', { name: /Open Crypto Bullrun/ }).click();
+  await page
+    .getByRole('button', { name: /Open The Crypto Bull Market/ })
+    .click();
   await expect(
-    page.getByRole('dialog', { name: 'Crypto Bullrun' }),
+    page.getByRole('dialog', { name: 'The Crypto Bull Market' }),
   ).toContainText('Conviction offline');
 });
 
@@ -127,22 +129,26 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await beginVisit(page);
-  await expect(page.getByRole('button', { name: 'Open Counter' })).toBeVisible({
+  await expect(
+    page.getByRole('button', { name: 'Open the Thesis Desk' }),
+  ).toBeVisible({
     timeout: 45000,
   });
 
   // The ember on the 3D card is the keyboard and pointer target for the pick.
-  const card = page.getByRole('button', { name: 'Read Crypto Bullrun' });
+  const card = page.getByRole('button', {
+    name: 'Read The Crypto Bull Market',
+  });
   await expect(card).toBeVisible();
   await card.click({ force: true });
 
   const panel = page.locator('.reading-panel');
   const main = page.locator('main');
   await expect(
-    page.getByRole('dialog', { name: 'Crypto Bullrun' }),
+    page.getByRole('dialog', { name: 'The Crypto Bull Market' }),
   ).toBeVisible();
   await expect(
-    page.getByRole('button', { name: /Open Crypto Bullrun/ }),
+    page.getByRole('button', { name: /Open The Crypto Bull Market/ }),
   ).toHaveAttribute('aria-current', 'true');
   await expect(main).toHaveAttribute('data-mood', 'supported');
   await expect(page.getByRole('button', { name: /^Read / })).toHaveCount(0);
@@ -151,11 +157,11 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
     el.dataset.probe = 'one-window';
   });
   await page
-    .getByRole('button', { name: /Open AI taking over the world/ })
+    .getByRole('button', { name: /Open AI Taking Over the World/ })
     .click();
   await expect(page.getByRole('dialog')).toHaveCount(1);
   await expect(
-    page.getByRole('dialog', { name: 'AI taking over the world' }),
+    page.getByRole('dialog', { name: 'AI Taking Over the World' }),
   ).toBeVisible();
   await expect(panel).toHaveCount(1);
   await expect(panel).toHaveAttribute('data-probe', 'one-window');
@@ -180,11 +186,11 @@ test('full motion reading switches theses in place and returns focus to the book
   const robinhood = page.getByRole('button', { name: /Open Robinhood Chain/ });
   await robinhood.click();
   const scroll = page.getByRole('dialog', {
-    name: 'Robinhood Chain tokenization',
+    name: 'Robinhood Chain Tokenization',
   });
   await expect(scroll).toBeVisible();
   await expect(
-    scroll.getByRole('heading', { name: 'Robinhood Chain tokenization' }),
+    scroll.getByRole('heading', { name: 'Robinhood Chain Tokenization' }),
   ).toBeFocused();
   await scroll.getByRole('button', { name: 'Follow the thesis' }).click();
   await expect(
@@ -194,11 +200,11 @@ test('full motion reading switches theses in place and returns focus to the book
   // Each switch runs inside a view transition, which waits for a rendered
   // frame; software WebGL under a full suite can take seconds per frame.
   const ai = page.getByRole('button', {
-    name: /Open AI taking over the world/,
+    name: /Open AI Taking Over the World/,
   });
   await ai.click();
   await expect(
-    page.getByRole('dialog', { name: 'AI taking over the world' }),
+    page.getByRole('dialog', { name: 'AI Taking Over the World' }),
   ).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole('dialog')).toHaveCount(1);
   await expect(ai).toBeFocused();

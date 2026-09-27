@@ -87,7 +87,7 @@ function WalletActions({
         type="button"
         className="wallet-action"
         aria-label={`Copy wallet address ${address}`}
-        title="Copy address"
+        title="Copy wallet address"
         onClick={() => {
           if (!navigator.clipboard) return setCopy('failed');
           navigator.clipboard.writeText(address).then(
@@ -106,10 +106,10 @@ function WalletActions({
         href={nansenProfilerUrl(address)}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Open wallet in Nansen (new tab)"
-        title="Open in Nansen"
+        aria-label="Research this wallet in Nansen (new tab)"
+        title="Research this wallet in Nansen"
       >
-        {labelled && <span aria-hidden="true">Open in Nansen</span>}
+        {labelled && <span aria-hidden="true">Research in Nansen</span>}
         <svg viewBox="0 0 16 16" aria-hidden="true">
           <path d="M9 2.5h4.5V7M13.5 2.5 7 9M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" />
         </svg>
@@ -138,12 +138,12 @@ function Leader({ entry }: { entry: SmartWalletLeaderboardEntry }) {
         </span>
       </div>
       <div className="wallet-hero-body">
-        <p className="wallet-hero-eyebrow">First spirit · 30-day leader</p>
+        <p className="wallet-hero-eyebrow">#1 by 30-day PnL</p>
         <h2>{name}</h2>
         {label && <p className="wallet-label">{label}</p>}
         <dl className="wallet-hero-metrics">
           <div>
-            <dt>PnL</dt>
+            <dt>30-day PnL</dt>
             <dd className={`wallet-tone-${tone(entry.pnl)}`}>
               {formatMoney(entry.pnl, true)}
             </dd>
@@ -247,10 +247,11 @@ function FreshnessPopover({
         </button>
       </div>
       <p>
-        Rankings are powered by Nansen&apos;s 30-day Hyperliquid perpetuals
-        leaderboard (Smart HL Perps Traders).
+        Rankings use Nansen&apos;s 30-day Hyperliquid perpetuals leaderboard for
+        Smart HL Perps Traders. Illustrated names are visual aliases—not claims
+        about wallet owners.
       </p>
-      <p>Server snapshot refreshes automatically every 30 minutes.</p>
+      <p>Server snapshot refreshes every 30 minutes.</p>
       <p className="leaderboard-freshness-age">
         {snapshot
           ? `Snapshot updated ${age === 0 ? 'just now' : `${age} min ago`}.`
@@ -359,10 +360,14 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             <>
               <p className="leaderboard-eyebrow">{SHELF_CAST_NAME}</p>
               <h1>
-                Top 10 <em>Hyperliquid</em> Leaderboard
+                Top Hyperliquid Traders by <em>30-Day PnL</em>
               </h1>
+              <p className="leaderboard-intro">
+                The ten Smart HL Perps Traders leading by 30-day PnL. Each
+                spirit is a visual alias—not a claim about the wallet owner.
+              </p>
               <div className="leaderboard-meta">
-                <span>Smart HL Perps Traders · last 30 days</span>
+                <span>30-day performance · Live Nansen data</span>
                 <span className="leaderboard-attribution">
                   <span>
                     Powered by <strong>Nansen</strong>
@@ -466,7 +471,10 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             )}
             <footer className="leaderboard-foot">
               <div className="leaderboard-foot-brand">
-                <span>Illustrated ranks · Powered by Nansen</span>
+                <span>
+                  Illustrated ranks by White Lotus Labs · Wallet intelligence by
+                  Nansen
+                </span>
                 <button
                   type="button"
                   className="leaderboard-info-btn"

@@ -162,7 +162,9 @@ test('halos fly to another station, open the current one, and a drag is not a cl
   await settle(page, 'AvatarSeat');
   // Only the current station carries the long teaser, as one small label.
   await expect(page.locator('.halo-label')).toHaveCount(1);
-  await expect(page.locator('.halo-label')).toContainText('Sit with Uncle');
+  await expect(page.locator('.halo-label')).toContainText(
+    'Bring an onchain question to Nansen',
+  );
 
   const shelfEmber = await onCanvas(page, hotspot('Shelf'));
   expect(shelfEmber, 'Shelf ember in view from the Host').not.toBeNull();

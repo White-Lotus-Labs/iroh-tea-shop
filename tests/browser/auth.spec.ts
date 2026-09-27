@@ -14,7 +14,7 @@ test('a guest can use the room and find optional account actions', async ({
   );
   await expect(page.getByTestId('account-entry')).toBeVisible();
   await beginVisit(page);
-  await page.getByRole('button', { name: 'Open Counter' }).click({
+  await page.getByRole('button', { name: 'Open the Thesis Desk' }).click({
     timeout: 20000,
   });
   await expect(
@@ -26,9 +26,11 @@ test('a guest can use the room and find optional account actions', async ({
   expect((await page.request.get('/api/auth/me')).status()).toBe(401);
   await page.getByTestId('account-entry').click();
   await expect(
-    page.getByRole('heading', { name: 'Welcome to the room.' }),
+    page.getByRole('heading', {
+      name: 'Let Uncle remember where you left off.',
+    }),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'Continue without an account' }).click();
+  await page.getByRole('link', { name: 'Continue as a guest' }).click();
   await expect(page.locator('main')).toHaveAttribute(
     'data-station',
     'Entrance',
@@ -45,13 +47,15 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
   // Waiting room covers the topbar; account UI lives on /account.
   await page.goto('/account');
   await expect(
-    page.getByRole('heading', { name: 'Welcome to the room.' }),
+    page.getByRole('heading', {
+      name: 'Let Uncle remember where you left off.',
+    }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.getByRole('button', { name: 'Create an account' }).click();
   await page.getByLabel('Nickname').fill(nickname);
   await page.getByLabel('Password').fill('correct horse');
   await page
-    .getByRole('button', { name: 'Create account', exact: true })
+    .getByRole('button', { name: 'Create my room', exact: true })
     .last()
     .click();
   await expect(page.getByTestId('account-control')).toContainText(nickname, {
@@ -87,8 +91,7 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
   await page.getByLabel('Nickname').fill(nickname.toLowerCase());
   await page.getByLabel('Password').fill('correct horse');
   await page
-    .getByRole('button', { name: 'Log in', exact: true })
-    .last()
+    .getByRole('button', { name: 'Return to my conversations' })
     .click();
   await expect(page.getByTestId('account-control')).toContainText(nickname, {
     timeout: 15000,
@@ -105,18 +108,18 @@ test('duplicate nickname and short password show recoverable errors', async ({
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const nickname = `Alex_${crypto.randomUUID().slice(0, 8)}`;
   await page.goto('/account');
-  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.getByRole('button', { name: 'Create an account' }).click();
   await page.getByLabel('Nickname').fill(nickname);
   await page.getByLabel('Password').fill('short');
   await page
-    .getByRole('button', { name: 'Create account', exact: true })
+    .getByRole('button', { name: 'Create my room', exact: true })
     .last()
     .click();
   await expect(page.locator('.auth-error')).toContainText('at least 8');
   await expect(page.getByLabel('Nickname')).toHaveValue(nickname);
   await page.getByLabel('Password').fill('long enough');
   await page
-    .getByRole('button', { name: 'Create account', exact: true })
+    .getByRole('button', { name: 'Create my room', exact: true })
     .last()
     .click();
   await expect(page.getByTestId('account-control')).toContainText(nickname, {
@@ -125,11 +128,11 @@ test('duplicate nickname and short password show recoverable errors', async ({
   // Logged-in /account redirects home; waiting room covers the topbar logout.
   await page.request.post('/api/auth/logout');
   await page.goto('/account');
-  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.getByRole('button', { name: 'Create an account' }).click();
   await page.getByLabel('Nickname').fill(nickname.toLowerCase());
   await page.getByLabel('Password').fill('long enough');
   await page
-    .getByRole('button', { name: 'Create account', exact: true })
+    .getByRole('button', { name: 'Create my room', exact: true })
     .last()
     .click();
   await expect(page.locator('.auth-error')).toContainText('already taken');

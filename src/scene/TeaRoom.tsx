@@ -48,6 +48,7 @@ function RoomGeometry({
   onThesisPick,
   onNavigate,
   onStaged,
+  hostModel,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -61,6 +62,7 @@ function RoomGeometry({
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
+  hostModel: boolean;
 }) {
   const posters = station !== 'Entrance';
   // Deck state (mood, menuClosed) re-renders this component on every thesis
@@ -159,7 +161,11 @@ function RoomGeometry({
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
         <Suspense fallback={null}>
-          <TeaHost3D reduced={reduced} activity={irohActivity} />
+          <TeaHost3D
+            reduced={reduced}
+            activity={irohActivity}
+            model={hostModel}
+          />
         </Suspense>
       </TeaChamber>
     </>
@@ -216,6 +222,7 @@ export default function TeaRoom({
   onThesisPick,
   onNavigate,
   onStaged,
+  hostModel,
 }: {
   station: Station;
   reduced: boolean;
@@ -237,6 +244,7 @@ export default function TeaRoom({
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
+  hostModel: boolean;
 }) {
   const [lost, setLost] = useState(false);
   // Textures load through three's default manager, which useProgress observes.
@@ -300,6 +308,7 @@ export default function TeaRoom({
               onThesisPick={onThesisPick}
               onNavigate={onNavigate}
               onStaged={onStaged}
+              hostModel={hostModel}
             />
           </Surfaces>
         </Suspense>

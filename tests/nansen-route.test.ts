@@ -171,7 +171,7 @@ describe('Nansen agent route', () => {
 
     expect(response.status).toBe(413);
     expect(await response.text()).toContain(
-      'Ask briefly for a wise answer — 100 characters at most.',
+      'Keep the question to 100 characters or fewer.',
     );
     expect(fetch).not.toHaveBeenCalled();
   });

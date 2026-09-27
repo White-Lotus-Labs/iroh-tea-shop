@@ -382,7 +382,7 @@ const OUTLINES: Record<HaloStation, OutlineTarget> = {
   },
   AvatarSeat: { name: 'tea-host-3d' },
   TeaTable: { name: 'mechanical-planetary-system' },
-  Shelf: { name: 'right-wall-tea-shelf' },
+  Shelf: { name: 'hanging-paper' },
 };
 
 /** True once the camera has rested at `station`; real travel clears it, a small drag does not. */

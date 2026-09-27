@@ -28,7 +28,7 @@ The prior PASS A verification covered typecheck, formatting, unit tests, Chromiu
 
 - The prepared ETH evidence is an invented, fixed teaching fixture dated **22 September 2026 at 18:00 UTC**. It is not current market activity. PASS A does not analyze arbitrary theses or resolve symbols against a live registry.
 - Input and results live only in browser memory and disappear on reload. Iroh's Nansen conversation ID also remains only in memory. Only accounts and sessions persist in the local SQLite database; reviews and Iroh conversations are not saved. There is no analytics or chat history.
-- The grandfather is an authored 3D character with image textures, not a scanned or fully rigged person. Visitors can make small local camera adjustments but cannot freely walk around the rooms.
+- The grandfather is a sculpted 3D model (generated with Tripo, then rigged in Blender by `scripts/host-model/`) with an upper-body skeleton only: he sips, pours, nods, and looks around, but his legs and face do not deform, and his mouth does not move when he speaks. Before the visitor steps inside, the painted diorama stands in for him. Visitors can make small local camera adjustments but cannot freely walk around the rooms.
 - Performance depends on the device's GPU. The automated browser checks use Chromium; Safari and Firefox have not been separately verified.
 - The card has no image, clipboard, or social export. No public site has been deployed.
 

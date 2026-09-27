@@ -15,7 +15,7 @@ const config: NextConfig = {
         headers: cache('public, max-age=604800, stale-while-revalidate=86400'),
       },
       {
-        source: '/:dir(images|audio)/:path(.*\\.[0-9a-f]{6}\\.\\w+)',
+        source: '/:dir(images|audio|models)/:path(.*\\.[0-9a-f]{6}\\.\\w+)',
         headers: cache('public, max-age=31536000, immutable'),
       },
     ];

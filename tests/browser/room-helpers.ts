@@ -9,9 +9,9 @@ export async function waitForRoomReady(page: Page) {
     .poll(
       async () => {
         const station = await page.locator('main').getAttribute('data-station');
-        // Deep links leave Entrance without enabling Step inside.
+        // Deep links leave Entrance without enabling Enter the tea room.
         if (station && station !== 'Entrance') return 'inside';
-        const enter = page.getByRole('button', { name: 'Step inside' });
+        const enter = page.getByRole('button', { name: 'Enter the tea room' });
         if ((await enter.count()) === 0) return 'gone';
         if (await enter.isEnabled()) return 'ready';
         return 'loading';
@@ -46,7 +46,7 @@ export async function waitForDockReady(page: Page) {
 /** Leave the waiting room and show the station dock. */
 export async function beginVisit(page: Page) {
   await waitForRoomReady(page);
-  const enter = page.getByRole('button', { name: 'Step inside' });
+  const enter = page.getByRole('button', { name: 'Enter the tea room' });
   const station = await page.locator('main').getAttribute('data-station');
   if (station === 'Entrance' && (await enter.count())) {
     await expect(enter).toBeEnabled({ timeout: 90_000 });
@@ -67,7 +67,11 @@ export async function openStationPanel(
   const label = station === 'Host' ? /Host/ : /Counter/;
   const nav = page.getByRole('navigation', { name: 'Tea room stations' });
   await nav.getByRole('button', { name: label }).click();
-  const open = page.getByRole('button', { name: `Open ${station}` });
+  // exact: Host dock caption is also "Ask Uncle", so a substring match hits both.
+  const open =
+    station === 'Host'
+      ? page.getByRole('button', { name: 'Ask Uncle', exact: true })
+      : page.getByRole('button', { name: 'Open the Thesis Desk' });
   await expect(open).toBeVisible({ timeout: 45000 });
   await open.click();
 }

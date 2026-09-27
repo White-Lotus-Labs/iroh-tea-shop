@@ -58,7 +58,7 @@ async function focusShelf(page: Page) {
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
     .click();
-  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
+  await page.getByRole('button', { name: 'See the top traders' }).click();
 }
 
 test('the Shelf stays in the room until opened, then reveals ranked wallets without moving again', async ({
@@ -94,7 +94,7 @@ test('the Shelf stays in the room until opened, then reveals ranked wallets with
     'browse',
   );
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
-  const approach = page.getByRole('button', { name: 'Approach the Shelf' });
+  const approach = page.getByRole('button', { name: 'See the top traders' });
   await expect(approach).toBeVisible();
   const approachBox = await approach.boundingBox();
   const dockBox = await page
@@ -165,11 +165,12 @@ test('the Shelf stays in the room until opened, then reveals ranked wallets with
   await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
     'HL Referral',
   );
+  // Spirit names must not borrow Avatar names. Studio credit may say White Lotus Labs.
   await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
-    /Iroh|Lotus/,
+    /Iroh|Bumi|Pakku|Roku|Avatar/,
   );
   await expect(page.getByTestId('leaderboard-parchment')).toContainText(
-    'Smart HL Perps Traders · last 30 days',
+    '30-day performance · Live Nansen data',
   );
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
@@ -189,7 +190,7 @@ test('clicking the Shelf in the room starts the focus journey', async ({
     .getByRole('button', { name: /Shelf/ })
     .click();
   await expect(
-    page.getByRole('button', { name: 'Approach the Shelf' }),
+    page.getByRole('button', { name: 'See the top traders' }),
   ).toBeVisible();
   await page.mouse.click(1000, 450);
   await expect(page.locator('.app-shell')).toHaveAttribute(
@@ -211,7 +212,7 @@ test('a hanging spirit paper answers hover and opens the Shelf', async ({
     .getByRole('button', { name: /Shelf/ })
     .click();
   await expect(
-    page.getByRole('button', { name: 'Approach the Shelf' }),
+    page.getByRole('button', { name: 'See the top traders' }),
   ).toBeVisible();
   // The rank 1 sheet hangs above the rolled scroll in the middle bay.
   const portrait = await centerPortrait(page);
@@ -253,7 +254,7 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await focusShelf(page);
   await expect(
     page.getByRole('heading', {
-      name: /Top 10 (?:Hyperliquid|HL) Leaderboard/,
+      name: /Top Hyperliquid Traders by 30-Day PnL/,
     }),
   ).toBeVisible();
   await expect(page.getByText(/Powered by\s+Nansen/).first()).toBeVisible();
@@ -279,7 +280,9 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
     /width: 26\.5%/,
   );
   await expect(
-    second.getByRole('link', { name: 'Open wallet in Nansen (new tab)' }),
+    second.getByRole('link', {
+      name: 'Research this wallet in Nansen (new tab)',
+    }),
   ).toHaveAttribute(
     'href',
     `https://app.nansen.ai/profiler?address=${address(2)}&chain=hyperliquid`,
@@ -310,6 +313,15 @@ test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', 
 }) => {
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  // Keep Nansen "configured" so the Shelf shows the route error, not the
+  // unconfigured offline empty state.
+  await page.route('**/api/nansen-status', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ nansen: 'configured' }),
+    }),
+  );
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 503,
@@ -332,6 +344,13 @@ test('an invalid server response shows a safe parchment error', async ({
 }) => {
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.route('**/api/nansen-status', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ nansen: 'configured' }),
+    }),
+  );
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 502,
@@ -366,7 +385,7 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
   const panel = await page.getByTestId('leaderboard-parchment').boundingBox();
   const heading = await page
     .getByRole('heading', {
-      name: /Top 10 (?:Hyperliquid|HL) Leaderboard/,
+      name: /Top Hyperliquid Traders by 30-Day PnL/,
     })
     .boundingBox();
   expect(panel!.y).toBeGreaterThanOrEqual(78);

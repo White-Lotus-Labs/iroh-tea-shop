@@ -406,7 +406,7 @@ export default function TeaRoomShell({
           </span>
           <span className="brand-text">
             Iroh&apos;s Tea Shop
-            <small>A QUIET ROOM FOR A FINISHED THESIS</small>
+            <small>NANSEN-POWERED CRYPTO RESEARCH</small>
           </span>
         </a>
 
@@ -493,6 +493,7 @@ export default function TeaRoomShell({
             onThesisPick={pickThesis}
             onNavigate={navigate}
             onStaged={onStaged}
+            hostModel={revealed}
           />
 
           {!isEntrance && sceneAvailable && (
@@ -511,7 +512,7 @@ export default function TeaRoomShell({
             <button
               type="button"
               className="panel-open-hint shelf-approach"
-              aria-label="Approach the Shelf"
+              aria-label={STATION_TEASERS.Shelf!.cta!.join(' ')}
               onClick={focusShelf}
             >
               <span className="panel-open-hint-seal" aria-hidden="true">
@@ -519,19 +520,20 @@ export default function TeaRoomShell({
               </span>
               <span className="panel-open-hint-body" aria-hidden="true">
                 <span className="panel-open-hint-title">
-                  Approach the <em>Shelf</em>
+                  {STATION_TEASERS.Shelf!.cta![0]}{' '}
+                  <em>{STATION_TEASERS.Shelf!.cta![1]}</em>
                 </span>
               </span>
             </button>
           )}
 
-          {showOpenHint && panelStation && teaser && (
+          {showOpenHint && panelStation && teaser?.cta && (
             <button
               ref={openHint}
               key={panelStation}
               type="button"
               className="panel-open-hint"
-              aria-label={`Open ${panelStation}`}
+              aria-label={teaser.cta.join(' ')}
               aria-describedby="panel-open-teaser"
               onClick={openPanel}
             >
@@ -540,7 +542,7 @@ export default function TeaRoomShell({
               </span>
               <span className="panel-open-hint-body" aria-hidden="true">
                 <span className="panel-open-hint-title">
-                  Open <em>{panelStation}</em>
+                  {teaser.cta[0]} <em>{teaser.cta[1]}</em>
                 </span>
                 <InkLine
                   text={teaser.text}
@@ -560,23 +562,24 @@ export default function TeaRoomShell({
               <span className="entrance-hero-mark" aria-hidden="true">
                 ◒
               </span>
-              <div className="eyebrow">WELCOME / TAKE YOUR TIME</div>
+              <div className="eyebrow">WELCOME · FOLLOW THE EVIDENCE</div>
               <h1>
-                A quiet room.
+                A market story
                 <br />
-                <em>A clearer thought.</em>
+                <em>is only the beginning.</em>
               </h1>
               <span className="entrance-hero-rule" aria-hidden="true" />
               <p className="intro">
-                Bring the reasoning you have already written. Notice what it
-                holds, and what it asks you to assume.
+                Choose a thesis. Check its live Nansen conviction signal. Then
+                open each asset to see the smart-money flows, holders, trades,
+                and positions behind it.
               </p>
               <button
                 type="button"
                 className="primary entrance-hero-cta"
                 onClick={() => navigate('Counter')}
               >
-                <span>Begin</span>
+                <span>Open the Thesis Desk</span>
                 <span className="entrance-hero-cta-arrow" aria-hidden="true">
                   →
                 </span>

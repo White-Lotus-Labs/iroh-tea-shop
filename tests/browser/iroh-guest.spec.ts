@@ -21,9 +21,9 @@ test('a guest can open Host and chat with Iroh without signing in', async ({
   ).toBe(false);
   await openStationPanel(page, 'Host');
   await page
-    .getByRole('textbox', { name: 'Ask Uncle a research question' })
+    .getByRole('textbox', { name: 'Ask an onchain research question' })
     .fill('What is ETH doing?');
-  await page.getByRole('button', { name: 'Send question' }).click();
+  await page.getByRole('button', { name: 'Ask Uncle', exact: true }).click();
   await expect(page.getByText('A guest answer')).toBeVisible();
   await expect(page.getByTestId('account-entry')).toBeVisible();
 });

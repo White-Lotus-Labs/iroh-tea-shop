@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { Suspense, useMemo, useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import {
@@ -11,10 +11,12 @@ import {
   type Texture,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
+import { IrohModel } from './IrohModel';
+import type { IrohActivity } from './irohMotion';
+
+export type { IrohActivity };
 
 type Point = [number, number, number];
-
-export type IrohActivity = 'idle' | 'researching' | 'responding' | 'error';
 
 export const IROH_DEFAULT_POSITION: Point = [0, 0, -3.62];
 export const IROH_DEFAULT_ROTATION: Point = [0, 0, 0];
@@ -75,20 +77,71 @@ export function hideBodyHead(headMap: Texture) {
 }
 
 /**
- * A layered 2.5D illustrated diorama of Uncle Iroh.
- * Integrates hand-painted anime/Ghibli art direction with physical 3D curvature,
- * neck-pivoted parallax animation, and dynamic scene lighting response.
+ * Uncle Iroh on his cushion. Before the visitor steps inside he is the
+ * painted diorama; with `model` the sculpted, rigged host loads behind it and
+ * takes over once ready.
  */
 export function TeaHost3D({
   reduced,
   activity = 'idle',
+  model = false,
   position = IROH_DEFAULT_POSITION,
   rotation = IROH_DEFAULT_ROTATION,
 }: {
   reduced: boolean;
   activity?: IrohActivity;
+  model?: boolean;
   position?: Point;
   rotation?: Point;
+}) {
+  const [modelReady, setModelReady] = useState(false);
+  return (
+    <group position={position} rotation={rotation} name="tea-host-3d">
+      {/* Floor cushion grounding Uncle Iroh to the tatami mat */}
+      <mesh
+        position={[0, 0.045, 0.02]}
+        scale={[0.78, 0.065, 0.52]}
+        castShadow
+        receiveShadow
+      >
+        <cylinderGeometry args={[1, 1, 1, 32]} />
+        <meshStandardMaterial color="#414a30" roughness={0.94} />
+      </mesh>
+      <mesh
+        position={[0, 0.085, 0.02]}
+        scale={[0.72, 0.045, 0.46]}
+        castShadow
+        receiveShadow
+      >
+        <cylinderGeometry args={[1, 1, 1, 32]} />
+        <meshStandardMaterial color="#555a3c" roughness={0.92} />
+      </mesh>
+      {/* Stays put in the tree: remounting it mid room-compile disposes materials being polled. */}
+      {!modelReady && <IrohDiorama reduced={reduced} activity={activity} />}
+      {model && (
+        <Suspense fallback={null}>
+          <IrohModel
+            reduced={reduced}
+            activity={activity}
+            onReady={() => setModelReady(true)}
+          />
+        </Suspense>
+      )}
+    </group>
+  );
+}
+
+/**
+ * A layered 2.5D illustrated diorama of Uncle Iroh.
+ * Integrates hand-painted anime/Ghibli art direction with physical 3D curvature,
+ * neck-pivoted parallax animation, and dynamic scene lighting response.
+ */
+function IrohDiorama({
+  reduced,
+  activity,
+}: {
+  reduced: boolean;
+  activity: IrohActivity;
 }) {
   const bodyTexture = useTexture('/images/tea-host-diorama-body.5c7c91.webp');
   const bodyNormal = useTexture(
@@ -154,63 +207,41 @@ export function TeaHost3D({
   });
 
   return (
-    <group position={position} rotation={rotation} name="tea-host-3d">
-      {/* Floor cushion grounding Uncle Iroh to the tatami mat */}
-      <mesh
-        position={[0, 0.045, 0.02]}
-        scale={[0.78, 0.065, 0.52]}
-        castShadow
-        receiveShadow
-      >
-        <cylinderGeometry args={[1, 1, 1, 32]} />
-        <meshStandardMaterial color="#414a30" roughness={0.94} />
-      </mesh>
-      <mesh
-        position={[0, 0.085, 0.02]}
-        scale={[0.72, 0.045, 0.46]}
-        castShadow
-        receiveShadow
-      >
-        <cylinderGeometry args={[1, 1, 1, 32]} />
-        <meshStandardMaterial color="#555a3c" roughness={0.92} />
+    /* Layered Illustrated Diorama with Sculpted 3D Relief */
+    <group ref={bodyRef} position={[0, 0.975, 0]}>
+      {/* Layer 1: Seated Body, Kimono, Lap, and Steaming Teacup */}
+      <mesh geometry={dioramaGeom} castShadow receiveShadow>
+        <meshStandardMaterial
+          map={bodyTexture}
+          normalMap={bodyNormal}
+          normalScale={bodyNormalScale}
+          alphaTest={0.5}
+          roughness={0.88}
+          metalness={0.02}
+          side={DoubleSide}
+          onBeforeCompile={maskBodyHead}
+        />
       </mesh>
 
-      {/* Layered Illustrated Diorama with Sculpted 3D Relief */}
-      <group ref={bodyRef} position={[0, 0.975, 0]}>
-        {/* Layer 1: Seated Body, Kimono, Lap, and Steaming Teacup */}
-        <mesh geometry={dioramaGeom} castShadow receiveShadow>
-          <meshStandardMaterial
-            map={bodyTexture}
-            normalMap={bodyNormal}
-            normalScale={bodyNormalScale}
-            alphaTest={0.5}
-            roughness={0.88}
-            metalness={0.02}
-            side={DoubleSide}
-            onBeforeCompile={maskBodyHead}
-          />
-        </mesh>
-
-        {/* Layer 2: Expressive Head with Neck Pivot Point */}
-        {/* Neck pivot is around y = 0.50 in local coordinates (height ~1.48m from floor) */}
-        <group position={[0, 0.5, 0]}>
-          <group ref={headGroupRef}>
-            <mesh geometry={dioramaGeom} position={[0, -0.5, 0]} castShadow>
-              <meshStandardMaterial
-                map={headTexture}
-                normalMap={headNormal}
-                normalScale={headNormalScale}
-                transparent
-                alphaTest={0.02}
-                polygonOffset
-                polygonOffsetFactor={-1}
-                polygonOffsetUnits={-4}
-                roughness={0.88}
-                metalness={0.02}
-                side={DoubleSide}
-              />
-            </mesh>
-          </group>
+      {/* Layer 2: Expressive Head with Neck Pivot Point */}
+      {/* Neck pivot is around y = 0.50 in local coordinates (height ~1.48m from floor) */}
+      <group position={[0, 0.5, 0]}>
+        <group ref={headGroupRef}>
+          <mesh geometry={dioramaGeom} position={[0, -0.5, 0]} castShadow>
+            <meshStandardMaterial
+              map={headTexture}
+              normalMap={headNormal}
+              normalScale={headNormalScale}
+              transparent
+              alphaTest={0.02}
+              polygonOffset
+              polygonOffsetFactor={-1}
+              polygonOffsetUnits={-4}
+              roughness={0.88}
+              metalness={0.02}
+              side={DoubleSide}
+            />
+          </mesh>
         </group>
       </group>
     </group>

@@ -8,10 +8,13 @@ test('the open hint keeps its name, describes the teaser, and gets focus back af
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
   await beginVisit(page);
-  const hint = page.getByRole('button', { name: 'Open Counter', exact: true });
+  const hint = page.getByRole('button', {
+    name: 'Open the Thesis Desk',
+    exact: true,
+  });
   await expect(hint).toBeVisible({ timeout: 45000 });
   await expect(hint).toHaveAccessibleDescription(
-    'Draw a thesis. Smart money signals are inside.',
+    'Choose a thesis. See whether smart money supports it.',
   );
   await expect(page.locator('.halo-label')).toBeAttached({ timeout: 15000 });
   await expect(page.locator('.panel-open-hint-teaser')).toBeHidden();

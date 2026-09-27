@@ -45,30 +45,32 @@ export default function AuthScreen() {
             ◒
           </span>
           <span>
-            Iroh&apos;s Tea Shop<small>A QUIET ROOM FOR A FINISHED THESIS</small>
+            Iroh&apos;s Tea Shop
+            <small>NANSEN-POWERED CRYPTO RESEARCH</small>
           </span>
         </div>
-        <span className="auth-topbar-note">A PRIVATE PAUSE</span>
+        <span className="auth-topbar-note">YOUR ROOM</span>
       </header>
       <div className="auth-layout">
         <div className="auth-atmosphere" aria-hidden="true">
           <div className="auth-enso">◒</div>
           <p>
-            Slow down.
+            Choose a thesis.
             <br />
-            See clearly.
+            Follow the
             <br />
-            Begin again.
+            smart money.
           </p>
-          <span>THE ROOM IS READY WHEN YOU ARE</span>
+          <span>EXPLORE WITHOUT AN ACCOUNT</span>
         </div>
         <section className="auth-panel" aria-labelledby="auth-title">
           <div className="auth-panel-inner">
-            <span className="eyebrow">TEA AFTER POUR / YOUR ROOM</span>
-            <h1 id="auth-title">Welcome to the room.</h1>
+            <span className="eyebrow">YOUR ROOM · SAVED CONVERSATIONS</span>
+            <h1 id="auth-title">Let Uncle remember where you left off.</h1>
             <p className="intro">
-              Your account gives you a lasting nickname. You can also use the
-              room without signing in.
+              Create an account to save your nickname and return to previous
+              research conversations. You can explore every station without
+              signing in.
             </p>
             <div className="auth-tabs" role="group" aria-label="Account action">
               <button
@@ -91,7 +93,7 @@ export default function AuthScreen() {
                   setError('');
                 }}
               >
-                Create account
+                Create an account
               </button>
             </div>
             <form onSubmit={submit} className="auth-form">
@@ -120,8 +122,8 @@ export default function AuthScreen() {
               />
               {mode === 'register' && (
                 <p className="auth-hint">
-                  Use 3–24 letters, numbers, underscores, or hyphens for your
-                  nickname. Passwords need at least 8 characters.
+                  Nickname: 3–24 letters, numbers, underscores, or hyphens.
+                  Password: at least 8 characters.
                 </p>
               )}
               {error && (
@@ -137,15 +139,17 @@ export default function AuthScreen() {
                 {pending
                   ? 'One moment…'
                   : mode === 'login'
-                    ? 'Log in'
-                    : 'Create account'}
+                    ? 'Return to my conversations'
+                    : 'Create my room'}
                 {!pending && <span aria-hidden="true">→</span>}
               </button>
             </form>
             <a className="auth-continue" href="/">
-              Continue without an account
+              Continue as a guest
             </a>
-            <p className="auth-footnote">A quiet room for a finished thesis.</p>
+            <p className="auth-footnote">
+              Your research journey can begin without an account.
+            </p>
           </div>
         </section>
       </div>

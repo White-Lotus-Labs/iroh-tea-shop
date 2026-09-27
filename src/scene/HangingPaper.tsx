@@ -198,8 +198,8 @@ export function HangingPaper({
         clearcoat: 0.08,
         clearcoatRoughness: 0.5,
         specularIntensity: 0.6,
-        transparent: true,
-        opacity: 0.97,
+        transparent: false,
+        opacity: 1,
       });
       material.onBeforeCompile = (
         shader: WebGLProgramParametersWithUniforms,

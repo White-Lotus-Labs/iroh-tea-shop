@@ -10,19 +10,19 @@ const art = (name: string) => `/images/waiting-room/${name}.webp`;
 export const TEAM: Member[] = [
   {
     handle: '0x_iroh',
-    roles: 'Vision · visuals · style · UI',
+    roles: 'Product vision · visual direction · UI',
     bio: 'Wise uncle, trader, investor, vibecoder, farmer.',
     portrait: art('team-iroh'),
   },
   {
     handle: '0x_Takezo',
-    roles: 'Video · texts · marketing',
+    roles: 'Story · video · marketing',
     bio: 'NFT and meme connoisseur, and an upcoming marketing star. Builds study\u2011for\u2011A and runs YouTube channels.',
     portrait: art('team-takezo'),
   },
   {
     handle: 'david_grii',
-    roles: 'Front-end · UI',
+    roles: 'Front-end · 3D UI',
     bio: 'Full-stack dev across SaaS, health, and crypto. Does not watch anime, yet somehow has an anime pfp.',
     portrait: art('team-david'),
   },
@@ -34,7 +34,7 @@ export const TEAM: Member[] = [
   },
   {
     handle: 'tldde',
-    roles: 'Back-end · systems · API · Observatorium',
+    roles: 'Systems · onchain data · Observatorium',
     bio: 'Tall, seasoned dev. On-chain analytics and systems engineering. Has a cat.',
     portrait: art('team-tldde'),
   },
@@ -46,32 +46,32 @@ export const REPO_URL = 'https://github.com/White-Lotus-Labs/iroh-tea-shop';
 export const PROJECT = {
   name: "Iroh's Tea Shop",
   studio: 'White Lotus Labs',
-  tagline: 'A quiet room for a finished thesis.',
+  tagline: 'Choose a crypto thesis. See whether smart money supports it.',
   summary:
-    "Iroh's Tea Shop is a tea room for a crypto thesis you have already written. You bring the reasoning. The room helps you see what it rests on, one cup at a time.",
+    'Walk through a 3D tea shop built on Nansen data. Open a thesis, read its conviction signal, check the wallets and positions behind each asset, and ask Uncle what it means.',
   // Same names and captions as the station dock inside.
   steps: [
     {
       label: 'Counter',
-      caption: 'Thesis desk',
-      text: 'Write the thesis you already hold, confirm the symbol, and choose a review window.',
+      caption: 'Thesis Desk',
+      text: 'Choose one of three theses. Read its live conviction signal, then open the four assets behind it.',
     },
     {
       label: 'Host',
-      caption: 'Talk to Iroh',
-      text: 'Ask Iroh, the host. He answers with live Nansen research.',
+      caption: 'Ask Uncle',
+      text: 'Ask about a token, a wallet, or an onchain trend. Uncle asks Nansen’s Research Agent and brings back the answer.',
     },
     {
       label: 'Shelf',
-      caption: 'Leaderboard',
-      text: 'Meet the ten Smart Money perp traders with the highest PnL on Nansen over the last 30 days.',
+      caption: 'Top traders',
+      text: 'See the ten Smart HL Perps Traders with the highest 30-day PnL on Nansen. Open any wallet in Nansen’s profiler.',
     },
     {
       label: 'Observatorium',
-      caption: 'The flows of chains',
-      text: 'Read the review: what the evidence noticed, what it cut, and one question to carry.',
+      caption: 'Wind the orrery',
+      text: 'Wind the brass orrery and watch the planets turn. This stop shows no market data.',
     },
   ],
   honesty:
-    'The thesis review is a demo with synthetic data. Iroh’s research and the Shelf use live Nansen data.',
+    'The team wrote the three theses. The conviction signals, asset evidence, trader leaderboard, and Uncle’s answers use live Nansen data.',
 };

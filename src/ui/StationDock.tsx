@@ -110,7 +110,7 @@ const DOCK: DockEntry[] = [
   {
     id: 'Entrance',
     label: 'Waiting room',
-    caption: 'About Tea Shop',
+    caption: 'About the shop',
     seal: '茶',
     // Teahouse: jade tile roof, lacquered pillars, lit doorway, stone steps.
     glyph: (
@@ -310,7 +310,7 @@ const DOCK: DockEntry[] = [
   {
     id: 'AvatarSeat',
     label: 'Host',
-    caption: 'Talk to Uncle',
+    caption: 'Ask Uncle',
     seal: '谈',
     // Iroh behind a tea table: topknot, white beard, robe, teapot and cups.
     glyph: (
@@ -414,7 +414,7 @@ const DOCK: DockEntry[] = [
   {
     id: 'Shelf',
     label: 'Shelf',
-    caption: 'Leaderboard',
+    caption: 'Top traders',
     seal: '榜',
     // Hanging scroll on a silk mount with gold, silver, and bronze ranks.
     glyph: (
@@ -521,7 +521,7 @@ const DOCK: DockEntry[] = [
     // The TeaTable station frames the orrery.
     id: 'TeaTable',
     label: 'Observatorium',
-    caption: 'The flows of chains',
+    caption: 'Wind the orrery',
     seal: '星',
     // Bronze orrery: meridian ring, tilted orbits, glowing sun, three planets.
     glyph: (

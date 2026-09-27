@@ -204,7 +204,7 @@ export const SKETCH_IMAGES = [
 export const SKETCH_PAGES: SketchPage[] = [
   {
     key: 'cover',
-    label: 'The tea shop',
+    label: 'The Tea Shop',
     picture: SHOP_SKETCH,
     render: (live) => (
       <div className="sb-page-inner sb-cover-art">
@@ -229,7 +229,9 @@ export const SKETCH_PAGES: SketchPage[] = [
         <span className="sb-mark" aria-hidden="true">
           <LotusMark variant="sketch" />
         </span>
-        <p className="sb-kicker">{PROJECT.studio}</p>
+        <p className="sb-kicker">
+          {PROJECT.studio} · Nansen Meridian Buildathon
+        </p>
         <h1 className="sb-name">{PROJECT.name}</h1>
         <p className="sb-tagline">{PROJECT.tagline}</p>
         <span className="sb-rule" aria-hidden="true" />
@@ -249,21 +251,21 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'room',
-    label: 'The room',
+    label: 'The Room',
     picture: ROOM_SKETCH,
     render: (live) => (
       <div className="sb-page-inner sb-room">
         <Sketch
           src={ROOM_SKETCH}
-          alt="Ink sketch of the tea room: the counter and lantern, a low tea table with a teapot, and Iroh seated beside the shelf with a cup, his straw hat on the floor."
+          alt="Ink sketch of the tea room: the counter and lantern, a low tea table with a teapot, and Uncle, the host, seated beside the shelf with a cup, his straw hat on the floor."
           live={live}
           className="sb-room-art"
         />
         <p className="sb-kicker">Inside</p>
         <h2 className="sb-heading">Four stops, one pot of tea.</h2>
         <p className="sb-body">
-          The room is a guided scene. You move between stations; nothing asks
-          you to hurry. Your writing stays in the tab.
+          Move through the room at your own pace. Three stops read live Nansen
+          data. The fourth is a brass orrery to wind.
         </p>
         <Folio n={3} />
       </div>
@@ -292,17 +294,16 @@ export const SKETCH_PAGES: SketchPage[] = [
           ))}
         </ol>
         <p className="sb-caption-hand">
-          Guests are welcome. Sign in only if you want Iroh to remember your
-          chats.
+          Explore as a guest. Create an account only if you want Uncle to
+          remember your conversations.
         </p>
         <Folio n={4} />
       </div>
     ),
   },
-  ...TEAM.map((member, i) => memberPage(member, i + 1, i + 5)),
   {
-    key: 'hello',
-    label: 'The team',
+    key: 'team',
+    label: 'The Team',
     render: (live) => (
       <div className="sb-page-inner sb-hello">
         <p className="sb-kicker">The team</p>
@@ -322,6 +323,23 @@ export const SKETCH_PAGES: SketchPage[] = [
             </li>
           ))}
         </ul>
+        <Folio n={5} />
+      </div>
+    ),
+  },
+  {
+    key: 'team-close',
+    label: 'The Team',
+    render: (live) => (
+      <div className="sb-page-inner sb-hello">
+        <p className="sb-kicker">White Lotus Labs</p>
+        <h2 className="sb-heading">
+          Five friends built one unusual research room.
+        </h2>
+        <p className="sb-body">
+          Product, story, 3D interface, onchain data, APIs, and systems—turned
+          into a place you can walk through.
+        </p>
         <a
           className="sb-link"
           href={REPO_URL}
@@ -329,26 +347,44 @@ export const SKETCH_PAGES: SketchPage[] = [
           rel="noreferrer"
           tabIndex={live ? undefined : -1}
         >
-          Read the source on GitHub <span aria-hidden="true">↗</span>
+          Explore the code on GitHub <span aria-hidden="true">↗</span>
         </a>
         <div className="sb-sign">
           <p className="sb-caption-hand">
-            When the lanterns are lit, step inside.
+            The lanterns are lit. Choose a thesis and step inside.
           </p>
           <span className="sb-seal" aria-hidden="true">
             白蓮
           </span>
         </div>
-        <Folio n={10} />
+        <Folio n={6} />
+      </div>
+    ),
+  },
+  ...TEAM.map((member, i) => memberPage(member, i + 1, i + 7)),
+  {
+    key: 'end',
+    label: 'tldde',
+    render: () => (
+      <div className="sb-page-inner sb-hello sb-end">
+        <p className="sb-kicker">End of the book</p>
+        <h2 className="sb-heading">Choose a thesis. Follow the smart money.</h2>
+        <div className="sb-sign">
+          <span className="sb-seal" aria-hidden="true">
+            白蓮
+          </span>
+        </div>
+        <Folio n={12} />
       </div>
     ),
   },
 ];
 
 export const SPREAD_TITLES = [
-  'The tea shop',
-  'The room',
+  'The Tea Shop',
+  'The Room',
+  'The Team',
   '0x_iroh · 0x_Takezo',
   'david_grii · PandaCoderexe',
-  'tldde · The team',
+  'tldde',
 ];
