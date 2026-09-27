@@ -62,10 +62,10 @@ const memeSnapshot = {
     displayName:
       i === 0 ? 'ogle' : i === 1 ? '"AEtL29" on pump.fun' : `Trader ${i + 1}`,
     pnl: 3_000_000 - i * 100_000,
-    roi: i === 0 ? null : 0.64,
+    roi: 0.64,
     accountValue: null,
     realizedPnl: 3_000_000 - i * 100_000,
-    unrealizedPnl: i === 0 ? null : 20_000,
+    unrealizedPnl: 20_000,
     volume: null,
     trades: 390,
     positions: [],
@@ -75,10 +75,20 @@ const memeSnapshot = {
         : i === 1
           ? ['solana']
           : ['bsc', 'robinhood'],
-    winRate: i === 0 ? null : 0.53,
+    winRate: 0.53,
     tokens: 12,
     topTokens: [{ symbol: 'PONS', chain: 'robinhood', pnl: 2_336_425 }],
-    ...(i === 0 ? { entity: 'ogle' } : {}),
+    ...(i === 0
+      ? {
+          entity: 'ogle',
+          entityTotal: {
+            realizedPnl: 2_381_278,
+            trades: 3787,
+            tokens: 163,
+            topTokens: [{ symbol: 'STONK', chain: 'solana', pnl: 101_000 }],
+          },
+        }
+      : {}),
   })),
 };
 
@@ -416,10 +426,15 @@ test('Meme Traders has its own sorts, win rate, chains and profiler links', asyn
   await expect(top.locator('.wallet-chain')).toHaveText([
     'Robinhood',
     'Solana',
-    /^Entity total across Solana and EVM/,
+    /^Entity that trades on Solana and EVM/,
   ]);
   await expect(top).toContainText('Top tokens traded');
   await expect(top).toContainText('PONS');
+  // The row ranks on the wallet; the card adds the entity's cross-chain total.
+  await expect(top).toContainText('53%');
+  await expect(top).toContainText('ogle · all wallets and chains');
+  await expect(top).toContainText('+$2.38M');
+  await expect(top).toContainText('STONK');
   const research = { name: 'Research this wallet in Nansen (new tab)' };
   await expect(top.getByRole('link', research)).toHaveAttribute(
     'href',
