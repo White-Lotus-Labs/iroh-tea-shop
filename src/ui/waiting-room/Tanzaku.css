@@ -779,6 +779,33 @@
       clip-path: inset(50%);
       white-space: nowrap;
     }
+    /* The card fits the short stage; the arrows keep their names for readers. */
+    .tz-card {
+      padding: 22px 14px 4px;
+    }
+    .tz-card-sheet {
+      grid-template-columns: 80px minmax(0, 1fr);
+      gap: 12px;
+    }
+    .tz-card-body h2 {
+      margin-bottom: 4px;
+      font-size: 20px;
+    }
+    .tz-card-roles {
+      margin-bottom: 6px;
+    }
+    .tz-card-bio {
+      margin-bottom: 8px;
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+    .tz-card-nav {
+      margin-top: 6px;
+      padding-top: 0;
+    }
+    .tz-card-nav .tz-card-nav-name {
+      display: none;
+    }
   }
   @media (max-height: 380px) and (min-aspect-ratio: 3/2) {
     .tz-tagline {
