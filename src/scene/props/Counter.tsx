@@ -16,12 +16,13 @@ import {
 import { Cup } from '../Ceramics';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { Solid } from '../Surfaces';
+import { once, Solid } from '../Surfaces';
 import {
   block,
   boxUv,
   canvasTexture,
   brushText,
+  Hanger,
   merge,
   paint,
   paper,
@@ -459,6 +460,10 @@ const CANISTERS: JarSpec[] = [
     label: 3,
   },
 ];
+const counterArt = once(() => ({
+  menu: canvasTexture(512, 704, drawMenu),
+  sign: canvasTexture(1024, 320, drawSign),
+}));
 
 /** The waiting-room serving counter, its back-wall shelving and what sits on it. */
 export function Counter() {
@@ -467,21 +472,16 @@ export function Counter() {
       wood = merge([...buildBody(), ...buildFittings()]),
       bamboo = merge(buildWhisk().map((g) => place(g, [-1.95, TOP_Y, 5.92]))),
       ceramics = merge(buildCeramics()),
-      caddy = buildCaddy(),
-      menu = canvasTexture(512, 704, drawMenu),
-      sign = canvasTexture(1024, 320, drawSign);
+      caddy = buildCaddy();
     return {
       top,
       wood,
       bamboo,
       ceramics,
       caddy,
-      menu,
-      sign,
+      ...counterArt(),
       dispose() {
-        [top, wood, bamboo, ceramics, caddy, menu, sign].forEach((item) =>
-          item.dispose(),
-        );
+        [top, wood, bamboo, ceramics, caddy].forEach((item) => item.dispose());
       },
     };
   });
@@ -503,17 +503,15 @@ export function Counter() {
             clearcoatRoughness={0.3}
           />
         </mesh>
-        {[-1, 1].map((side) => (
-          <mesh
-            key={side}
-            position={[side * 0.36, 0.3, -0.01]}
-            rotation={[0, 0, side * 0.5]}
-          >
-            <cylinderGeometry args={[0.003, 0.003, 0.3, 5]} />
-            <meshStandardMaterial color="#6b5a3a" roughness={0.9} />
-          </mesh>
-        ))}
       </group>
+      {/* Screw eyes under the doorway beam (bottom at 2.42 m). */}
+      {[-1, 1].map((side) => (
+        <Hanger
+          key={side}
+          hook={[-2.2 + side * 0.3, 2.414, 3.415]}
+          ends={[[-2.2 + side * 0.36, 2.09, 3.452]]}
+        />
+      ))}
       <mesh geometry={built.top} castShadow receiveShadow>
         <WoodMaterial clearcoat={0.55} />
       </mesh>

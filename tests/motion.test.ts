@@ -5,7 +5,14 @@ import {
   travelDuration,
   pourPose,
 } from '../src/scene/motion/dynamics';
-import { SHELF_APPROACH, SHELF_FOCUS, STATIONS } from '../src/scene/stations';
+import {
+  keepInRoom,
+  roomOf,
+  SHELF_APPROACH,
+  SHELF_FOCUS,
+  STATIONS,
+  wallBetween,
+} from '../src/scene/stations';
 import { IROH_DEFAULT_POSITION } from '../src/scene/TeaHost3D';
 describe('camera travel', () => {
   it('adapts travel time and settles without a position or velocity discontinuity', () => {
@@ -120,4 +127,38 @@ it('brakes inherited momentum before an interrupted return overshoots the entran
     move.step(1 / 60);
     expect(move.position.z).toBeLessThan(entrance.position[2] + 0.1);
   }
+});
+describe('free-look bounds', () => {
+  it('leaves every station pose where it stands', () => {
+    for (const { id, position } of STATIONS) {
+      const [x, y, z] = position;
+      expect(keepInRoom({ x, y, z }, roomOf(id))).toEqual({ x, y, z });
+    }
+    for (const {
+      position: [x, y, z],
+    } of [SHELF_APPROACH, SHELF_FOCUS])
+      expect(keepInRoom({ x, y, z }, 'chamber')).toEqual({ x, y, z });
+  });
+  it('clamps to the walls and leaves props by their nearest open face', () => {
+    expect(keepInRoom({ x: 5, y: 1.6, z: 12 }, 'waiting')).toEqual({
+      x: 3.7,
+      y: 1.6,
+      z: 10.9,
+    });
+    // Off the shelf toward the room, never through the wall behind it.
+    expect(keepInRoom({ x: 3.4, y: 1.5, z: -4.5 }, 'chamber').x).toBe(3.05);
+    // Just under the counter top: lifted over it.
+    expect(keepInRoom({ x: -2, y: 1.4, z: 6 }, 'waiting').y).toBe(1.5);
+  });
+  it('sees through the doorway but not through the partition', () => {
+    expect(wallBetween({ x: 0, y: 1.5, z: 7 }, { x: 0, y: 1.2, z: -2 })).toBe(
+      false,
+    );
+    expect(
+      wallBetween({ x: -2.5, y: 1.5, z: 6 }, { x: -2.8, y: 1.3, z: -3 }),
+    ).toBe(true);
+    expect(wallBetween({ x: 0, y: 1.5, z: -1 }, { x: 2, y: 1.4, z: -4 })).toBe(
+      false,
+    );
+  });
 });

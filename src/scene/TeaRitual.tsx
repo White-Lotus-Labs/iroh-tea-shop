@@ -357,10 +357,16 @@ export function LanternLight({
             Math.sin(m.time * 0.29 + 2) * 0.035);
   });
   return (
-    <group position={[2.35, 2.72, -3.15]}>
-      <PaperLantern position={[0, 0, 0]} drop={0.78} radius={0.15} />
-      <pointLight ref={light} intensity={6.5} distance={7} color="#ffc36d" />
-    </group>
+    <>
+      <PaperLantern position={[2.3, 2.72, -3.1]} radius={0.15} />
+      <pointLight
+        ref={light}
+        position={[2.3, 2.72, -3.1]}
+        intensity={6.5}
+        distance={7}
+        color="#ffc36d"
+      />
+    </>
   );
 }
 export function ShelfPlacement({

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { beginVisit, openStationPanel, waitForRoomReady } from './room-helpers';
+import { beginVisit, openStationPanel } from './room-helpers';
 
 async function openShelf(page: Page) {
   await beginVisit(page);
@@ -31,7 +31,7 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   );
 
   await page.goto('/');
-  await waitForRoomReady(page);
+  await beginVisit(page);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-nansen',
     'unavailable',
@@ -119,7 +119,7 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   );
 
   await page.goto('/');
-  await waitForRoomReady(page);
+  await beginVisit(page);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-nansen',
     'configured',

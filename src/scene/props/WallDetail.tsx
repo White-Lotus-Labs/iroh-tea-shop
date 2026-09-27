@@ -8,10 +8,13 @@ import {
 import type { CanvasTexture } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
+import { once } from '../Surfaces';
 import {
   block,
   brushText,
   canvasTexture,
+  cord,
+  Hanger,
   merge,
   paint,
   place,
@@ -188,12 +191,15 @@ export function WallShelf({ position }: { position: Point }) {
         '#1c120c',
       ),
     ]);
+    const stem = cord([0.02, 0.125, 0.37], [0.035, 0.288, 0.389], 0.0018);
     return {
       wood,
       ceramic,
+      stem,
       dispose() {
         wood.dispose();
         ceramic.dispose();
+        stem.dispose();
       },
     };
   });
@@ -210,11 +216,11 @@ export function WallShelf({ position }: { position: Point }) {
           clearcoatRoughness={0.15}
         />
       </mesh>
-      <mesh position={[0.02, 0.2, 0.36]} rotation={[0.2, 0, -0.15]}>
-        <cylinderGeometry args={[0.0018, 0.0018, 0.16, 4]} />
+      {/* Stem from inside the vase mouth (0.149 m) to the bud it carries. */}
+      <mesh geometry={built.stem}>
         <meshStandardMaterial color="#3a4a26" roughness={0.8} />
       </mesh>
-      <mesh position={[0.008, 0.28, 0.348]} scale={[0.018, 0.022, 0.018]}>
+      <mesh position={[0.037, 0.302, 0.391]} scale={[0.018, 0.022, 0.018]}>
         <sphereGeometry args={[1, 10, 8]} />
         <meshStandardMaterial color="#f2ece0" roughness={0.6} />
       </mesh>
@@ -240,6 +246,7 @@ function drawHengaku(ctx: CanvasRenderingContext2D) {
   ctx.fillRect(40, 236, 40, 40);
   brushText(ctx, '閑', 60, 239, 34, '236,214,180');
 }
+const hengakuArt = once(() => canvasTexture(1024, 320, drawHengaku));
 
 /** A framed calligraphy board (hengaku) hung above the nageshi, its top tilted into the room. */
 export function Hengaku({ position }: { position: Point }) {
@@ -253,20 +260,27 @@ export function Hengaku({ position }: { position: Point }) {
       block([0.05, h + 0.08, 0.05], [-w / 2 - 0.015, 0, 0], '#1c100a'),
       block([w, h, 0.02], [0, 0, -0.012], '#24150c'),
     ]);
-    const art = canvasTexture(1024, 320, drawHengaku);
     return {
       frame,
-      art,
+      art: hengakuArt(),
       w,
       h,
       dispose() {
         frame.dispose();
-        art.dispose();
       },
     };
   });
+  // Cords from the frame's top back edge (after the tilt) to eyes under the 3.3 m rail.
+  const rail = 3.265 - position[1];
   return (
     <group position={position} rotation={[0, Math.PI / 2, 0]}>
+      {[-1, 1].map((side) => (
+        <Hanger
+          key={side}
+          hook={[side * 0.5, rail - 0.002, 0.02]}
+          ends={[[side * 0.5, 0.211, 0.05]]}
+        />
+      ))}
       <group rotation={[0.14, 0, 0]} position={[0, 0, 0.04]}>
         <mesh geometry={built.frame} castShadow>
           <WoodMaterial clearcoat={0.6} />

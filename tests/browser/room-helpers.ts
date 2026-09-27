@@ -1,10 +1,24 @@
 import { expect, type Page } from '@playwright/test';
 
-/** Wait until the full-screen scene loader no longer blocks clicks. */
+/**
+ * Wait until the waiting room reports the 3D room is ready, or until a deep
+ * link has already left the entrance. SceneLoader is not mounted.
+ */
 export async function waitForRoomReady(page: Page) {
-  await expect(page.locator('.scene-loader')).toHaveCount(0, {
-    timeout: 60000,
-  });
+  await expect
+    .poll(
+      async () => {
+        const station = await page.locator('main').getAttribute('data-station');
+        // Deep links leave Entrance without enabling Step inside.
+        if (station && station !== 'Entrance') return 'inside';
+        const enter = page.getByRole('button', { name: 'Step inside' });
+        if ((await enter.count()) === 0) return 'gone';
+        if (await enter.isEnabled()) return 'ready';
+        return 'loading';
+      },
+      { timeout: 90_000 },
+    )
+    .not.toBe('loading');
 }
 
 /** Wait for the dock unroll animation so rollers stop intercepting clicks. */
@@ -29,12 +43,17 @@ export async function waitForDockReady(page: Page) {
     .toBe(0);
 }
 
-/** Leave the entrance hero and show the station dock. */
+/** Leave the waiting room and show the station dock. */
 export async function beginVisit(page: Page) {
   await waitForRoomReady(page);
-  const begin = page.getByRole('button', { name: 'Begin' });
-  if (await begin.count()) {
-    await begin.click();
+  const enter = page.getByRole('button', { name: 'Step inside' });
+  const station = await page.locator('main').getAttribute('data-station');
+  if (station === 'Entrance' && (await enter.count())) {
+    await expect(enter).toBeEnabled({ timeout: 90_000 });
+    await enter.click();
+    await expect(page.locator('.waiting-room')).toHaveCount(0, {
+      timeout: 20_000,
+    });
     await waitForDockReady(page);
   }
 }

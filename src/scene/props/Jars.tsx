@@ -7,7 +7,7 @@ import {
 } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { useSurfaceMaps } from '../Surfaces';
+import { once, useSurfaceMaps } from '../Surfaces';
 import {
   canvasTexture,
   brushText,
@@ -275,17 +275,20 @@ function drawLabels(ctx: CanvasRenderingContext2D) {
   });
 }
 
+const labelAtlas = once(() =>
+  canvasTexture(128 * LABEL_CELLS, 256, drawLabels),
+);
+
 /** Lathe-turned glazed jars and canisters with lids and paper labels, as two draw calls. */
 export function JarSet({ jars }: { jars: JarSpec[] }) {
   const built = useBuilt(() => {
     const geometry = buildJars(jars);
     return {
       ...geometry,
-      atlas: canvasTexture(128 * LABEL_CELLS, 256, drawLabels),
+      atlas: labelAtlas(),
       dispose() {
         geometry.bodies.dispose();
         geometry.labels?.dispose();
-        this.atlas.dispose();
       },
     };
   });

@@ -11,10 +11,12 @@ import { TeaTable } from './props/TeaTable';
 import { BackWall } from './props/BackWall';
 import { RightWall } from './props/RightWall';
 import { Hengaku, WallShelf, WallTrim } from './props/WallDetail';
+import { Noren } from './props/Noren';
 import {
   block,
   boxUv,
   brushText,
+  Hanger,
   merge,
   offset,
   place,
@@ -42,15 +44,16 @@ function drawLanternPaper(ctx: CanvasRenderingContext2D) {
   }
 }
 
-/** A chochin paper lantern: ribbed lathe shell, lacquer caps and a cord. */
+/** Underside of the ceiling boards; lantern cords run up to it. */
+const CEILING = 3.7;
+
+/** A chochin paper lantern: ribbed lathe shell, lacquer caps, and a cord up to a ceiling rose. */
 export function PaperLantern({
   position,
-  drop = 0.6,
   light,
   radius = 0.17,
 }: {
   position: Point;
-  drop?: number;
   light?: number;
   radius?: number;
 }) {
@@ -66,7 +69,8 @@ export function PaperLantern({
       }),
     [radius],
   );
-  const half = radius * 1.25;
+  const half = radius * 1.25,
+    drop = CEILING - position[1] - half;
   return (
     <group position={position}>
       <mesh>
@@ -95,7 +99,7 @@ export function PaperLantern({
         <torusGeometry args={[0.014, 0.0025, 6, 14]} />
         <meshStandardMaterial color="#6a5028" metalness={0.8} roughness={0.4} />
       </mesh>
-      <mesh position={[0, half + drop - 0.012, 0]}>
+      <mesh position={[0, half + drop - 0.009, 0]}>
         <cylinderGeometry args={[0.035, 0.042, 0.018, 16]} />
         <meshStandardMaterial
           color="#5a4424"
@@ -203,7 +207,6 @@ function drawBamboo(ctx: CanvasRenderingContext2D) {
   for (let i = 0; i < 3; i++) ctx.fillRect(203, 330 + i * 16, 8, 7);
 }
 
-/** A hanging scroll with ink art (an enso by default), brocade border and a wooden roller. */
 /** 一期一会 ("one time, one meeting") in brush script, with a signature and seal. */
 function drawIchigo(ctx: CanvasRenderingContext2D) {
   const random = createRandom(512);
@@ -220,48 +223,51 @@ function drawIchigo(ctx: CanvasRenderingContext2D) {
   brushText(ctx, '閑', 214, 412, 18, '230,216,186');
 }
 
+// Sized to hang below the nageshi (2.26 m) and clear the wainscot rail (0.985 m).
+const SCROLL = { width: 0.5, height: 1.12, drop: 0.11 };
+/** A scroll hung by its cord from a screw eye whose ring bottom is at `hook`. */
 function Scroll({
-  position,
+  hook,
   paint = drawEnso,
   turn = Math.PI / 2,
 }: {
-  position: Point;
+  hook: Point;
   paint?: (ctx: CanvasRenderingContext2D) => void;
   turn?: number;
 }) {
   const art = useCanvasTexture(256, 512, paint);
+  const { width, height, drop } = SCROLL,
+    rod = -drop,
+    mid = rod - height / 2;
   return (
-    <group position={position} rotation={[0, turn, 0]}>
-      <mesh position={[0, 0, -0.004]} castShadow receiveShadow>
-        <boxGeometry args={[0.58, 1.36, 0.006]} />
+    <group position={hook} rotation={[0, turn, 0]}>
+      <mesh position={[0, mid, -0.004]} castShadow receiveShadow>
+        <boxGeometry args={[width, height, 0.006]} />
         <SurfaceMaterial surface="cloth" color="#4a4630" />
       </mesh>
-      <mesh position={[0, 0.03, 0]} receiveShadow>
-        <planeGeometry args={[0.44, 0.88]} />
+      <mesh position={[0, mid + 0.02, 0]} receiveShadow>
+        <planeGeometry args={[0.38, 0.76]} />
         <meshStandardMaterial map={art} roughness={0.92} />
       </mesh>
       <mesh
-        position={[0, -0.7, 0.012]}
+        position={[0, rod - height - 0.008, 0.012]}
         rotation={[0, 0, Math.PI / 2]}
         castShadow
       >
-        <cylinderGeometry args={[0.018, 0.018, 0.66, 16]} />
+        <cylinderGeometry args={[0.018, 0.018, width + 0.08, 16]} />
         <meshStandardMaterial color="#1e140d" roughness={0.4} />
       </mesh>
-      <mesh position={[0, 0.69, 0.008]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.009, 0.009, 0.6, 10]} />
+      <mesh position={[0, rod, 0.004]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.009, 0.009, width + 0.02, 10]} />
         <meshStandardMaterial color="#2b1d12" roughness={0.6} />
       </mesh>
-      {[-1, 1].map((side) => (
-        <mesh
-          key={side}
-          position={[side * 0.09, 0.8, 0.006]}
-          rotation={[0, 0, side * -0.62]}
-        >
-          <cylinderGeometry args={[0.0025, 0.0025, 0.22, 5]} />
-          <meshStandardMaterial color="#6b5a3a" roughness={0.9} />
-        </mesh>
-      ))}
+      <Hanger
+        hook={[0, 0, 0.006]}
+        ends={[
+          [-0.17, rod + 0.006, 0.006],
+          [0.17, rod + 0.006, 0.006],
+        ]}
+      />
     </group>
   );
 }
@@ -349,10 +355,11 @@ function Shoji({
   );
 }
 
+/** Boards with their top at y = 0, where every floor-standing prop is placed. */
 function Floor({ center, length }: { center: number; length: number }) {
   return (
     <Solid
-      position={[0, -0.16, center]}
+      position={[0, -0.155, center]}
       size={[8.3, 0.31, length]}
       color="#80563a"
       surface="floor"
@@ -491,6 +498,31 @@ function Tatami({ center }: { center: Point }) {
   );
 }
 const DOOR = { width: 2.6, post: 0.22, depth: 0.26, z: 3.32 };
+/** Wall andon centre: on the right jamb post's face (x 1.41, front at z 3.45), 15 cm proud. */
+const ANDON: Point = [1.41, 1.94, 3.6];
+const lacquer = '#25150e';
+// Backing plate on the post, an arm from its top, a slim frame, and a cap and base that touch it.
+const andonTimber: TimberBox[] = [
+  [[0, 0.1, -0.14], [0.05, 0.34, 0.02], lacquer],
+  [[0, 0.255, -0.035], [0.03, 0.03, 0.19], lacquer],
+  ...[-1, 1].flatMap((sx) =>
+    [-1, 1].map(
+      (sz): TimberBox => [
+        [sx * 0.066, 0, sz * 0.066],
+        [0.008, 0.22, 0.008],
+        lacquer,
+      ],
+    ),
+  ),
+  ...[-0.106, 0.106].flatMap((y) =>
+    [-1, 1].flatMap((side): TimberBox[] => [
+      [[0, y, side * 0.066], [0.14, 0.008, 0.008], lacquer],
+      [[side * 0.066, y, 0], [0.008, 0.008, 0.14], lacquer],
+    ]),
+  ),
+  [[0, 0.117, 0], [0.17, 0.014, 0.17], lacquer],
+  [[0, -0.116, 0], [0.15, 0.012, 0.15], lacquer],
+];
 const doorShoji: TimberBox[] = [
   [
     [-0.135, 0, 0.01],
@@ -579,30 +611,7 @@ const doorTimber: TimberBox[] = (() => {
     ],
     ...offset(doorShoji, [-1.46, 1.25, z - 0.04]),
     ...offset(doorShoji, [1.46, 1.25, z + 0.04]),
-    [
-      [-1.3, 2.38, z + 0.06],
-      [0.03, 0.04, 0.06],
-    ],
-    [
-      [1.3, 2.38, z + 0.06],
-      [0.03, 0.04, 0.06],
-    ],
-    ...offset(
-      [
-        [
-          [-0.08, 0.12, -0.07],
-          [0.04, 0.04, 0.14],
-        ],
-        [[0, 0.13, 0], [0.18, 0.025, 0.18], '#25150e'],
-        [[0, -0.12, 0], [0.16, 0.025, 0.16], '#25150e'],
-        ...[-0.07, 0.07].flatMap((x) =>
-          [-0.07, 0.07].map(
-            (dz): TimberBox => [[x, 0, dz], [0.014, 0.22, 0.014], '#25150e'],
-          ),
-        ),
-      ],
-      [1.32, 1.94, z + 0.2],
-    ),
+    ...offset(andonTimber, ANDON),
   ];
 })();
 
@@ -647,57 +656,17 @@ function TeaHouseDoorway() {
         />
       ))}
 
-      {/* Traditional Jasmine Dragon split noren curtain */}
-      <group position={[0, 0, 0]}>
-        <mesh position={[0, 2.38, z + 0.06]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.014, 0.014, doorWidth + 0.02, 12]} />
-          <meshStandardMaterial color="#2d1c12" roughness={0.7} />
-        </mesh>
-        {[-0.82, 0, 0.82].map((nx, idx) => (
-          <group key={idx}>
-            <Solid
-              position={[nx, 2.38, z + 0.06]}
-              size={[0.08, 0.04, 0.032]}
-              color="#3c4c34"
-              surface="cloth"
-            />
-            <Solid
-              position={[nx, 2.2, z + 0.06]}
-              size={[0.74, 0.34, 0.014]}
-              color="#425339"
-              surface="cloth"
-            />
-          </group>
-        ))}
+      {/* Split noren on a rod just under the lintel soffit (2.41), clear of the andon */}
+      <Noren position={[0, 2.38, z + 0.08]} span={doorWidth + 0.02} />
 
-        {/* Jasmine Dragon Crest on center noren panel */}
-        <mesh position={[0, 2.2, z + 0.068]}>
-          <circleGeometry args={[0.075, 24]} />
-          <meshStandardMaterial color="#eae2cb" roughness={0.9} />
+      {/* Wall andon on the jamb: lit washi inside the frame, hung from the bracket arm */}
+      <group position={ANDON}>
+        <mesh>
+          <boxGeometry args={[0.13, 0.204, 0.13]} />
+          <SurfaceMaterial surface="shoji" color="#f2dcb2" glow={1.6} />
         </mesh>
-        <mesh position={[0, 2.2, z + 0.07]} rotation={[0, 0, 0.35]}>
-          <ringGeometry args={[0.015, 0.045, 16]} />
-          <meshStandardMaterial color="#425339" roughness={0.9} />
-        </mesh>
-      </group>
-
-      {/* Warm doorway lantern on jamb */}
-      <group position={[1.32, 1.94, z + 0.2]}>
-        <mesh position={[0, 0, 0]} castShadow>
-          <boxGeometry args={[0.14, 0.22, 0.14]} />
-          <meshStandardMaterial
-            color="#ffe5b0"
-            emissive="#ffa834"
-            emissiveIntensity={0.65}
-            roughness={0.9}
-          />
-        </mesh>
-        <pointLight
-          position={[0, 0, 0.04]}
-          color="#ffcf8e"
-          intensity={2.2}
-          distance={4.2}
-        />
+        <Hanger hook={[0, 0.226, 0]} ends={[[0, 0.124, 0]]} />
+        <pointLight color="#ffcf8e" intensity={2.2} distance={4.2} />
       </group>
     </group>
   );
@@ -756,22 +725,24 @@ export function WaitingRoom() {
         ])}
       />
       <Shoji x={3.95} z={6.8} width={2.15} />
-      <Counter />
-      <WaitingDressing />
-      <Scroll position={[-3.99, 1.72, 9.05]} paint={drawBamboo} />
-      <PaperLantern position={[-2.3, 2.5, 5.55]} drop={0.92} light={7} />
-      <PaperLantern position={[-1.2, 2.62, 7.35]} drop={0.8} light={5} />
+      <PaperLantern position={[-2.3, 2.5, 5.6]} light={7} />
+      <PaperLantern position={[-2.5, 2.55, 8.3]} light={5} />
     </group>
   );
 }
 
-export function TeaChamber({
-  children,
-  reduced,
-}: {
-  children: React.ReactNode;
-  reduced: boolean;
-}) {
+/** Waiting-room furniture and wall pieces; mounts after the shell and holds no lights. */
+export function WaitingDetail() {
+  return (
+    <>
+      <Counter />
+      <WaitingDressing />
+      <Scroll hook={[-3.99, 2.255, 9.05]} paint={drawBamboo} />
+    </>
+  );
+}
+
+export function TeaChamber({ children }: { children: React.ReactNode }) {
   return (
     <group name="tea-chamber">
       <Floor center={-1.5} length={9.7} />
@@ -794,16 +765,7 @@ export function TeaChamber({
         to={3.25}
         posts={[-6.1, -3.4, -0.9, 1.7]}
       />
-      <Scroll position={[-3.99, 1.62, -4.62]} />
-      <Scroll position={[-3.99, 1.62, 0.4]} paint={drawBamboo} />
-      <Scroll
-        position={[3.99, 1.62, -2.45]}
-        paint={drawIchigo}
-        turn={-Math.PI / 2}
-      />
       <Andon position={[-3.5, 0, -1.95]} />
-      <WallShelf position={[-3.865, 1.42, -2.25]} />
-      <Hengaku position={[-3.99, 2.84, -2.15]} />
       <RightWall />
       <Timber
         items={[-5.94, -1.53, 3.17].map((z) => [
@@ -820,6 +782,36 @@ export function TeaChamber({
       />
       <BackWall />
       <Tatami center={[0, 0, -2.5]} />
+      <TeaTable />
+      <PaperLantern position={[-1.05, 2.45, -2.6]} light={3.6} />
+      <pointLight
+        position={[-2.3, 2.45, -5.25]}
+        intensity={7}
+        color="#ffd5a0"
+        distance={7}
+      />
+      {children}
+    </group>
+  );
+}
+
+/**
+ * Chamber dressing and wall pieces; mounts after the shell and holds no lights. Its
+ * one-shot contact shadow renders here so it sees the cushions and dressing.
+ */
+export function ChamberDetail({ reduced }: { reduced: boolean }) {
+  return (
+    <>
+      <Scroll hook={[-3.99, 2.255, -4.62]} />
+      <Scroll hook={[-3.99, 2.255, 0.4]} paint={drawBamboo} />
+      <Scroll
+        hook={[3.99, 2.255, -2.45]}
+        paint={drawIchigo}
+        turn={-Math.PI / 2}
+      />
+      <WallShelf position={[-3.895, 1.42, -2.25]} />
+      <Hengaku position={[-3.99, 2.84, -2.15]} />
+      <ChamberDressing reduced={reduced} />
       <ContactShadows
         position={[0, 0.054, -2.5]}
         opacity={0.55}
@@ -830,16 +822,6 @@ export function TeaChamber({
         frames={1}
         color="#1c110a"
       />
-      <TeaTable />
-      <ChamberDressing reduced={reduced} />
-      <PaperLantern position={[-1.05, 2.45, -2.6]} drop={0.96} light={3.6} />
-      <pointLight
-        position={[-2.3, 2.45, -5.25]}
-        intensity={7}
-        color="#ffd5a0"
-        distance={7}
-      />
-      {children}
-    </group>
+    </>
   );
 }

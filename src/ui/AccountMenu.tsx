@@ -56,7 +56,7 @@ export function AccountMenu({ user }: { user: PublicUser | null }) {
         <span className="account-avatar" aria-hidden="true">
           ◒
         </span>
-        <span>{user.nickname}</span>
+        <span className="account-name">{user.nickname}</span>
         <span className="account-chevron" aria-hidden="true">
           ⌄
         </span>

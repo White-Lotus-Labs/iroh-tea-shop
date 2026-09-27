@@ -1,6 +1,6 @@
-# Tea After Pour
+# Iroh's Tea Shop
 
-**Tea After Pour** is a 3D tea shop for the Nansen Meridian Buildathon. A wise tea master, Uncle, hosts the room (code identifiers still say Iroh; visible copy says Uncle). Guests move through a locked scroll dock: Waiting room, Counter (Thesis Desk), Host, Shelf, and Observatorium. Panels are ancient Chinese hanging scrolls, closed by default, with incense-ring halos and ink teasers. Stack: Next.js 16, React 19, React Three Fiber, Prisma/SQLite.
+**Iroh's Tea Shop** is a 3D tea shop for the Nansen Meridian Buildathon. A wise tea master, Uncle, hosts the room (code identifiers still say Iroh; visible copy says Uncle). Guests move through a locked scroll dock: Waiting room, Counter (Thesis Desk), Host, Shelf, and Observatorium. Panels are ancient Chinese hanging scrolls, closed by default, with incense-ring halos and ink teasers. Stack: Next.js 16, React 19, React Three Fiber, Prisma/SQLite.
 
 ![Room from the entrance toward the counter](docs/screenshots/room-wide.webp)
 ![Thesis Desk with three books](docs/screenshots/thesis-desk.webp)

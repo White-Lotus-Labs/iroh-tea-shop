@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MotionPreference, Station } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import type { IrohActivity } from '../scene/TeaHost3D';
-import { STATIONS } from '../scene/stations';
+import { RECENTER_EVENT, STATIONS } from '../scene/stations';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
 import { SmartWalletShelf } from './SmartWalletShelf';
@@ -14,19 +14,44 @@ import {
   type NansenAvailability,
 } from '../nansen/availability';
 import { IrohSession } from '../nansen/session';
-import { IrohChat } from './IrohChat';
-import { SceneLoader } from './SceneLoader';
 import { StationDock } from './StationDock';
-import { ThesisDeck } from './ThesisDeck';
 import type { ConvictionLevel, ThesisId } from '../thesis/types';
 import { convictionToMood } from './convictionMood';
 import { InkLine, STATION_TEASERS } from './stationTeasers';
+import { WaitingRoom } from './waiting-room/WaitingRoom';
+import { WaitingVersions } from './waiting-room/Versions';
+import { MusicToggle } from './MusicToggle';
 
-// SceneLoader covers the stage while the scene chunk downloads.
-const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
+// Scene / deck / chat stay out of the first paint; idle preloads warm them.
+const loadTeaRoom = () => import('../scene/TeaRoom');
+const loadThesisDeck = () =>
+  import('./ThesisDeck').then((m) => ({ default: m.ThesisDeck }));
+const loadIrohChat = () =>
+  import('./IrohChat').then((m) => ({ default: m.IrohChat }));
+
+const TeaRoom = dynamic(loadTeaRoom, {
   ssr: false,
   loading: () => <div className="scene-fallback" />,
 });
+const ThesisDeck = dynamic(loadThesisDeck, {
+  loading: () => null,
+});
+const IrohChat = dynamic(loadIrohChat, {
+  loading: () => null,
+});
+
+function idlePreload(load: () => Promise<unknown>) {
+  if (typeof window.requestIdleCallback === 'function') {
+    const handle = window.requestIdleCallback(() => {
+      void load();
+    });
+    return () => window.cancelIdleCallback(handle);
+  }
+  const timer = window.setTimeout(() => {
+    void load();
+  }, 200);
+  return () => window.clearTimeout(timer);
+}
 
 const THESIS_IDS: ThesisId[] = ['robinhood', 'bullrun', 'ai'];
 
@@ -52,6 +77,7 @@ export default function TeaRoomShell({
     mood: 'waiting',
   });
   const [initialThesis, setInitialThesis] = useState<ThesisId | null>(null);
+  const [selectedThesis, setSelectedThesis] = useState<ThesisId | null>(null);
   const [uncleDraft, setUncleDraft] = useState<{
     text: string;
     key: number;
@@ -63,6 +89,28 @@ export default function TeaRoomShell({
   const [sceneReady, setSceneReady] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const onReveal = useCallback(() => setRevealed(true), []);
+  // Warm the 3D room while the waiting room covers the stage.
+  useEffect(() => idlePreload(loadTeaRoom), []);
+  // Warm Counter / Host panels once the room is ready to enter.
+  useEffect(() => {
+    if (!sceneReady) return;
+    return idlePreload(() => Promise.all([loadThesisDeck(), loadIrohChat()]));
+  }, [sceneReady]);
+  useEffect(() => {
+    if (!revealed) return;
+    const prefetch = () => {
+      for (const id of THESIS_IDS) {
+        const img = new Image();
+        img.src = `/images/theses/${id}-600w.webp`;
+      }
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(prefetch);
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(prefetch, 1);
+    return () => window.clearTimeout(timer);
+  }, [revealed]);
   const panel = useRef<HTMLElement>(null);
   const openHint = useRef<HTMLButtonElement>(null);
   // Deep link opens the Counter panel once after the camera arrives.
@@ -205,6 +253,7 @@ export default function TeaRoomShell({
   }, [panelOpen, station, closePanel]);
   const onOpenThesis = useCallback(
     (id: ThesisId, conviction: ConvictionLevel | null) => {
+      setSelectedThesis(id);
       setPour({
         key: `thesis:${id}:${Date.now()}`,
         mood: convictionToMood(conviction),
@@ -213,8 +262,18 @@ export default function TeaRoomShell({
     [],
   );
   const onCloseThesis = useCallback(() => {
+    setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
+  const pickThesis = useCallback(
+    (id: ThesisId) => {
+      setSelectedThesis(id);
+      if (station === 'Counter') return setPanelOpen(true);
+      navigate('Counter');
+      deepLinkOpenOnce.current = true;
+    },
+    [station, navigate],
+  );
   const onTalkToUncle = useCallback((text: string) => {
     setUncleDraft({ text, key: Date.now() });
     setCameraAt(null);
@@ -268,26 +327,33 @@ export default function TeaRoomShell({
       data-iroh-activity={irohActivity}
       data-camera-at={cameraAt ?? undefined}
       data-shelf-view={shelfView}
-      aria-busy={!revealed}
+      aria-busy={!sceneReady}
     >
-      <SceneLoader
+      <WaitingRoom
+        open={isEntrance}
         ready={sceneReady}
         progress={loaderProgress}
         reduced={reduced}
-        onReveal={onReveal}
-      />
+        onEnter={() => {
+          onReveal();
+          navigate('Counter');
+        }}
+      >
+        <WaitingVersions reduced={reduced} />
+      </WaitingRoom>
       <header className="topbar">
         <a href="#main-panel" className="brand">
           <span className="brand-mark" aria-hidden="true">
             ◒
           </span>
           <span className="brand-text">
-            Tea After Pour
+            Iroh&apos;s Tea Shop
             <small>A QUIET ROOM FOR A FINISHED THESIS</small>
           </span>
         </a>
 
         <div className="topbar-right">
+          <MusicToggle floating={isEntrance} />
           <div className="status-indicator">
             <button className="status-icon" aria-label="Data source status">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -366,7 +432,22 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
+            onThesisPick={pickThesis}
+            onNavigate={navigate}
+            polish={revealed}
           />
+
+          {!isEntrance && sceneAvailable && (
+            <button
+              type="button"
+              className="recenter-view"
+              aria-label="Recenter view"
+              title="Recenter view"
+              onClick={() => window.dispatchEvent(new Event(RECENTER_EVENT))}
+            >
+              <span aria-hidden="true">◎</span>
+            </button>
+          )}
 
           {canApproachShelf && (
             <button
@@ -473,6 +554,7 @@ export default function TeaRoomShell({
                   nansen={nansen}
                   reduced={reduced}
                   initialThesis={initialThesis}
+                  selectedThesis={selectedThesis}
                   onOpenThesis={onOpenThesis}
                   onCloseThesis={onCloseThesis}
                   onTalkToUncle={onTalkToUncle}

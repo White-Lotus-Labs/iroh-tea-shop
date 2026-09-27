@@ -9,11 +9,13 @@ const display = Cormorant_Garamond({
   style: ['normal', 'italic'],
   variable: '--font-display-face',
   display: 'swap',
+  preload: true,
 });
 const body = Inter({
   subsets: ['latin'],
   variable: '--font-body-face',
   display: 'swap',
+  preload: true,
 });
 // Decorative glyphs only; unicode-range slices mean the browser fetches just the few used characters.
 const cjk = Noto_Serif_SC({
@@ -25,7 +27,7 @@ const cjk = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  title: 'Tea After Pour — A quiet room for a finished thesis',
+  title: "Iroh's Tea Shop — A quiet room for a finished thesis",
   description:
     'Bring your reasoning. Separate observation from inference in a warm, guided tea room. PASS A uses clearly labeled synthetic demo data.',
 };
@@ -39,9 +41,6 @@ export default function RootLayout({
       lang="en"
       className={`${display.variable} ${body.variable} ${cjk.variable}`}
     >
-      <head>
-        <link rel="preload" as="image" href="/images/counter-wall.jpg" />
-      </head>
       <body>{children}</body>
     </html>
   );

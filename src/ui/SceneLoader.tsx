@@ -2,8 +2,6 @@
 import { useEffect, useRef, useState } from 'react';
 
 const LEAVE_MS = 900;
-// The bar is paced so it never completes faster than this, even on a warm cache.
-const MIN_VISIBLE_MS = 2600;
 // Higher is snappier; the displayed value eases toward its goal each frame.
 const EASE_RATE = 2.4;
 
@@ -35,17 +33,14 @@ export function SceneLoader({
   }, [goal]);
   useEffect(() => {
     if (reduced) return;
-    const start = performance.now();
-    let last = start;
+    let last = performance.now();
     let value = 0;
     let frame = 0;
     const tick = (now: number) => {
       const dt = Math.min(now - last, 64) / 1000;
       last = now;
-      const paced = Math.min(100, ((now - start) / MIN_VISIBLE_MS) * 100);
-      const next = Math.min(target.current, paced);
-      value += (next - value) * (1 - Math.exp(-dt * EASE_RATE));
-      if (next - value < 0.15) value = next;
+      value += (target.current - value) * (1 - Math.exp(-dt * EASE_RATE));
+      if (target.current - value < 0.15) value = target.current;
       setShown(value);
       if (value >= 100) {
         setFinished(true);

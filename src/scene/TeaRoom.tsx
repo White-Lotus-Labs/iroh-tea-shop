@@ -3,210 +3,42 @@ import {
   Suspense,
   type ReactNode,
   useEffect,
-  useMemo,
-  useRef,
   useState,
 } from 'react';
-import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
-import {
-  Billboard,
-  ContactShadows,
-  Html,
-  useProgress,
-} from '@react-three/drei';
-import { AdditiveBlending, Color, ShaderMaterial, Vector3 } from 'three';
-import { InkLine, STATION_TEASERS } from '../ui/stationTeasers';
+import dynamic from 'next/dynamic';
+import { Canvas, type RootState } from '@react-three/fiber';
+import { ContactShadows, useProgress } from '@react-three/drei';
+import { WebGLRenderTarget } from 'three';
 import { CameraRig } from './CameraRig';
+import { StationHalos } from './StationHalos';
 import { TeaRitual, LanternLight } from './TeaRitual';
-import { MechanicalPlanetarySystem } from './MechanicalPlanetarySystem';
+import {
+  MechanicalPlanetarySystem,
+  OrreryLight,
+} from './MechanicalPlanetarySystem';
 import { TeaHost3D, type IrohActivity } from './TeaHost3D';
-import { TeaShelf } from './TeaShelf';
-import { TeaChamber, WaitingRoom } from './TeaArchitecture';
+import { ShelfLanternLight, TeaShelf } from './TeaShelf';
+import {
+  ChamberDetail,
+  TeaChamber,
+  WaitingDetail,
+  WaitingRoom,
+} from './TeaArchitecture';
 import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
 import { DevShotCamera } from './DevShotCamera';
-import { SceneEffects } from './SceneEffects';
+import { SceneLighting, Staged } from './SceneEffects';
+import { lightExperience } from './lightExperience';
+import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
+import type { ThesisId } from '../thesis/types';
 
-const HALO_VERTEX = /* glsl */ `
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`;
-// A golden ring of incense smoke: a noisy ring, soft glow, drifting wisps, and an inviting ripple.
-const HALO_FRAGMENT = /* glsl */ `
-uniform float uTime;
-uniform float uOpacity;
-uniform float uRipple;
-uniform vec3 uColor;
-varying vec2 vUv;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise(vec2 p) {
-  vec2 i = floor(p), f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
-             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
-}
-void main() {
-  vec2 p = vUv - 0.5;
-  float r = length(p) * 2.0;
-  float a = atan(p.y, p.x) / 6.2831853 + 0.5;
-  float n = noise(vec2(a * 9.0 + uTime * 0.35, uTime * 0.22));
-  float n2 = noise(vec2(a * 17.0 - uTime * 0.6, r * 5.0 - uTime * 0.5));
-  float ringR = 0.42 + (n - 0.5) * 0.07;
-  float ring = exp(-pow((r - ringR) / (0.03 + n2 * 0.035), 2.0));
-  float halo = exp(-pow((r - ringR) / 0.17, 2.0)) * 0.32;
-  float core = exp(-r * r * 9.0) * 0.22;
-  float wisps = smoothstep(0.58, 0.95, n2) * exp(-pow((r - ringR - 0.14) / 0.12, 2.0)) * 0.55;
-  float t = fract(uTime * 0.42);
-  float ripple = exp(-pow((r - (0.42 + t * 0.5)) / 0.025, 2.0)) * (1.0 - t) * 0.6 * uRipple;
-  float alpha = (ring + halo + core + wisps + ripple) * smoothstep(1.0, 0.8, r) * uOpacity;
-  gl_FragColor = vec4(uColor * (0.6 + ring * 0.5), clamp(alpha * 0.85, 0.0, 1.0));
-}`;
-
-function StationMenuHalo({
-  station,
-  reduced,
-  onOpen,
-}: {
-  station: Station;
-  reduced: boolean;
-  onOpen: () => void;
-}) {
-  const anchor = STATIONS.find((place) => place.id === station)!;
-  const teaser = STATION_TEASERS[station];
-  // The Observatorium has no panel: its halo only points at the orrery's own click-to-wind.
-  const clickable = station !== 'TeaTable';
-  const material = useMemo(
-    () =>
-      new ShaderMaterial({
-        vertexShader: HALO_VERTEX,
-        fragmentShader: HALO_FRAGMENT,
-        uniforms: {
-          uTime: { value: 0 },
-          uOpacity: { value: 0 },
-          uRipple: { value: reduced ? 0 : 1 },
-          uColor: { value: new Color('#f3c579') },
-        },
-        transparent: true,
-        depthTest: false,
-        depthWrite: false,
-        blending: AdditiveBlending,
-      }),
-    [reduced],
-  );
-  useEffect(() => () => material.dispose(), [material]);
-  // Show the label only once the camera rests at this station, never mid-travel.
-  const [settledAt, setSettledAt] = useState<Station | null>(null);
-  const [shownFor, setShownFor] = useState(station);
-  if (shownFor !== station) {
-    setShownFor(station);
-    setSettledAt(null);
-  }
-  const motion = useRef({
-    last: new Vector3(),
-    still: 0,
-    station,
-    settled: false,
-  });
-  const settled = settledAt === station;
-  useFrame(({ camera, clock }, delta) => {
-    const m = motion.current;
-    const dt = Math.max(delta, 1e-3);
-    const speed = camera.position.distanceTo(m.last) / dt;
-    m.last.copy(camera.position);
-    if (m.station !== station) {
-      m.station = station;
-      m.still = 0;
-      m.settled = false;
-    }
-    // Hysteresis: small orbit drags keep the label; real travel hides it.
-    if (m.settled && speed > 0.8) {
-      m.settled = false;
-      m.still = 0;
-      setSettledAt(null);
-    } else if (!m.settled) {
-      m.still = speed < 0.08 ? m.still + dt : 0;
-      if (m.still > 0.3) {
-        m.settled = true;
-        setSettledAt(station);
-      }
-    }
-    const u = material.uniforms;
-    if (!reduced) u.uTime.value = clock.elapsedTime;
-    const goal = m.settled ? 1 : 0;
-    u.uOpacity.value = reduced
-      ? goal
-      : u.uOpacity.value + (goal - u.uOpacity.value) * Math.min(1, dt * 5);
-  });
-  const handlers = clickable
-    ? {
-        onClick: (event: ThreeEvent<MouseEvent>) => {
-          event.stopPropagation();
-          onOpen();
-        },
-        onPointerOver: (event: ThreeEvent<PointerEvent>) => {
-          event.stopPropagation();
-          document.body.style.cursor = 'pointer';
-        },
-        onPointerOut: () => {
-          document.body.style.cursor = '';
-        },
-      }
-    : {};
-  return (
-    <group position={anchor.hotspot} name={`${station}-menu-halo`}>
-      <pointLight
-        color="#f3c579"
-        intensity={settled ? (reduced ? 0.55 : 0.9) : 0}
-        distance={2.5}
-      />
-      <Billboard follow>
-        <group {...handlers}>
-          <mesh material={material} renderOrder={10}>
-            <planeGeometry args={[0.72, 0.72]} />
-          </mesh>
-          <mesh>
-            <circleGeometry args={[0.24, 32]} />
-            <meshBasicMaterial
-              transparent
-              opacity={0}
-              depthTest={false}
-              depthWrite={false}
-            />
-          </mesh>
-        </group>
-      </Billboard>
-      {settled && teaser && (
-        <Html
-          // Shelf: sit above the top bay so the three hanging papers stay clear.
-          position={station === 'Shelf' ? [-0.15, 1.72, 0] : [0, 0.3, 0]}
-          center
-          zIndexRange={[6, 0]}
-          wrapperClass="halo-label-wrap"
-          pointerEvents={clickable ? 'auto' : 'none'}
-        >
-          <div
-            className="halo-label"
-            aria-hidden="true"
-            tabIndex={-1}
-            data-clickable={clickable}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (clickable) onOpen();
-            }}
-          >
-            <span className="halo-label-seal">{teaser.glyph}</span>
-            <InkLine text={teaser.text} className="halo-label-text" />
-          </div>
-        </Html>
-      )}
-    </group>
-  );
-}
+// AO, bloom, and the room environment stay out of the entrance download.
+const ScenePolish = dynamic(
+  () => import('./ScenePolish').then((mod) => ({ default: mod.ScenePolish })),
+  { ssr: false, loading: () => null },
+);
 
 function RoomGeometry({
   mood,
@@ -218,6 +50,9 @@ function RoomGeometry({
   station,
   menuClosed,
   onMenuOpen,
+  onThesisPick,
+  onNavigate,
+  polish,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -228,6 +63,9 @@ function RoomGeometry({
   station: Station;
   menuClosed: boolean;
   onMenuOpen: () => void;
+  onThesisPick?: (id: ThesisId) => void;
+  onNavigate: (station: Station) => void;
+  polish: boolean;
 }) {
   return (
     <>
@@ -238,9 +76,10 @@ function RoomGeometry({
         color="#ffb877"
         intensity={2.1}
         castShadow
-        shadow-bias={-0.00035}
-        shadow-normalBias={0.025}
-        shadow-mapSize={[2048, 2048]}
+        // About one texel of normal bias: more lifts contact shadows and props look afloat.
+        shadow-bias={-0.0003}
+        shadow-normalBias={0.011}
+        shadow-mapSize={lightExperience() ? [1024, 1024] : [2048, 2048]}
         shadow-radius={3}
         shadow-camera-left={-10}
         shadow-camera-right={10}
@@ -264,8 +103,14 @@ function RoomGeometry({
         intensity={2.4}
         distance={3.2}
       />
+      <OrreryLight />
+      <ShelfLanternLight />
+      <SceneLighting reduced={reduced} />
       <WaitingRoom />
-      <TeaChamber reduced={reduced}>
+      {/* Later group: no lights, so the shell's programs stay valid when it arrives. */}
+      <Staged reduced={reduced} precompile={compileRoom}>
+        <WaitingDetail />
+        <ChamberDetail reduced={reduced} />
         <ContactShadows
           position={[0, 0.016, -2.55]}
           opacity={0.3}
@@ -276,27 +121,50 @@ function RoomGeometry({
           frames={1}
           color="#25180f"
         />
-        <LanternLight mood={mood} reduced={reduced} />
-        <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
         <MechanicalPlanetarySystem reduced={reduced} />
-        <Suspense fallback={null}>
-          <TeaHost3D reduced={reduced} activity={irohActivity} />
-        </Suspense>
         <TeaShelf
           onSelect={onShelfSelect}
           revealed={shelfRevealed}
           reduced={reduced}
+          posters={station !== 'Entrance'}
         />
-        {menuClosed && (
-          <StationMenuHalo
-            station={station}
-            reduced={reduced}
-            onOpen={onMenuOpen}
-          />
-        )}
+        <ThesisCards
+          halos={station === 'Counter' && menuClosed}
+          reduced={reduced}
+          onPick={onThesisPick}
+        />
+        <StationHalos
+          station={station}
+          menuClosed={menuClosed}
+          reduced={reduced}
+          onNavigate={onNavigate}
+          onMenuOpen={onMenuOpen}
+          onShelfSelect={onShelfSelect}
+        />
+        {polish && <ScenePolish reduced={reduced} />}
+      </Staged>
+      <TeaChamber>
+        <LanternLight mood={mood} reduced={reduced} />
+        <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
+        <Suspense fallback={null}>
+          <TeaHost3D reduced={reduced} activity={irohActivity} />
+        </Suspense>
       </TeaChamber>
     </>
   );
+}
+
+/**
+ * Builds every program in the room while the loader is up, so the first drag never
+ * compiles a shader. Any offscreen target selects the variants the composer renders with.
+ */
+function compileRoom({ gl, scene, camera }: RootState) {
+  const target = new WebGLRenderTarget(1, 1),
+    previous = gl.getRenderTarget();
+  gl.setRenderTarget(target);
+  const done = gl.compileAsync(scene, camera);
+  gl.setRenderTarget(previous);
+  return done.finally(() => target.dispose());
 }
 
 class SceneBoundary extends Component<
@@ -333,6 +201,9 @@ export default function TeaRoom({
   shelfRevealed,
   menuClosed,
   onMenuOpen,
+  onThesisPick,
+  onNavigate,
+  polish,
 }: {
   station: Station;
   reduced: boolean;
@@ -351,6 +222,9 @@ export default function TeaRoom({
   shelfRevealed: boolean;
   menuClosed: boolean;
   onMenuOpen: () => void;
+  onThesisPick?: (id: ThesisId) => void;
+  onNavigate: (station: Station) => void;
+  polish: boolean;
 }) {
   const [lost, setLost] = useState(false);
   // Textures load through three's default manager, which useProgress observes.
@@ -358,8 +232,7 @@ export default function TeaRoom({
   useEffect(() => {
     onLoadProgress?.(active, progress);
   }, [active, progress, onLoadProgress]);
-  const initialMobile =
-    typeof window !== 'undefined' && window.innerWidth < 760;
+  const light = lightExperience();
   const counterPosition = STATIONS.find(
     (place) => place.id === 'Counter',
   )!.position;
@@ -378,9 +251,9 @@ export default function TeaRoom({
     >
       <Canvas
         shadows="percentage"
-        dpr={[1, 1.5]}
+        dpr={light ? [1, 1] : [1, 1.25]}
         camera={{
-          position: initialMobile ? [0.05, 1.66, 7.82] : counterPosition,
+          position: light ? [0.05, 1.66, 7.82] : counterPosition,
           fov: 58,
           near: 0.08,
           far: 45,
@@ -411,6 +284,9 @@ export default function TeaRoom({
             station={station}
             menuClosed={menuClosed}
             onMenuOpen={onMenuOpen}
+            onThesisPick={onThesisPick}
+            onNavigate={onNavigate}
+            polish={polish}
           />
         </Surfaces>
         <CameraRig
@@ -424,7 +300,6 @@ export default function TeaRoom({
           onArrive={onArrive}
         />
         <DevShotCamera />
-        <SceneEffects reduced={reduced} />
       </Canvas>
     </SceneBoundary>
   );

@@ -45,7 +45,7 @@ export default function AuthScreen() {
             ◒
           </span>
           <span>
-            Tea After Pour<small>A QUIET ROOM FOR A FINISHED THESIS</small>
+            Iroh&apos;s Tea Shop<small>A QUIET ROOM FOR A FINISHED THESIS</small>
           </span>
         </div>
         <span className="auth-topbar-note">A PRIVATE PAUSE</span>
