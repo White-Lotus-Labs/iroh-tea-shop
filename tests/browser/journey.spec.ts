@@ -60,7 +60,9 @@ test('complete ritual twice, evidence, input preservation and Shelf navigation',
       .click();
     await page.getByRole('button', { name: 'Approach the Shelf' }).click();
     await expect(
-      page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
+      page.getByRole('heading', {
+        name: /Top 10 (?:Hyperliquid|HL) Leaderboard/,
+      }),
     ).toBeVisible();
     await expect(page.getByTestId('leaderboard-parchment')).not.toContainText(
       thesis,
@@ -166,7 +168,9 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
     .click();
   await page.getByRole('button', { name: 'Approach the Shelf' }).click();
   await expect(
-    page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
+    page.getByRole('heading', {
+      name: /Top 10 (?:Hyperliquid|HL) Leaderboard/,
+    }),
   ).toBeVisible();
   expect(
     await page.evaluate(

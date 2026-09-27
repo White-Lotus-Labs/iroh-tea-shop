@@ -83,12 +83,69 @@ function Wallet({
   );
 }
 
+function FreshnessPopover({
+  snapshot,
+  age,
+  onClose,
+}: {
+  snapshot: SmartWalletLeaderboardSnapshot | null;
+  age: number;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="leaderboard-freshness-popover"
+      role="region"
+      aria-label="Data freshness explanation"
+    >
+      <div className="leaderboard-freshness-head">
+        <strong>Data Freshness &amp; Source</strong>
+        <button
+          type="button"
+          className="leaderboard-freshness-close"
+          onClick={onClose}
+          aria-label="Close freshness info"
+        >
+          ✕
+        </button>
+      </div>
+      <p>
+        Rankings are powered by Nansen&apos;s 30-day Hyperliquid perpetuals
+        leaderboard (Smart HL Perps Traders).
+      </p>
+      <p>Server snapshot refreshes automatically every 30 minutes.</p>
+      <p className="leaderboard-freshness-age">
+        {snapshot
+          ? `Snapshot updated ${age === 0 ? 'just now' : `${age} min ago`}.`
+          : 'Fetching snapshot…'}
+      </p>
+    </div>
+  );
+}
+
 export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   const [snapshot, setSnapshot] =
     useState<SmartWalletLeaderboardSnapshot | null>(lastSnapshot);
   const [loading, setLoading] = useState(!lastSnapshot);
   const [error, setError] = useState<string | null>(null);
+  const [freshnessAnchor, setFreshnessAnchor] = useState<
+    'header' | 'footer' | null
+  >(null);
   const pending = useRef(false);
+
+  const toggleFreshness = useCallback((anchor: 'header' | 'footer') => {
+    setFreshnessAnchor((prev) => (prev === anchor ? null : anchor));
+  }, []);
+
+  useEffect(() => {
+    if (!freshnessAnchor) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFreshnessAnchor(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [freshnessAnchor]);
+
   const load = useCallback(async () => {
     if (pending.current) return;
     pending.current = true;
@@ -170,8 +227,30 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
           </svg>
           {!unconfigured && (
             <>
-              <h1>Top 10 Smart Wallets</h1>
-              <p>The White Lotus Order</p>
+              <h1>Top 10 Hyperliquid Leaderboard</h1>
+              <p className="leaderboard-subhead">The White Lotus Order</p>
+              <div className="leaderboard-attribution">
+                <span>
+                  Powered by <strong>Nansen</strong>
+                </span>
+                <button
+                  type="button"
+                  className="leaderboard-info-btn"
+                  onClick={() => toggleFreshness('header')}
+                  aria-label="Explain data freshness"
+                  aria-expanded={freshnessAnchor === 'header'}
+                  title="Data freshness info"
+                >
+                  <span aria-hidden="true">ⓘ</span>
+                </button>
+              </div>
+              {freshnessAnchor === 'header' && (
+                <FreshnessPopover
+                  snapshot={snapshot}
+                  age={age}
+                  onClose={() => setFreshnessAnchor(null)}
+                />
+              )}
             </>
           )}
         </header>
@@ -219,21 +298,42 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
           </div>
         ) : (
           <p className="leaderboard-message">
-            No Smart Wallets were returned for this period.
+            No Hyperliquid traders were returned for this period.
           </p>
         )}
         {!unconfigured && (
-          <footer className="leaderboard-foot">
-            <span>
-              Illustrated ranks · server snapshot refreshes every 30 min
-            </span>
-            {snapshot && <span>Updated {age} min ago</span>}
-            {snapshot?.stale && (
-              <button type="button" onClick={() => void load()}>
-                Retry leaderboard
-              </button>
+          <>
+            {freshnessAnchor === 'footer' && (
+              <FreshnessPopover
+                snapshot={snapshot}
+                age={age}
+                onClose={() => setFreshnessAnchor(null)}
+              />
             )}
-          </footer>
+            <footer className="leaderboard-foot">
+              <div className="leaderboard-foot-brand">
+                <span>Illustrated ranks · Powered by Nansen</span>
+                <button
+                  type="button"
+                  className="leaderboard-info-btn"
+                  onClick={() => toggleFreshness('footer')}
+                  aria-label="Explain data freshness"
+                  aria-expanded={freshnessAnchor === 'footer'}
+                  title="Data freshness info"
+                >
+                  <span aria-hidden="true">ⓘ</span>
+                </button>
+              </div>
+              {snapshot && (
+                <span>Updated {age === 0 ? 'just now' : `${age} min ago`}</span>
+              )}
+              {snapshot?.stale && (
+                <button type="button" onClick={() => void load()}>
+                  Retry leaderboard
+                </button>
+              )}
+            </footer>
+          </>
         )}
       </div>
       <div className="parchment-rod parchment-rod-bottom" aria-hidden="true" />

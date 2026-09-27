@@ -23,25 +23,27 @@ function faceGeometry() {
     const radius = ring / rings;
     for (let side = 0; side < sides; side++) {
       const angle = (side / sides) * Math.PI * 2;
-      const x = Math.cos(angle) * radius * 0.226;
-      const y = Math.sin(angle) * radius * 0.264;
+      const x = Math.cos(angle) * radius * 0.205;
+      const y = Math.sin(angle) * radius * 0.245;
       const skull = Math.sqrt(
-        Math.max(0.03, 1 - (x / 0.265) ** 2 - (y / 0.31) ** 2),
+        Math.max(0.03, 1 - (x / 0.21) ** 2 - (y / 0.26) ** 2),
       );
       const nose =
-        0.059 * Math.exp(-((x / 0.052) ** 2 + ((y + 0.035) / 0.086) ** 2));
+        0.052 * Math.exp(-((x / 0.046) ** 2 + ((y + 0.03) / 0.078) ** 2));
       const cheeks =
-        0.009 *
+        0.008 *
         Math.exp(
-          -(((Math.abs(x) - 0.112) / 0.07) ** 2 + ((y + 0.07) / 0.07) ** 2),
+          -(((Math.abs(x) - 0.095) / 0.062) ** 2 + ((y + 0.06) / 0.065) ** 2),
         );
       const brow =
-        0.009 *
+        0.008 *
         Math.exp(
-          -(((Math.abs(x) - 0.112) / 0.058) ** 2 + ((y - 0.06) / 0.037) ** 2),
+          -(((Math.abs(x) - 0.095) / 0.052) ** 2 + ((y - 0.055) / 0.035) ** 2),
         );
-      positions.push(x, y, 0.25 * skull + nose + cheeks + brow + 0.004);
-      uv.push(0.5 + x / 0.452, 0.5 + y / 0.528);
+      const beard =
+        0.042 * Math.exp(-((x / 0.078) ** 2 + ((y + 0.17) / 0.12) ** 2));
+      positions.push(x, y, 0.22 * skull + nose + cheeks + brow + beard + 0.004);
+      uv.push(0.5 + x / 0.41, 0.5 + y / 0.49);
     }
   }
   for (let ring = 0; ring < rings; ring++) {
@@ -68,8 +70,11 @@ function featherMask() {
     for (let x = 0; x < size; x++) {
       const dx = (x + 0.5 - size / 2) / (size / 2);
       const dy = (y + 0.5 - size / 2) / (size / 2);
-      const radius = Math.sqrt(dx * dx + dy * dy);
-      const t = Math.max(0, Math.min(1, (radius - 0.76) / 0.24));
+      // In Three.js DataTexture (flipY=false), row y=0 is V=0 (chin/beard tip).
+      // dy < 0 is the beard. Soften vertical reach for the beard to prevent tip clipping.
+      const effectiveDy = dy < 0 ? dy * 0.65 : dy * 0.85;
+      const radius = Math.sqrt(dx * dx + effectiveDy * effectiveDy);
+      const t = Math.max(0, Math.min(1, (radius - 0.88) / 0.12));
       const shade = Math.round((1 - t * t * (3 - 2 * t)) * 255);
       const offset = (y * size + x) * 4;
       data[offset] = shade;
@@ -101,11 +106,10 @@ export function HostFace() {
       <meshStandardMaterial
         map={face}
         alphaMap={mask}
-        bumpMap={face}
-        bumpScale={0.001}
         transparent
-        depthWrite={false}
-        roughness={0.91}
+        alphaTest={0.02}
+        depthWrite
+        roughness={0.88}
         metalness={0}
         side={DoubleSide}
       />

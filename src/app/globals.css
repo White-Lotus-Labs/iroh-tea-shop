@@ -1875,6 +1875,7 @@ body:has(.auth-shell) {
   color: #3d180e;
   text-shadow: 0 1px #f7e9c9;
 }
+.leaderboard-subhead,
 .leaderboard-head > p:last-child {
   margin: 0;
   color: #63351f;
@@ -1885,12 +1886,126 @@ body:has(.auth-shell) {
   letter-spacing: 4px;
   text-transform: uppercase;
 }
+.leaderboard-subhead::before,
+.leaderboard-subhead::after,
 .leaderboard-head > p:last-child::before,
 .leaderboard-head > p:last-child::after {
   content: '─────';
   margin: 0 12px;
   color: #a67042;
   letter-spacing: -2px;
+}
+.leaderboard-attribution {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: #63351f;
+  font:
+    700 10.5px/1.2 Georgia,
+    serif;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.leaderboard-attribution strong {
+  color: #3d180e;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.leaderboard-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  min-width: 17px;
+  height: 17px;
+  min-height: 17px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #9e6f3d !important;
+  border-radius: 50% !important;
+  background: #ecd4a7 !important;
+  color: #532917 !important;
+  font:
+    700 11px/1 Georgia,
+    serif !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+}
+.leaderboard-info-btn:hover,
+.leaderboard-info-btn:focus-visible {
+  background: #dfbe84 !important;
+  border-color: #64351a !important;
+  color: #270f07 !important;
+  box-shadow: 0 0 5px rgba(100, 53, 26, 0.35);
+}
+.leaderboard-freshness-popover {
+  position: relative;
+  max-width: 480px;
+  margin: 8px auto 6px;
+  padding: 10px 14px;
+  background: #f7e6c4;
+  border: 1.5px solid #9b6c3b;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 10px rgba(155, 108, 59, 0.15),
+    0 4px 12px rgba(66, 35, 17, 0.2);
+  text-align: left;
+}
+.leaderboard-freshness-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #c8a374;
+}
+.leaderboard-freshness-head strong {
+  color: #3d180e;
+  font:
+    700 12px/1.2 Georgia,
+    serif;
+  letter-spacing: 0.3px;
+}
+.leaderboard-freshness-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0 !important;
+  width: 18px;
+  height: 18px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: #7b4c2b !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  cursor: pointer;
+}
+.leaderboard-freshness-close:hover {
+  color: #3d180e !important;
+}
+.leaderboard-freshness-popover p {
+  margin: 0 0 4px;
+  color: #55341d;
+  font:
+    12px/1.4 Georgia,
+    serif;
+}
+.leaderboard-freshness-popover .leaderboard-freshness-age {
+  margin-top: 6px;
+  margin-bottom: 0;
+  color: #7b3d1c;
+  font-weight: 700;
+  font-size: 11px;
+}
+.leaderboard-foot-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .leaderboard-content {
   min-height: 0;
@@ -1946,6 +2061,7 @@ body:has(.auth-shell) {
   overflow: hidden;
   border-bottom: 2px solid #855126;
   background: #a97b4c;
+  aspect-ratio: 1 / 1;
 }
 .wallet-portrait-frame::before {
   content: '';
@@ -1971,7 +2087,6 @@ body:has(.auth-shell) {
 .wallet-portrait {
   width: 100%;
   height: 100%;
-  min-height: 67px;
   background-image: url('/images/shelf/white-lotus-portraits.png');
   background-size: 500% 200%;
   background-repeat: no-repeat;
@@ -2111,11 +2226,12 @@ body:has(.auth-shell) {
   min-height: clamp(170px, 18dvh, 220px);
 }
 .wallet-grid .wallet-portrait-frame {
-  flex: 1 1 auto;
-  min-height: 105px;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
 }
 .wallet-grid .wallet-card-details {
-  flex: 0 0 auto;
+  flex: 1 0 auto;
   background: #f0d5a8e3;
 }
 .wallet-grid [data-rank='10'] h2 {
@@ -2250,9 +2366,6 @@ body:has(.auth-shell) {
   }
   .wallet-grid .wallet-rank {
     min-height: 170px;
-  }
-  .wallet-grid .wallet-portrait-frame {
-    min-height: 105px;
   }
   .leaderboard-foot {
     padding-top: 5px;

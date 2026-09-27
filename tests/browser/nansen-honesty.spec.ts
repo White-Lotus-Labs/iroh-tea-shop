@@ -138,10 +138,10 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   await page.getByRole('button', { name: 'Approach the Shelf' }).click();
   const parchment = page.getByTestId('leaderboard-parchment');
   await expect(
-    page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
+    page.getByRole('heading', {
+      name: /Top 10 (?:Hyperliquid|HL|Smart Wallets)/,
+    }),
   ).toBeVisible();
-  await expect(parchment).toContainText(
-    'Illustrated ranks · server snapshot refreshes every 30 min',
-  );
+  await expect(parchment).toContainText('Illustrated ranks');
   await expect(parchment).not.toContainText('Nansen research is offline.');
 });

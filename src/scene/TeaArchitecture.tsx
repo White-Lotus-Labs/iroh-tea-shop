@@ -1,12 +1,6 @@
 import { Suspense, useEffect, useMemo } from 'react';
 import { ContactShadows, useTexture } from '@react-three/drei';
-import {
-  CanvasTexture,
-  DoubleSide,
-  PlaneGeometry,
-  SRGBColorSpace,
-  Vector2,
-} from 'three';
+import { CanvasTexture, DoubleSide, SRGBColorSpace, Vector2 } from 'three';
 import { Solid, SurfaceMaterial } from './Surfaces';
 import type { Point } from './stations';
 import { createRandom } from './motion/dynamics';
@@ -255,104 +249,6 @@ function Andon({ position }: { position: Point }) {
   );
 }
 
-function drawNoren(ctx: CanvasRenderingContext2D) {
-  const random = createRandom(512);
-  ctx.fillStyle = '#23324a';
-  ctx.fillRect(0, 0, 512, 192);
-  for (let i = 0; i < 1800; i++) {
-    ctx.fillStyle = `rgba(${random() > 0.5 ? '255,255,255' : '0,0,0'},${random() * 0.05})`;
-    ctx.fillRect(random() * 512, random() * 192, 1 + random() * 8, 1);
-  }
-  ctx.strokeStyle = '#e8dcc2';
-  ctx.fillStyle = '#e8dcc2';
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.arc(256, 96, 50, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(256, 134);
-  ctx.quadraticCurveTo(252, 110, 256, 92);
-  ctx.stroke();
-  for (const side of [-1, 1]) {
-    ctx.save();
-    ctx.translate(256, 104);
-    ctx.rotate(side * 0.62);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.bezierCurveTo(-15, -12, -13, -38, 0, -52);
-    ctx.bezierCurveTo(13, -38, 15, -12, 0, 0);
-    ctx.fill();
-    ctx.strokeStyle = '#23324a';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(0, -4);
-    ctx.lineTo(0, -44);
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
-/** A split doorway curtain with soft vertical folds. */
-function Noren({ position, width }: { position: Point; width: number }) {
-  const art = useCanvasTexture(512, 192, drawNoren);
-  const panels = 3,
-    gap = 0.02,
-    panelWidth = (width - gap * (panels - 1)) / panels,
-    height = 0.66;
-  const geometry = useMemo(() => {
-    const plane = new PlaneGeometry(panelWidth, height, 24, 1);
-    const position = plane.attributes.position;
-    for (let i = 0; i < position.count; i++)
-      position.setZ(
-        i,
-        Math.sin((position.getX(i) / panelWidth) * Math.PI * 6) * 0.012,
-      );
-    plane.computeVertexNormals();
-    return plane;
-  }, [panelWidth]);
-  const slices = useMemo(
-    () =>
-      Array.from({ length: panels }, (_, index) => {
-        const texture = art.clone();
-        texture.repeat.set(1 / panels, 1);
-        texture.offset.set(index / panels, 0);
-        return texture;
-      }),
-    [art],
-  );
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  useEffect(
-    () => () => slices.forEach((texture) => texture.dispose()),
-    [slices],
-  );
-  return (
-    <group position={position}>
-      <mesh rotation={[0, 0, Math.PI / 2]} position={[0, 0.02, 0]}>
-        <cylinderGeometry args={[0.012, 0.012, width + 0.12, 10]} />
-        <meshStandardMaterial color="#2a1a10" roughness={0.5} />
-      </mesh>
-      {slices.map((texture, index) => {
-        const x = (index - (panels - 1) / 2) * (panelWidth + gap);
-        return (
-          <mesh
-            key={index}
-            geometry={geometry}
-            position={[x, -height / 2, 0]}
-            castShadow
-          >
-            <meshStandardMaterial
-              map={texture}
-              roughness={0.94}
-              side={DoubleSide}
-            />
-          </mesh>
-        );
-      })}
-    </group>
-  );
-}
-
 function Shoji({
   x,
   z,
@@ -521,6 +417,217 @@ function Tatami({ center }: { center: Point }) {
     </group>
   );
 }
+function TeaHouseDoorway() {
+  const doorWidth = 2.6;
+  const postThickness = 0.22;
+  const postDepth = 0.26;
+  const leftPostX = -(doorWidth / 2 + postThickness / 2);
+  const rightPostX = doorWidth / 2 + postThickness / 2;
+  const z = 3.32;
+
+  const transomSlatPositions = [
+    -1.12, -0.9, -0.68, -0.45, -0.23, 0, 0.23, 0.45, 0.68, 0.9, 1.12,
+  ];
+
+  return (
+    <group name="teahouse-doorway">
+      {/* Continuous solid partition walls meeting outer walls with no gaps */}
+      <Solid
+        position={[-2.785, 1.85, z]}
+        size={[2.53, 3.7, 0.18]}
+        color={plaster}
+        surface="plaster"
+      />
+      <Solid
+        position={[2.785, 1.85, z]}
+        size={[2.53, 3.7, 0.18]}
+        color={plaster}
+        surface="plaster"
+      />
+      <Solid
+        position={[0, 3.56, z]}
+        size={[doorWidth, 0.28, 0.18]}
+        color={plaster}
+        surface="plaster"
+      />
+
+      {/* Wall flank timber framing */}
+      <Beam position={[-2.785, 0.06, z]} size={[2.53, 0.12, 0.22]} />
+      <Beam position={[2.785, 0.06, z]} size={[2.53, 0.12, 0.22]} />
+      <Beam position={[-2.785, 0.95, z]} size={[2.53, 0.07, 0.21]} />
+      <Beam position={[2.785, 0.95, z]} size={[2.53, 0.07, 0.21]} />
+      <Beam position={[-2.785, 2.48, z]} size={[2.53, 0.12, 0.22]} />
+      <Beam position={[2.785, 2.48, z]} size={[2.53, 0.12, 0.22]} />
+      <Beam position={[-2.785, 1.85, z]} size={[0.12, 3.7, 0.22]} />
+      <Beam position={[2.785, 1.85, z]} size={[0.12, 3.7, 0.22]} />
+      <Beam position={[-3.98, 1.85, z]} size={[0.14, 3.7, 0.22]} />
+      <Beam position={[3.98, 1.85, z]} size={[0.14, 3.7, 0.22]} />
+      <Beam position={[0, 3.64, z]} size={[8.2, 0.14, 0.26]} />
+
+      {/* Main doorway jamb posts and base plinths */}
+      {[leftPostX, rightPostX].map((x) => (
+        <group key={x}>
+          <Beam
+            position={[x, 1.85, z]}
+            size={[postThickness, 3.7, postDepth]}
+          />
+          <Solid
+            position={[x, 0.045, z]}
+            size={[postThickness + 0.04, 0.09, postDepth + 0.04]}
+            color="#25150e"
+          />
+        </group>
+      ))}
+
+      {/* Doorway threshold with sliding runner tracks */}
+      <Solid
+        position={[0, 0.02, z]}
+        size={[doorWidth + 0.02, 0.04, 0.28]}
+        color="#352116"
+      />
+      <Solid
+        position={[0, 0.041, z - 0.04]}
+        size={[doorWidth, 0.004, 0.02]}
+        color="#1f140d"
+      />
+      <Solid
+        position={[0, 0.041, z + 0.04]}
+        size={[doorWidth, 0.004, 0.02]}
+        color="#1f140d"
+      />
+
+      {/* Main doorway lintel spanning across posts */}
+      <Beam
+        position={[0, 2.48, z]}
+        size={[doorWidth + postThickness * 2 + 0.16, 0.14, 0.28]}
+      />
+      <Beam position={[-1.61, 2.48, z]} size={[0.04, 0.16, 0.3]} />
+      <Beam position={[1.61, 2.48, z]} size={[0.04, 0.16, 0.3]} />
+
+      {/* Transom (Ranma) with wooden lattice and washi paper */}
+      <Beam position={[0, 3.38, z]} size={[doorWidth + 0.02, 0.08, 0.24]} />
+      <Solid
+        position={[0, 2.93, z]}
+        size={[doorWidth, 0.78, 0.02]}
+        color="#e8d1a7"
+        surface="paper"
+      />
+      {transomSlatPositions.map((slatX) => (
+        <Beam
+          key={slatX}
+          position={[slatX, 2.93, z]}
+          size={[0.028, 0.78, 0.06]}
+        />
+      ))}
+      <Beam position={[0, 2.93, z]} size={[doorWidth, 0.03, 0.065]} />
+
+      {/* Open sliding shoji screen panels flanking the jambs */}
+      <group position={[-1.46, 1.25, z - 0.04]}>
+        <Solid
+          position={[0, 0, 0]}
+          size={[0.3, 2.38, 0.028]}
+          color="#dfbe90"
+          surface="paper"
+        />
+        <Beam position={[-0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
+        <Beam position={[0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
+        {[-0.8, -0.4, 0, 0.4, 0.8].map((sy) => (
+          <Beam key={sy} position={[0, sy, 0.012]} size={[0.3, 0.024, 0.038]} />
+        ))}
+      </group>
+      <group position={[1.46, 1.25, z + 0.04]}>
+        <Solid
+          position={[0, 0, 0]}
+          size={[0.3, 2.38, 0.028]}
+          color="#dfbe90"
+          surface="paper"
+        />
+        <Beam position={[-0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
+        <Beam position={[0.135, 0, 0.01]} size={[0.03, 2.38, 0.04]} />
+        {[-0.8, -0.4, 0, 0.4, 0.8].map((sy) => (
+          <Beam key={sy} position={[0, sy, 0.012]} size={[0.3, 0.024, 0.038]} />
+        ))}
+      </group>
+
+      {/* Traditional Jasmine Dragon split noren curtain */}
+      <group position={[0, 0, 0]}>
+        <mesh position={[0, 2.38, z + 0.06]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.014, 0.014, doorWidth + 0.02, 12]} />
+          <meshStandardMaterial color="#2d1c12" roughness={0.7} />
+        </mesh>
+        <Beam position={[-1.3, 2.38, z + 0.06]} size={[0.03, 0.04, 0.06]} />
+        <Beam position={[1.3, 2.38, z + 0.06]} size={[0.03, 0.04, 0.06]} />
+
+        {[-0.82, 0, 0.82].map((nx, idx) => (
+          <group key={idx}>
+            <Solid
+              position={[nx, 2.38, z + 0.06]}
+              size={[0.08, 0.04, 0.032]}
+              color="#3c4c34"
+              surface="cloth"
+            />
+            <Solid
+              position={[nx, 2.2, z + 0.06]}
+              size={[0.74, 0.34, 0.014]}
+              color="#425339"
+              surface="cloth"
+            />
+          </group>
+        ))}
+
+        {/* Jasmine Dragon Crest on center noren panel */}
+        <mesh position={[0, 2.2, z + 0.068]}>
+          <circleGeometry args={[0.075, 24]} />
+          <meshStandardMaterial color="#eae2cb" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 2.2, z + 0.07]} rotation={[0, 0, 0.35]}>
+          <ringGeometry args={[0.015, 0.045, 16]} />
+          <meshStandardMaterial color="#425339" roughness={0.9} />
+        </mesh>
+      </group>
+
+      {/* Warm doorway lantern on jamb */}
+      <group position={[1.32, 1.94, z + 0.2]}>
+        <Beam position={[-0.08, 0.12, -0.07]} size={[0.04, 0.04, 0.14]} />
+        <Solid
+          position={[0, 0.13, 0]}
+          size={[0.18, 0.025, 0.18]}
+          color="#25150e"
+        />
+        <mesh position={[0, 0, 0]} castShadow>
+          <boxGeometry args={[0.14, 0.22, 0.14]} />
+          <meshStandardMaterial
+            color="#ffe5b0"
+            emissive="#ffa834"
+            emissiveIntensity={0.65}
+            roughness={0.9}
+          />
+        </mesh>
+        {[-0.07, 0.07].map((lx) =>
+          [-0.07, 0.07].map((lz) => (
+            <Beam
+              key={`${lx}${lz}`}
+              position={[lx, 0, lz]}
+              size={[0.014, 0.22, 0.014]}
+              color="#25150e"
+            />
+          )),
+        )}
+        <Solid
+          position={[0, -0.12, 0]}
+          size={[0.16, 0.025, 0.16]}
+          color="#25150e"
+        />
+        <pointLight
+          position={[0, 0, 0.04]}
+          color="#ffcf8e"
+          intensity={2.2}
+          distance={4.2}
+        />
+      </group>
+    </group>
+  );
+}
 
 export function WaitingRoom() {
   return (
@@ -545,46 +652,7 @@ export function WaitingRoom() {
         color={plaster}
         surface="plaster"
       />
-      <Solid
-        position={[-3.1, 1.85, 3.32]}
-        size={[2, 3.7, 0.19]}
-        color={plaster}
-        surface="plaster"
-      />
-      <Solid
-        position={[3.1, 1.85, 3.32]}
-        size={[2, 3.7, 0.19]}
-        color={plaster}
-        surface="plaster"
-      />
-      <Solid
-        position={[0, 3.34, 3.32]}
-        size={[4.25, 0.72, 0.2]}
-        color={plaster}
-        surface="plaster"
-      />
-      {[-1, 1].map((side) => (
-        <group key={side}>
-          <Solid
-            position={[side * 2.67, 0.47, 3.435]}
-            size={[2.86, 0.94, 0.04]}
-            color="#4a2e1d"
-          />
-          <Beam
-            position={[side * 2.67, 0.96, 3.45]}
-            size={[2.86, 0.05, 0.07]}
-          />
-          <Beam
-            position={[side * 2.67, 2.32, 3.45]}
-            size={[2.86, 0.12, 0.08]}
-          />
-        </group>
-      ))}
-      <Beam position={[0, 3.06, 3.43]} size={[2.35, 0.19, 0.26]} />
-      {[-1.23, 1.23].map((x) => (
-        <Beam key={x} position={[x, 1.53, 3.44]} size={[0.18, 3.08, 0.28]} />
-      ))}
-      <Noren position={[0, 2.94, 3.6]} width={2.2} />
+      <TeaHouseDoorway />
       {[4.05, 7.4, 10.74].map((z) => (
         <Beam key={z} position={[-3.94, 1.85, z]} size={[0.16, 3.7, 0.16]} />
       ))}

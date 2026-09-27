@@ -1,173 +1,76 @@
-import { createContext, useContext, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import {
-  CatmullRomCurve3,
+  DoubleSide,
   Group,
-  RepeatWrapping,
+  LinearSRGBColorSpace,
+  PlaneGeometry,
   SRGBColorSpace,
-  Texture,
-  Vector3,
+  Vector2,
 } from 'three';
-import { SurfaceMaterial } from './Surfaces';
-import { HostFace } from './HostFace';
-import { HostBeard } from './HostBeard';
-import { HostRobe } from './HostRobe';
 
 type Point = [number, number, number];
-const FabricContext = createContext<Texture | null>(null);
 
-function Form({
-  position,
-  scale,
-  color,
-  surface,
-  rotation,
-}: {
-  position: Point;
-  scale: Point;
-  color: string;
-  surface?: 'cloth' | 'wood';
-  rotation?: Point;
-}) {
-  const fabric = useContext(FabricContext);
-  return (
-    <mesh
-      position={position}
-      scale={scale}
-      rotation={rotation}
-      castShadow
-      receiveShadow
-    >
-      <sphereGeometry args={[1, 24, 16]} />
-      {surface === 'cloth' && fabric ? (
-        <meshStandardMaterial
-          color={color}
-          map={fabric}
-          bumpMap={fabric}
-          bumpScale={0.003}
-          roughness={0.93}
-        />
-      ) : surface ? (
-        <SurfaceMaterial color={color} surface={surface} />
-      ) : (
-        <meshStandardMaterial color={color} roughness={0.86} />
-      )}
-    </mesh>
-  );
-}
-
-function Stroke({
-  points,
-  color,
-  radius = 0.012,
-}: {
-  points: Point[];
-  color: string;
-  radius?: number;
-}) {
-  return (
-    <mesh castShadow>
-      <tubeGeometry
-        args={[
-          new CatmullRomCurve3(points.map((point) => new Vector3(...point))),
-          24,
-          radius,
-          6,
-          false,
-        ]}
-      />
-      <meshStandardMaterial color={color} roughness={0.96} />
-    </mesh>
-  );
-}
-
-function Hand({ left = false }: { left?: boolean }) {
-  const side = left ? -1 : 1;
-  return (
-    <group
-      position={left ? [-0.81, 0.82, 0.36] : [0.51, 0.47, 0.43]}
-      rotation={left ? [0.13, 0.31, 0.18] : [-0.15, -0.25, -0.42]}
-    >
-      <Form position={[0, 0, 0]} scale={[0.104, 0.05, 0.11]} color="#b98764" />
-      {[-0.078, -0.027, 0.027, 0.078].map((x, index) => (
-        <Form
-          key={x}
-          position={[
-            x * 0.84,
-            0.012,
-            0.12 + (index === 1 || index === 2 ? 0.012 : 0),
-          ]}
-          scale={[0.015, 0.017, 0.075 - Math.abs(index - 1.5) * 0.008]}
-          color="#bb8a67"
-        />
-      ))}
-      <Form
-        position={[side * 0.09, 0.005, 0.045]}
-        scale={[0.024, 0.025, 0.06]}
-        rotation={[0, side * 0.68, 0]}
-        color="#b98764"
-      />
-    </group>
-  );
-}
-
-function Head() {
-  return (
-    <group position={[0, 1.53, 0.06]}>
-      <Form
-        position={[0, 0.055, -0.04]}
-        scale={[0.265, 0.31, 0.25]}
-        color="#bd8769"
-      />
-      <HostFace />
-      {[-1, 1].map((side) => (
-        <group key={side}>
-          <Form
-            position={[side * 0.263, 0.012, -0.005]}
-            scale={[0.044, 0.073, 0.047]}
-            color="#b78062"
-          />
-          <Form
-            position={[side * 0.224, 0.17, -0.065]}
-            scale={[0.07, 0.16, 0.13]}
-            color="#c6c3b7"
-          />
-          {[0, 1, 2, 3].map((strand) => (
-            <Stroke
-              key={strand}
-              points={[
-                [side * (0.16 + strand * 0.023), 0.278, 0.045],
-                [side * (0.19 + strand * 0.018), 0.14, 0.069],
-                [side * (0.211 + strand * 0.009), 0.045, 0.035],
-              ]}
-              color={strand % 2 === 0 ? '#e2ded1' : '#aca99e'}
-              radius={0.004}
-            />
-          ))}
-        </group>
-      ))}
-      <Form
-        position={[0, 0.29, -0.075]}
-        scale={[0.257, 0.081, 0.216]}
-        color="#cfcbbf"
-      />
-      <Form
-        position={[0, 0.408, -0.124]}
-        scale={[0.11, 0.073, 0.107]}
-        color="#d9d5c8"
-      />
-      <HostBeard />
-    </group>
-  );
-}
-
-/** A sculpted, seated tea host. All silhouettes are volumetric geometry, never a billboard. */
 export type IrohActivity = 'idle' | 'researching' | 'responding' | 'error';
 
 export const IROH_DEFAULT_POSITION: Point = [0, 0, -3.62];
 export const IROH_DEFAULT_ROTATION: Point = [0, 0, 0];
 
+/** Sculpted 3D relief geometry giving Uncle Iroh's torso, lap, and cupped teacup volumetric depth. */
+function curvedBodyGeometry() {
+  const geometry = new PlaneGeometry(1.46, 1.95, 64, 64);
+  const pos = geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const nx = x / 0.73;
+    const ny = y / 0.975;
+    const wrap = Math.max(0, 1 - nx * nx);
+    const torso =
+      Math.exp(-((nx / 0.65) ** 2 + ((ny + 0.1) / 0.4) ** 2)) * 0.08;
+    const lap = Math.exp(-((nx / 0.8) ** 2 + ((ny + 0.6) / 0.35) ** 2)) * 0.05;
+    const cup =
+      Math.exp(-((nx / 0.22) ** 2 + ((ny + 0.05) / 0.15) ** 2)) * 0.045;
+    const edgeFade = wrap * Math.max(0, 1 - ny * ny);
+    const z = (0.02 * wrap + torso + lap + cup) * (0.3 + 0.7 * edgeFade);
+    pos.setZ(i, z);
+  }
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/** Sculpted 3D cranial relief with anatomical nose, cheek, topknot, and beard prominence. */
+function curvedHeadGeometry() {
+  const geometry = new PlaneGeometry(1.46, 1.95, 64, 64);
+  const pos = geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const nx = x / 0.73;
+    const ny = y / 0.975;
+    const wrap = Math.max(0, 1 - nx * nx);
+    const skull =
+      Math.exp(-((nx / 0.32) ** 2 + ((ny - 0.72) / 0.22) ** 2)) * 0.04;
+    const nose =
+      Math.exp(-((nx / 0.08) ** 2 + ((ny - 0.7) / 0.06) ** 2)) * 0.035;
+    const beard =
+      Math.exp(-((nx / 0.22) ** 2 + ((ny - 0.58) / 0.1) ** 2)) * 0.025;
+    const topknot =
+      Math.exp(-((nx / 0.12) ** 2 + ((ny - 0.88) / 0.08) ** 2)) * 0.015;
+    const edgeFade = wrap * Math.max(0, 1 - ny * ny);
+    const z = (skull + nose + beard + topknot) * (0.4 + 0.6 * edgeFade);
+    pos.setZ(i, z);
+  }
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/**
+ * A layered 2.5D illustrated diorama of Uncle Iroh.
+ * Integrates hand-painted anime/Ghibli art direction with physical 3D curvature,
+ * neck-pivoted parallax animation, and dynamic scene lighting response.
+ */
 export function TeaHost3D({
   reduced,
   activity = 'idle',
@@ -179,104 +82,129 @@ export function TeaHost3D({
   position?: Point;
   rotation?: Point;
 }) {
-  const fabric = useTexture('/images/kimono-weave.jpg');
-  fabric.colorSpace = SRGBColorSpace;
-  fabric.wrapS = fabric.wrapT = RepeatWrapping;
-  fabric.repeat.set(1.6, 1.6);
-  const head = useRef<Group>(null);
-  const body = useRef<Group>(null);
+  const bodyTexture = useTexture('/images/tea-host-diorama-body.png');
+  const bodyNormal = useTexture('/images/tea-host-diorama-body-normal.png');
+  const headTexture = useTexture('/images/tea-host-diorama-head.png');
+  const headNormal = useTexture('/images/tea-host-diorama-head-normal.png');
+  bodyTexture.colorSpace = SRGBColorSpace;
+  headTexture.colorSpace = SRGBColorSpace;
+  bodyNormal.colorSpace = LinearSRGBColorSpace;
+  headNormal.colorSpace = LinearSRGBColorSpace;
+
+  const bodyNormalScale = useMemo(() => new Vector2(0.85, 0.85), []);
+  const headNormalScale = useMemo(() => new Vector2(0.9, 0.9), []);
+
+  const bodyGeom = useMemo(curvedBodyGeometry, []);
+  const headGeom = useMemo(curvedHeadGeometry, []);
+
+  useEffect(() => {
+    return () => {
+      bodyGeom.dispose();
+      headGeom.dispose();
+    };
+  }, [bodyGeom, headGeom]);
+
+  const bodyRef = useRef<Group>(null);
+  const headGroupRef = useRef<Group>(null);
+
   useFrame(({ clock }, delta) => {
-    if (!head.current || !body.current) return;
-    const breath = reduced ? 0 : Math.sin(clock.elapsedTime * 0.74);
-    body.current.scale.y = 1 + breath * 0.0025;
-    head.current.rotation.z = reduced
-      ? 0
-      : Math.sin(clock.elapsedTime * 0.38) * 0.012;
-    const thoughtfulTilt = reduced
-      ? 0
-      : activity === 'researching'
-        ? -0.035
-        : activity === 'responding'
-          ? 0.018
-          : 0;
-    head.current.rotation.x +=
-      (thoughtfulTilt - head.current.rotation.x) * Math.min(1, delta * 2.5);
+    const time = clock.elapsedTime;
+    const breath = reduced ? 0 : Math.sin(time * 0.74);
+
+    if (bodyRef.current) {
+      bodyRef.current.scale.y = 1 + breath * 0.003;
+    }
+
+    if (headGroupRef.current) {
+      // Gentle breathing bob and tilt
+      const breathTilt = reduced ? 0 : Math.sin(time * 0.38) * 0.012;
+      const thoughtfulTilt = reduced
+        ? 0
+        : activity === 'researching'
+          ? -0.045
+          : activity === 'responding'
+            ? 0.025
+            : 0;
+      const thoughtfulTurn = reduced
+        ? 0
+        : activity === 'researching'
+          ? -0.035
+          : activity === 'responding'
+            ? 0.02
+            : 0;
+
+      const targetX = thoughtfulTilt + breathTilt * 0.5;
+      const targetY = thoughtfulTurn;
+      const targetZ = breathTilt;
+
+      headGroupRef.current.rotation.x +=
+        (targetX - headGroupRef.current.rotation.x) * Math.min(1, delta * 2.5);
+      headGroupRef.current.rotation.y +=
+        (targetY - headGroupRef.current.rotation.y) * Math.min(1, delta * 2.2);
+      headGroupRef.current.rotation.z +=
+        (targetZ - headGroupRef.current.rotation.z) * Math.min(1, delta * 2.0);
+    }
   });
+
   return (
-    <FabricContext.Provider value={fabric}>
-      <group position={position} rotation={rotation} name="tea-host-3d">
-        <Form
-          position={[0, 0.085, 0.02]}
-          scale={[0.75, 0.105, 0.5]}
-          color="#51583a"
-          surface="cloth"
-        />
-        <Form
-          position={[0, 0.18, 0.02]}
-          scale={[0.68, 0.08, 0.45]}
-          color="#777650"
-          surface="cloth"
-        />
-        <group ref={body}>
-          {/* Heavy seated folds and a raised torso give the kimono a believable center of mass. */}
-          <Form
-            position={[-0.34, 0.36, 0.17]}
-            scale={[0.47, 0.23, 0.38]}
-            color="#40362b"
-            surface="cloth"
+    <group position={position} rotation={rotation} name="tea-host-3d">
+      {/* Floor cushion grounding Uncle Iroh to the tatami mat */}
+      <mesh
+        position={[0, 0.045, 0.02]}
+        scale={[0.78, 0.065, 0.52]}
+        castShadow
+        receiveShadow
+      >
+        <cylinderGeometry args={[1, 1, 1, 32]} />
+        <meshStandardMaterial color="#414a30" roughness={0.94} />
+      </mesh>
+      <mesh
+        position={[0, 0.085, 0.02]}
+        scale={[0.72, 0.045, 0.46]}
+        castShadow
+        receiveShadow
+      >
+        <cylinderGeometry args={[1, 1, 1, 32]} />
+        <meshStandardMaterial color="#555a3c" roughness={0.92} />
+      </mesh>
+
+      {/* Layered Illustrated Diorama with Sculpted 3D Relief */}
+      <group ref={bodyRef} position={[0, 0.975, 0]}>
+        {/* Layer 1: Seated Body, Kimono, Lap, and Steaming Teacup */}
+        <mesh geometry={bodyGeom} castShadow receiveShadow>
+          <meshStandardMaterial
+            map={bodyTexture}
+            normalMap={bodyNormal}
+            normalScale={bodyNormalScale}
+            transparent
+            alphaTest={0.02}
+            depthWrite
+            roughness={0.88}
+            metalness={0.02}
+            side={DoubleSide}
           />
-          <Form
-            position={[0.35, 0.36, 0.18]}
-            scale={[0.46, 0.23, 0.38]}
-            color="#42372a"
-            surface="cloth"
-          />
-          <Form
-            position={[0, 0.66, -0.02]}
-            scale={[0.57, 0.53, 0.36]}
-            color="#725133"
-            surface="cloth"
-          />
-          <Form
-            position={[0, 0.97, -0.04]}
-            scale={[0.5, 0.46, 0.3]}
-            color="#775635"
-            surface="cloth"
-          />
-          <Form
-            position={[-0.48, 1.035, -0.055]}
-            scale={[0.24, 0.28, 0.25]}
-            color="#3a3d2e"
-            surface="cloth"
-          />
-          <Form
-            position={[0.46, 1.03, -0.06]}
-            scale={[0.23, 0.27, 0.25]}
-            color="#3a3d2e"
-            surface="cloth"
-          />
-          <Form
-            position={[-0.62, 0.895, 0.13]}
-            scale={[0.22, 0.17, 0.24]}
-            rotation={[0, 0, 0.34]}
-            color="#414333"
-            surface="cloth"
-          />
-          <Form
-            position={[0.52, 0.69, 0.16]}
-            scale={[0.21, 0.18, 0.24]}
-            rotation={[0, 0, 0.22]}
-            color="#414333"
-            surface="cloth"
-          />
-          <Hand left />
-          <Hand />
-          <HostRobe />
-          <group ref={head}>
-            <Head />
+        </mesh>
+
+        {/* Layer 2: Expressive Head with Neck Pivot Point */}
+        {/* Neck pivot is around y = 0.50 in local coordinates (height ~1.48m from floor) */}
+        <group position={[0, 0.5, 0.022]}>
+          <group ref={headGroupRef}>
+            <mesh geometry={headGeom} position={[0, -0.5, 0]} castShadow>
+              <meshStandardMaterial
+                map={headTexture}
+                normalMap={headNormal}
+                normalScale={headNormalScale}
+                transparent
+                alphaTest={0.02}
+                depthWrite={false}
+                roughness={0.88}
+                metalness={0.02}
+                side={DoubleSide}
+              />
+            </mesh>
           </group>
         </group>
       </group>
-    </FabricContext.Provider>
+    </group>
   );
 }

@@ -69,7 +69,7 @@ export default function TeaRoomShell({
   const [typing, setTyping] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(() => station === 'Entrance');
   const [readingReady, setReadingReady] = useState(true);
   const [sceneAvailable, setSceneAvailable] = useState(false);
   const [sceneFailed, setSceneFailed] = useState(false);
@@ -126,15 +126,18 @@ export default function TeaRoomShell({
       }),
     [irohSession],
   );
-  const navigate = useCallback((next: Station) => {
-    setCameraAt(null);
-    setShelfFocused(false);
-    setStation(next);
-    setReadingReady(true);
-    setTyping(false);
-    setEvidenceOpen(false);
-    setPanelOpen(true);
-  }, []);
+  const navigate = useCallback(
+    (next: Station) => {
+      setCameraAt(null);
+      setShelfFocused(false);
+      setStation(next);
+      setReadingReady(true);
+      setTyping(false);
+      setEvidenceOpen(false);
+      setPanelOpen(sceneFailed || next === 'Entrance');
+    },
+    [sceneFailed],
+  );
   const focusShelf = useCallback(() => {
     if (shelfFocused) return;
     setCameraAt(null);
@@ -145,7 +148,13 @@ export default function TeaRoomShell({
     setEvidenceOpen(false);
     setPanelOpen(true);
   }, [shelfFocused]);
-  const openPanel = useCallback(() => setPanelOpen(true), []);
+  const openPanel = useCallback(() => {
+    if (station === 'Shelf') {
+      setCameraAt(null);
+      setShelfFocused(true);
+    }
+    setPanelOpen(true);
+  }, [station]);
   const closePanel = useCallback(() => {
     setTyping(false);
     setPanelOpen(false);
@@ -157,7 +166,10 @@ export default function TeaRoomShell({
   const onSceneAvailability = useCallback((available: boolean) => {
     setSceneAvailable(available);
     setSceneFailed(!available);
-    if (!available) setReadingReady(true);
+    if (!available) {
+      setReadingReady(true);
+      setPanelOpen(true);
+    }
   }, []);
   const onLoadProgress = useCallback((active: boolean, progress: number) => {
     setAssetsLoading(active);
@@ -345,6 +357,12 @@ export default function TeaRoomShell({
             >
               <span>THE SHELF</span>
               Approach the Shelf <span aria-hidden="true">↗</span>
+            </button>
+          )}
+
+          {!isEntrance && !panelOpen && (
+            <button type="button" className="sr-only" onClick={openPanel}>
+              Open {active.label} menu
             </button>
           )}
         </section>
