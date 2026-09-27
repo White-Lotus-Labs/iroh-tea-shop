@@ -89,4 +89,28 @@ describe('thesis nansen normalizers', () => {
     expect(book.recent).toHaveLength(5);
     expect(book.recent[0].side).toBe('long');
   });
+
+  test('converts balance_change_7d into a percent of prior balance', () => {
+    const [normal, newborn, missingAmount] = normalizeHolders({
+      data: [
+        {
+          address: '0x1',
+          token_amount: 150,
+          balance_change_7d: 50,
+        },
+        {
+          address: '0x2',
+          token_amount: 100,
+          balance_change_7d: 100,
+        },
+        {
+          address: '0x3',
+          balance_change_7d: 25,
+        },
+      ],
+    });
+    expect(normal.change7dPct).toBeCloseTo(50);
+    expect(newborn.change7dPct).toBeNull();
+    expect(missingAmount.change7dPct).toBeNull();
+  });
 });

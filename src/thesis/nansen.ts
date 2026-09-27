@@ -172,6 +172,15 @@ export function normalizeDexTrades(payload: unknown): SmartTrade[] {
     .slice(0, 5);
 }
 
+function change7dPct(row: Record<string, unknown>): number | null {
+  const change = numberOrNull(row.balance_change_7d);
+  const amount = numberOrNull(row.token_amount);
+  if (change === null || amount === null) return null;
+  const prior = amount - change;
+  if (!(prior > 0)) return null;
+  return (change / prior) * 100;
+}
+
 export function normalizeHolders(payload: unknown): HolderRow[] {
   return dataRows(payload)
     .map((row) => {
@@ -183,8 +192,7 @@ export function normalizeHolders(payload: unknown): HolderRow[] {
         label: stringOrNull(row.address_label),
         valueUsd: numberOrNull(row.value_usd),
         ownershipPct: ownership === null ? null : ownership * 100,
-        // Nansen returns absolute 7d balance change; contract field is change7dPct.
-        change7dPct: numberOrNull(row.balance_change_7d),
+        change7dPct: change7dPct(row),
       };
     })
     .filter((row): row is HolderRow => row !== null)
