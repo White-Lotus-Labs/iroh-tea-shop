@@ -21,7 +21,7 @@ test('a guest can open Host and chat with Iroh without signing in', async ({
   ).toBe(false);
   await openStationPanel(page, 'Host');
   const transcript = page.getByRole('log', { name: 'Uncle conversation' });
-  await expect(transcript).toContainText('Guest chats are not saved.');
+  await expect(transcript).toContainText('Log in to save this chat.');
   await expect(
     transcript.getByRole('link', { name: 'Log in' }),
   ).toHaveAttribute('href', '/account');

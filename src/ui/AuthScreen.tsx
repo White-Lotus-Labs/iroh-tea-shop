@@ -27,7 +27,7 @@ export default function AuthScreen() {
       if (!response.ok) {
         const body = await response.json().catch(() => null);
         if (typeof body?.error === 'string') message = body.error;
-        throw new Error(message);
+        throw new Error();
       }
       setPassword('');
       window.location.assign('/');
@@ -108,7 +108,6 @@ export default function AuthScreen() {
                 minLength={3}
                 maxLength={24}
                 pattern="[A-Za-z0-9_\-]{3,24}"
-                title="3–24 letters, numbers, _ or -"
                 required
               />
               <label htmlFor="auth-password">Password</label>

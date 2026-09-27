@@ -37,12 +37,19 @@ export function IrohChat({
   const input = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
-  const refreshHistory = async () => {
-    if (!user) return;
+  const fetchChats = async () => {
     const response = await fetch('/api/iroh/chats', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Could not load your chats.');
-    const data = (await response.json()) as { chats: ChatSummary[] };
-    setHistory(data.chats);
+    if (!response.ok) throw new Error();
+    return ((await response.json()) as { chats: ChatSummary[] }).chats;
+  };
+  // Failures show fixed copy, never raw fetch text such as 'Failed to fetch'.
+  const createChat = async () => {
+    const response = await fetch('/api/iroh/chats', { method: 'POST' });
+    if (!response.ok) throw new Error();
+    const { chat } = (await response.json()) as { chat: ChatSummary };
+    session.restore(chat.id, [], null);
+    setSelectedId(chat.id);
+    return chat;
   };
 
   const openChat = async (chatId: string) => {
@@ -53,7 +60,7 @@ export function IrohChat({
       `/api/iroh/chats/${encodeURIComponent(chatId)}`,
       { cache: 'no-store' },
     );
-    if (!response.ok) throw new Error('Could not open this chat.');
+    if (!response.ok) throw new Error();
     const data = (await response.json()) as {
       chat: {
         id: string;
@@ -65,10 +72,8 @@ export function IrohChat({
     session.restore(
       data.chat.id,
       data.chat.messages.map((message) => ({
+        ...message,
         id: String(message.id),
-        role: message.role,
-        content: message.content,
-        status: message.status,
       })),
       data.chat.nansenConversationId,
     );
@@ -87,19 +92,13 @@ export function IrohChat({
     session.stop();
     setHistoryError(null);
     try {
-      const response = await fetch('/api/iroh/chats', { method: 'POST' });
-      if (!response.ok) throw new Error('Could not create a chat.');
-      const data = (await response.json()) as { chat: ChatSummary };
-      session.restore(data.chat.id, [], null);
-      setSelectedId(data.chat.id);
-      setHistory((current) => [data.chat, ...current]);
+      const chat = await createChat();
+      setHistory((current) => [chat, ...current]);
       setDraft('');
       input.current?.focus();
-    } catch (error) {
+    } catch {
       setHistoryOpen(true);
-      setHistoryError(
-        error instanceof Error ? error.message : 'Could not create a chat.',
-      );
+      setHistoryError('Could not create a chat.');
     }
   };
 
@@ -108,36 +107,25 @@ export function IrohChat({
     let cancelled = false;
     const initialize = async () => {
       try {
-        const response = await fetch('/api/iroh/chats', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Could not load your chats.');
-        const data = (await response.json()) as { chats: ChatSummary[] };
+        const chats = await fetchChats();
         if (cancelled) return;
-        setHistory(data.chats);
+        setHistory(chats);
         const current = session.getSnapshot().chatId;
         const target =
-          current && data.chats.some((chat) => chat.id === current)
+          current && chats.some((chat) => chat.id === current)
             ? current
-            : data.chats[0]?.id;
+            : chats[0]?.id;
         if (target) {
           setSelectedId(target);
           if (current !== target) await openChat(target);
         } else {
-          const created = await fetch('/api/iroh/chats', { method: 'POST' });
-          if (!created.ok) throw new Error('Could not create a chat.');
-          const result = (await created.json()) as { chat: ChatSummary };
-          if (cancelled) return;
-          session.restore(result.chat.id, [], null);
-          setSelectedId(result.chat.id);
-          setHistory([result.chat]);
+          const chat = await createChat();
+          if (!cancelled) setHistory([chat]);
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setHistoryOpen(true);
-          setHistoryError(
-            error instanceof Error
-              ? error.message
-              : 'Could not load your chats.',
-          );
+          setHistoryError('Could not load your chats.');
         }
       } finally {
         if (!cancelled) setHistoryLoading(false);
@@ -171,7 +159,7 @@ export function IrohChat({
     const pending = session.send(draft);
     if (pending) {
       setDraft('');
-      void pending.then(() => refreshHistory().catch(() => {}));
+      if (user) void pending.then(fetchChats).then(setHistory, () => {});
     }
   };
   return (
@@ -228,8 +216,8 @@ export function IrohChat({
                 className={item.id === selectedId ? 'is-selected' : ''}
                 aria-current={item.id === selectedId ? 'page' : undefined}
                 onClick={() =>
-                  void openChat(item.id).catch((error) =>
-                    setHistoryError(error.message),
+                  void openChat(item.id).catch(() =>
+                    setHistoryError('Could not open this chat.'),
                   )
                 }
               >
@@ -260,8 +248,7 @@ export function IrohChat({
               )}
               {!user && (
                 <p>
-                  Guest chats are not saved. <a href="/account">Log in</a> to
-                  keep them.
+                  <a href="/account">Log in</a> to save this chat.
                 </p>
               )}
             </div>
@@ -312,16 +299,7 @@ export function IrohChat({
                 </a>
               ) : (
                 nansen === 'configured' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const pending = session.retry();
-                      if (pending)
-                        void pending.then(() =>
-                          refreshHistory().catch(() => {}),
-                        );
-                    }}
-                  >
+                  <button type="button" onClick={() => session.retry()}>
                     Try again
                   </button>
                 )
