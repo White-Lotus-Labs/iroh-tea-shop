@@ -9,11 +9,13 @@ const display = Cormorant_Garamond({
   style: ['normal', 'italic'],
   variable: '--font-display-face',
   display: 'swap',
+  preload: true,
 });
 const body = Inter({
   subsets: ['latin'],
   variable: '--font-body-face',
   display: 'swap',
+  preload: true,
 });
 // Decorative glyphs only; unicode-range slices mean the browser fetches just the few used characters.
 const cjk = Noto_Serif_SC({
@@ -40,7 +42,11 @@ export default function RootLayout({
       className={`${display.variable} ${body.variable} ${cjk.variable}`}
     >
       <head>
-        <link rel="preload" as="image" href="/images/counter-wall.jpg" />
+        <link
+          rel="preload"
+          as="image"
+          href="/images/tea-back-wall.bbdb12.webp"
+        />
       </head>
       <body>{children}</body>
     </html>

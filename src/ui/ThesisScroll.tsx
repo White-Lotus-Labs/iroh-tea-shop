@@ -1,5 +1,4 @@
 'use client';
-import dynamic from 'next/dynamic';
 import {
   useEffect,
   useId,
@@ -23,11 +22,6 @@ import {
   type DeckState,
 } from './deckModel';
 import { ThesisLeaf } from './ThesisLeaf';
-
-const CrossBeam = dynamic(
-  () => import('../shaders/cross-beam/ConfigurableCrossBeamBackground.jsx'),
-  { ssr: false },
-);
 
 export interface ThesisScrollProps {
   thesis: Thesis;
@@ -161,7 +155,6 @@ export function ThesisScroll({
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [origin, setOrigin] = useState('');
   const [canShare, setCanShare] = useState(false);
-  const [wide, setWide] = useState(false);
   const [toast, setToast] = useState('');
   const [stampKey, setStampKey] = useState(0);
 
@@ -169,7 +162,6 @@ export function ThesisScroll({
     setHost(document.body);
     setOrigin(window.location.origin);
     setCanShare(typeof navigator.share === 'function');
-    setWide(window.matchMedia('(min-width: 761px)').matches);
   }, []);
 
   useEffect(() => {
@@ -253,12 +245,6 @@ export function ThesisScroll({
       style={style}
     >
       <div className="scroll-veil" aria-hidden="true" onClick={onClose} />
-      {!reduced && wide && (
-        <div className="scroll-glow" aria-hidden="true">
-          <CrossBeam variant="ring" hue={0} speed={0.6} />
-          <span className="scroll-glow-tint" />
-        </div>
-      )}
       <section
         ref={dialog}
         className="thesis-scroll"

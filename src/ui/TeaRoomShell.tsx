@@ -63,7 +63,22 @@ export default function TeaRoomShell({
   const [sceneReady, setSceneReady] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const onReveal = useCallback(() => setRevealed(true), []);
-  const panel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!revealed) return;
+    const prefetch = () => {
+      for (const id of THESIS_IDS) {
+        const img = new Image();
+        img.src = `/images/theses/${id}-600w.webp`;
+      }
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(prefetch);
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(prefetch, 1);
+    return () => window.clearTimeout(timer);
+  }, [revealed]);
+  const panel = useRef<HTMLElement>(null)
   const openHint = useRef<HTMLButtonElement>(null);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);

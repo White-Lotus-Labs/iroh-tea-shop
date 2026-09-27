@@ -1,5 +1,6 @@
 /* Thesis Desk: three bound scrolls on a lacquer stage, and the opened scroll.
    Colours, fonts, and motion come from tokens.css. */
+/* Lane P: books use theses/*-600w.webp; opened scroll keeps the 900w thesis.image. */
 
 .thesis-deck,
 .scroll-layer {

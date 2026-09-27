@@ -175,7 +175,7 @@ function paintFoliage(ctx: CanvasRenderingContext2D) {
 
 const matteAspect = 10 / 8;
 function DistantView() {
-  const source = useTexture('/images/tea-back-wall.jpg');
+  const source = useTexture('/images/tea-back-wall.bbdb12.webp');
   const matte = useMemo(
     () =>
       canvasTexture(1024, Math.round(1024 / matteAspect), (ctx) =>

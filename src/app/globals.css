@@ -193,7 +193,7 @@ h2 {
   justify-content: center;
   background:
     linear-gradient(120deg, #211b18b0, #35251ddd),
-    url('/images/counter-wall.jpg') center / cover;
+    url('/images/counter-wall.adc913.webp') center / cover;
   color: #f3e9d5;
 }
 .auth-enso {
@@ -1572,7 +1572,7 @@ body:has(.auth-shell) {
   height: 100%;
   width: auto;
   margin-inline: auto;
-  background-image: url('/images/shelf/spirit-portraits.png');
+  background-image: url('/images/shelf/spirit-portraits.cd220e.webp');
   background-size: 500% 200%;
   background-repeat: no-repeat;
 }
