@@ -28,8 +28,13 @@ test('?thesis=ai lands on Counter, opens the panel, and scrolls the AI thesis', 
     }),
   );
 
+  // A deep link skips the waiting room but still loads the rigged host.
+  const hostModel = page.waitForRequest(/\/models\/iroh-host/, {
+    timeout: 60_000,
+  });
   await page.goto('/?thesis=ai');
   await waitForRoomReady(page);
+  await hostModel;
   // Deep link skips the entrance hero and docks at Counter.
   await expect(page.locator('main')).toHaveAttribute('data-station', 'Counter');
   await waitForDockReady(page);
