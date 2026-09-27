@@ -1,5 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
+import { flushSync } from 'react-dom';
 import {
   useCallback,
   useEffect,
@@ -144,8 +145,8 @@ export default function TeaRoomShell({
   }, [station]);
   const closePanel = useCallback(() => {
     const finish = () => {
-      setPanelOpen(false);
-      queueMicrotask(() => openHint.current?.focus());
+      flushSync(() => setPanelOpen(false));
+      openHint.current?.focus();
     };
     const paper = panel.current;
     if (reduced || !paper || paper.classList.contains('is-rolling-up'))
