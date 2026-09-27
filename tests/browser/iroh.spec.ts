@@ -345,3 +345,23 @@ test('Iroh keeps follow-ups in the same saved chat without a conversation ID', a
   expect(requests[1].chatId).toBe(requests[0].chatId);
   expect(requests[1].conversation_id).toBeUndefined();
 });
+
+test('the Uncle hand-off prefill is used once, not on every reopen', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.goto('/');
+  await openStationPanel(page, 'Counter');
+  await page
+    .getByRole('button', { name: 'Ask Uncle about your own thesis' })
+    .click();
+  const composer = page.getByRole('textbox', {
+    name: 'Ask an onchain research question',
+  });
+  await expect(composer).toHaveValue('Uncle, test my thesis: ');
+  await composer.fill('');
+  await page.getByRole('button', { name: 'Close Host menu' }).click();
+  await page.getByRole('button', { name: 'Ask Uncle', exact: true }).click();
+  await expect(composer).toBeEnabled();
+  await expect(composer).toHaveValue('');
+});
