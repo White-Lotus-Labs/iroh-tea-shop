@@ -1,0 +1,212 @@
+.waiting-room:has(.inv) {
+  --wr-backdrop-blur: 2.4px;
+}
+
+.inv {
+  position: absolute;
+  inset: 0;
+}
+.inv-canvas {
+  position: absolute !important;
+  inset: -96px 0 0;
+  width: auto !important;
+  height: auto !important;
+  touch-action: none;
+  animation: waiting-rise 1.2s var(--wr-ease-out) 0.15s both;
+}
+
+.inv-label {
+  margin: 0 0 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.6px;
+  text-transform: uppercase;
+  color: var(--wr-gold-hi);
+}
+.inv-signers,
+.inv-turn {
+  position: absolute;
+  top: 50%;
+  width: 250px;
+  transform: translateY(-50%);
+  animation: waiting-rise 0.9s var(--wr-ease-out) 0.55s both;
+}
+.inv-signers {
+  left: max(28px, calc(50% - 590px));
+}
+.inv-turn {
+  right: max(28px, calc(50% - 590px));
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  text-align: right;
+}
+.inv-signers ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--wr-rule);
+}
+.inv-signers li {
+  border-bottom: 1px solid var(--wr-rule);
+}
+.inv-signers a {
+  display: grid;
+  gap: 4px;
+  padding: 11px 2px;
+  text-decoration: none;
+  color: var(--wr-cream);
+  text-shadow: 0 1px 12px rgba(10, 7, 5, 0.8);
+  transition:
+    color 0.2s ease,
+    padding-left 0.2s var(--wr-ease-out);
+}
+.inv-signers a span {
+  font-family: var(--wr-serif);
+  font-size: 19px;
+  font-variant-numeric: lining-nums;
+}
+.inv-signers a small {
+  font-size: 9.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--wr-cream-dim);
+}
+.inv-signers a:hover {
+  color: var(--wr-gold-hi);
+  padding-left: 8px;
+}
+.inv-signers a:focus-visible,
+.inv-flip:focus-visible {
+  outline: 2px solid var(--wr-gold-hi);
+  outline-offset: 3px;
+}
+
+.inv-flip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px 0 14px;
+  border: 1px solid var(--wr-rule);
+  border-radius: 999px;
+  background: var(--wr-glass);
+  color: var(--wr-cream);
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+.inv-flip svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--wr-gold-hi);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.5s var(--wr-ease-out);
+}
+.inv-flip:hover {
+  border-color: rgba(230, 189, 132, 0.6);
+  color: var(--wr-gold-hi);
+}
+.inv-flip:hover svg {
+  transform: rotate(180deg);
+}
+.inv-flip:active {
+  transform: scale(0.97);
+}
+.inv-hint {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: rgba(246, 236, 216, 0.5);
+}
+.inv-hint .on-touch {
+  display: none;
+}
+.inv-honesty {
+  max-width: 220px;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--wr-rule);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--wr-cream-dim);
+  text-shadow: 0 1px 10px rgba(10, 7, 5, 0.8);
+}
+@media (hover: none) {
+  .inv-hint .on-touch {
+    display: inline;
+  }
+  .inv-hint .on-mouse {
+    display: none;
+  }
+}
+
+@media (max-width: 999px) {
+  .inv-signers,
+  .inv-turn {
+    top: auto;
+    left: 50%;
+    right: auto;
+    width: min(720px, calc(100vw - 24px));
+    transform: translateX(-50%);
+  }
+  .inv-turn {
+    bottom: 128px;
+    justify-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .inv-signers {
+    bottom: 10px;
+  }
+  .inv-label,
+  .inv-honesty {
+    display: none;
+  }
+  .inv-signers ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    border: 0;
+  }
+  .inv-signers li {
+    border: 0;
+  }
+  .inv-signers a {
+    display: block;
+    padding: 9px 13px;
+    border: 1px solid var(--wr-rule);
+    border-radius: 999px;
+    background: var(--wr-glass);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .inv-signers a:hover {
+    padding-left: 13px;
+  }
+  .inv-signers a span {
+    font-size: 15px;
+  }
+  .inv-signers a small {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inv-canvas,
+  .inv-signers,
+  .inv-turn {
+    animation: none;
+  }
+}
