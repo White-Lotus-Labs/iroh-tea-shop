@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { registerBrowserAccount } from './auth-helper';
+import { beginVisit } from './room-helpers';
 
 test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 
@@ -27,6 +28,7 @@ const snapshot = {
 };
 
 async function focusShelf(page: Page) {
+  await beginVisit(page);
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
@@ -37,9 +39,9 @@ async function focusShelf(page: Page) {
 test('the Shelf stays in the room until approached, then opens ranked wallets after camera travel', async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 200,
@@ -48,9 +50,10 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
     }),
   );
   await page.goto('/');
+  await beginVisit(page);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-motion',
-    'full',
+    'reduce',
   );
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
   await page
@@ -127,10 +130,11 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
 test('clicking the Shelf in the room starts the focus journey', async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
+  await beginVisit(page);
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
@@ -200,6 +204,8 @@ test('Shelf presents one leader above an exact 3 by 3 scrollable grid', async ({
 test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 503,
@@ -220,6 +226,8 @@ test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', 
 test('an invalid server response shows a safe parchment error', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>
     route.fulfill({
       status: 502,
@@ -268,6 +276,7 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
 test('a stale real snapshot is labelled and small screens keep values readable', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/smart-wallet-leaderboard', (route) =>

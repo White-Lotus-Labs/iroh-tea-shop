@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { openStationPanel } from './room-helpers';
 
 test('a guest can open Host and chat with Iroh without signing in', async ({
   page,
   context,
 }) => {
+  test.setTimeout(90_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/nansen-agent', async (route) => {
     await route.fulfill({
       status: 200,
@@ -16,10 +19,7 @@ test('a guest can open Host and chat with Iroh without signing in', async ({
   expect(
     (await context.cookies()).some((cookie) => cookie.name === 'tea_session'),
   ).toBe(false);
-  await page
-    .getByRole('navigation', { name: 'Tea room stations' })
-    .getByRole('button', { name: /Host/ })
-    .click();
+  await openStationPanel(page, 'Host');
   await page
     .getByRole('textbox', { name: 'Ask Iroh a research question' })
     .fill('What is ETH doing?');

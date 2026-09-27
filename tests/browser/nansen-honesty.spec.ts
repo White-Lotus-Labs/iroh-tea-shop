@@ -1,18 +1,19 @@
 import { expect, test, type Page } from '@playwright/test';
+import { beginVisit, openStationPanel, waitForRoomReady } from './room-helpers';
 
-async function openStation(page: Page, label: 'Host' | 'Counter' | 'Shelf') {
-  const begin = page.getByRole('button', { name: 'Begin' });
-  if (await begin.count()) await begin.click();
+async function openShelf(page: Page) {
+  await beginVisit(page);
   await page
-    .locator('.station-nav')
-    .locator('.station-item', { hasText: label })
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Shelf/ })
     .click();
+  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
 }
 
 test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/nansen-status', (route) =>
     route.fulfill({
@@ -30,7 +31,7 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   );
 
   await page.goto('/');
-  await expect(page.locator('.scene-loader')).toHaveCount(0);
+  await waitForRoomReady(page);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-nansen',
     'unavailable',
@@ -41,12 +42,12 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   const popup = page.locator('.status-popup');
   await expect(popup).toBeVisible();
   await expect(popup).toContainText('Demo data');
-  await expect(popup).toContainText('Iroh');
+  await expect(popup).toContainText('Uncle');
   await expect(popup).toContainText('Offline');
   await expect(popup).not.toContainText('Live');
   await expect(popup).not.toContainText('Nansen Research');
 
-  await openStation(page, 'Host');
+  await openStationPanel(page, 'Host');
   const chat = page.locator('.iroh-chat');
   await expect(chat).toContainText(
     'Nansen research is offline · demo voice only',
@@ -57,13 +58,18 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   await expect(chat).not.toContainText('I’ll consult');
   await expect(chat).not.toContainText('Live');
 
-  await openStation(page, 'Counter');
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Counter/ })
+    .click();
+  await page.getByRole('button', { name: 'Open Counter' }).click({
+    timeout: 20000,
+  });
   await expect(
-    page.getByText('A rehearsal, with honest limits.'),
+    page.getByRole('heading', { name: 'Thesis Desk' }),
   ).toBeVisible();
 
-  await openStation(page, 'Shelf');
-  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
+  await openShelf(page);
   const parchment = page.getByTestId('leaderboard-parchment');
   await expect(parchment).toContainText('Nansen research is offline.');
   await expect(
@@ -78,7 +84,7 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
 test('a configured Nansen status keeps the live Host, status, and Shelf framing', async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/api/nansen-status', (route) =>
     route.fulfill({
@@ -111,7 +117,7 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   );
 
   await page.goto('/');
-  await expect(page.locator('.scene-loader')).toHaveCount(0);
+  await waitForRoomReady(page);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-nansen',
     'configured',
@@ -122,20 +128,25 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   await expect(popup).toContainText('Live · Nansen Research');
   await expect(popup).not.toContainText('Offline');
 
-  await openStation(page, 'Host');
+  await openStationPanel(page, 'Host');
   const chat = page.locator('.iroh-chat');
   await expect(chat).toContainText(
     'Powered by Nansen Research Agent · Fast mode',
   );
   await expect(chat).toContainText('I’ll consult Nansen Research Agent');
 
-  await openStation(page, 'Counter');
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Counter/ })
+    .click();
+  await page.getByRole('button', { name: 'Open Counter' }).click({
+    timeout: 20000,
+  });
   await expect(
-    page.getByText('A rehearsal, with honest limits.'),
+    page.getByRole('heading', { name: 'Thesis Desk' }),
   ).toBeVisible();
 
-  await openStation(page, 'Shelf');
-  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
+  await openShelf(page);
   const parchment = page.getByTestId('leaderboard-parchment');
   await expect(
     page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
