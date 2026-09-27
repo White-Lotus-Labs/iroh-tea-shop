@@ -692,31 +692,37 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 48px;
-  min-height: 72px;
+  width: 44px;
+  height: 44px;
   margin: 0 clamp(4px, 1.4vw, 18px);
   padding: 0;
-  border: 0;
-  background: transparent;
-  color: rgba(246, 236, 216, 0.72);
-  filter: drop-shadow(0 1px 6px rgba(10, 7, 5, 0.7));
-  transition: color 0.2s ease;
+  border: 1px solid var(--wr-rule);
+  border-radius: 50%;
+  background: var(--wr-glass);
+  color: var(--wr-cream-dim);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease;
 }
 .sb-arrow svg {
-  width: 14px;
-  height: 44px;
+  width: 9px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.2;
+  stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .sb-arrow:hover:not(:disabled) {
   color: var(--wr-cream);
+  border-color: rgba(230, 189, 132, 0.5);
 }
 .sb-arrow:disabled {
   cursor: default;
-  opacity: 0.25;
+  opacity: 0.3;
 }
 .sb-arrow:focus-visible {
   outline: 2px solid var(--wr-gold-hi);
@@ -820,18 +826,17 @@
     grid-area: prev;
     justify-self: end;
     width: 40px;
-    min-height: 40px;
+    height: 40px;
     margin: 18px 0 0;
+    border: 0;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     animation: waiting-rise 0.9s var(--wr-ease-out) 0.5s both;
   }
   .sb-arrow.is-next {
     grid-area: next;
     justify-self: start;
-  }
-  .sb-arrow svg {
-    width: 9px;
-    height: 24px;
-    stroke-width: 1.5;
   }
   .sb-index {
     grid-area: index;
