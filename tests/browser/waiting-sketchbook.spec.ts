@@ -99,3 +99,21 @@ test('on a phone every page is one tap away, not only a swipe', async ({
     'The tea shop, page 1 of 10',
   );
 });
+
+test('on a phone held sideways one page keeps a size its text fits', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/?waiting=sketchbook');
+  const book = page.locator('.sb-book');
+  await page.getByRole('button', { name: 'Next page' }).click();
+  await expect(book).toHaveAttribute(
+    'aria-label',
+    'The tea shop, page 2 of 10',
+  );
+  // The title page is the fullest; its last line must stay on the paper.
+  const inner = await book.locator('.sb-title').boundingBox();
+  const last = await book.locator('.sb-sign').boundingBox();
+  expect(last!.y + last!.height).toBeLessThanOrEqual(inner!.y + inner!.height);
+});
