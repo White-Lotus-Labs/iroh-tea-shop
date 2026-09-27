@@ -47,6 +47,38 @@ describe('Nansen leaderboard provider', () => {
     expect(entries[0]).toMatchObject({ rank: 1, displayName: 'Alpha Trader' });
   });
 
+  test('asks Nansen for Smart Money labels and the Memecoin label', async () => {
+    const fetcher = vi.fn().mockImplementation(async () =>
+      Response.json({ data: [row(1)] }),
+    );
+    const now = Date.parse('2026-09-25T12:34:00Z');
+    await fetchNansenLeaderboard(
+      'private-key',
+      now,
+      fetcher,
+      'smart-money',
+      'roi',
+    );
+    await fetchNansenLeaderboard('private-key', now, fetcher, 'meme', 'losses');
+    const bodies = fetcher.mock.calls.map((call) =>
+      JSON.parse((call as [string, RequestInit])[1].body as string),
+    );
+    expect(bodies[0].filters.include_smart_money_labels).toEqual([
+      'Fund',
+      'Smart Trader',
+      '30D Smart Trader',
+      '90D Smart Trader',
+      '180D Smart Trader',
+    ]);
+    expect(bodies[0].order_by).toEqual([{ field: 'roi', direction: 'DESC' }]);
+    expect(bodies[1].filters).toEqual({
+      trader_address_label: 'Token Millionaire',
+    });
+    expect(bodies[1].order_by).toEqual([
+      { field: 'total_pnl', direction: 'ASC' },
+    ]);
+  });
+
   test('normalizes Top 10, address fallback, missing values and fractional ROI', () => {
     const records = Array.from({ length: 12 }, (_, i) => row(i + 1));
     records[1] = row(2, {

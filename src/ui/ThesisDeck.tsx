@@ -252,23 +252,23 @@ export function ThesisDeck({
       data-budget={budget}
     >
       <header className="deck-head">
-        <h1 className="deck-title">
-          Thesis <em>Desk</em>
-          <span className="deck-kicker">Three theses · Nansen signals</span>
-        </h1>
-        <div className="deck-head-actions">
+        <div className="deck-head-title">
+          <p className="eyebrow">Three theses · Nansen signals</p>
+          <h1 className="deck-title">
+            Thesis <em>Desk</em>
+          </h1>
           <DeckStatus deck={deck} now={now} />
-          <button
-            type="button"
-            className="primary deck-discuss"
-            onClick={() => onTalkToUncle(OWN_THESIS_DRAFT)}
-          >
-            <span className="deck-discuss-seal" aria-hidden="true">
-              茶
-            </span>
-            Ask Uncle about your own thesis
-          </button>
         </div>
+        <button
+          type="button"
+          className="deck-discuss"
+          onClick={() => onTalkToUncle(OWN_THESIS_DRAFT)}
+        >
+          <span className="deck-discuss-seal" aria-hidden="true">
+            茶
+          </span>
+          Ask Uncle about your own thesis
+        </button>
       </header>
 
       <div className="deck-stage">
@@ -323,20 +323,17 @@ function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
   if (deck.status === 'loading')
     return (
       <p className="deck-status" data-state="loading" role="status">
-        <span className="deck-status-dot" aria-hidden="true" />
-        Loading Nansen data…
+        Reading saved Nansen data…
       </p>
     );
   if (deck.status === 'offline')
     return (
       <p className="deck-status" data-state="offline" role="status">
-        <span className="deck-status-dot" aria-hidden="true" />
         Offline · {deck.reason}
       </p>
     );
   return (
     <p className="deck-status" data-state="live">
-      <span className="deck-status-dot" aria-hidden="true" />
       Saved Nansen readings · updated{' '}
       {formatRelative(deck.snapshot.fetchedAt, now)}
       {deck.snapshot.stale && <span className="deck-stale">Stale</span>}

@@ -1,6 +1,15 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  BOARD_BLURB,
+  BOARD_LABELS,
+  LEADERBOARD_BOARDS,
+  LEADERBOARD_METRICS,
+  METRIC_LABELS,
+  type LeaderboardBoard,
+  type LeaderboardMetric,
+} from '../leaderboard/boards';
+import {
   formatMoney,
   formatRoi,
   shortenAddress,
@@ -15,7 +24,11 @@ import {
 } from './shelfIdentities';
 import { shelfLabel } from './shelfLabels';
 
-let lastSnapshot: SmartWalletLeaderboardSnapshot | null = null;
+const snapshotCache = new Map<string, SmartWalletLeaderboardSnapshot>();
+
+function viewKey(board: LeaderboardBoard, metric: LeaderboardMetric) {
+  return `${board}:${metric}`;
+}
 
 function isSnapshot(value: unknown): value is SmartWalletLeaderboardSnapshot {
   return (
@@ -274,10 +287,12 @@ function WalletRow({
 }
 
 function FreshnessPopover({
+  board,
   snapshot,
   age,
   onClose,
 }: {
+  board: LeaderboardBoard;
   snapshot: SmartWalletLeaderboardSnapshot | null;
   age: number;
   onClose: () => void;
@@ -300,8 +315,8 @@ function FreshnessPopover({
         </button>
       </div>
       <p>
-        Rankings use Nansen&apos;s 30-day Hyperliquid perpetuals leaderboard for
-        Smart HL Perps Traders. Illustrated names are visual aliases—not claims
+        Rankings use Nansen&apos;s 30-day Hyperliquid leaderboard (
+        {BOARD_BLURB[board]}). Illustrated names are visual aliases—not claims
         about wallet owners.
       </p>
       <p>The shop saves this ranking and refreshes it about once an hour.</p>
@@ -315,15 +330,22 @@ function FreshnessPopover({
 }
 
 export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
+  const [board, setBoard] = useState<LeaderboardBoard>('perps');
+  const [metric, setMetric] = useState<LeaderboardMetric>('wins');
   const [snapshot, setSnapshot] =
-    useState<SmartWalletLeaderboardSnapshot | null>(lastSnapshot);
-  const [loading, setLoading] = useState(!lastSnapshot);
+    useState<SmartWalletLeaderboardSnapshot | null>(
+      () => snapshotCache.get(viewKey('perps', 'wins')) ?? null,
+    );
+  const [loading, setLoading] = useState(
+    !snapshotCache.get(viewKey('perps', 'wins')),
+  );
   const [error, setError] = useState<string | null>(null);
   const [freshnessAnchor, setFreshnessAnchor] = useState<
     'header' | 'footer' | null
   >(null);
   const [selectedRank, setSelectedRank] = useState(1);
-  const pending = useRef(false);
+  const [revealed, setRevealed] = useState(() => snapshotCache.size > 0);
+  const requestId = useRef(0);
 
   const toggleFreshness = useCallback((anchor: 'header' | 'footer') => {
     setFreshnessAnchor((prev) => (prev === anchor ? null : anchor));
@@ -339,15 +361,25 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   }, [freshnessAnchor]);
 
   const load = useCallback(async () => {
-    if (pending.current) return;
-    pending.current = true;
-    setLoading(true);
+    const id = ++requestId.current;
+    const key = viewKey(board, metric);
+    const cached = snapshotCache.get(key) ?? null;
+    setSnapshot(cached);
+    if (cached) setRevealed(true);
+    setLoading(!cached);
     setError(null);
     let safeError = 'Smart Wallet leaderboard is temporarily unavailable.';
     try {
-      const response = await fetch('/api/smart-wallet-leaderboard', {
-        cache: 'no-store',
-      });
+      const params = new URLSearchParams();
+      if (board !== 'perps') params.set('board', board);
+      if (metric !== 'wins') params.set('metric', metric);
+      const query = params.toString();
+      const response = await fetch(
+        query
+          ? `/api/smart-wallet-leaderboard?${query}`
+          : '/api/smart-wallet-leaderboard',
+        { cache: 'no-store' },
+      );
       const body: unknown = await response.json();
       if (!response.ok) {
         if (
@@ -360,24 +392,27 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
         throw new Error('Request failed');
       }
       if (!isSnapshot(body)) throw new Error('Invalid snapshot');
-      const next = body;
-      lastSnapshot = next;
-      setSnapshot(next);
+      if (id !== requestId.current) return;
+      snapshotCache.set(key, body);
+      setRevealed(true);
+      setSnapshot(body);
     } catch {
+      if (id !== requestId.current) return;
       setError(safeError);
-      if (lastSnapshot && Date.now() >= Date.parse(lastSnapshot.expiresAt)) {
-        lastSnapshot = {
-          ...lastSnapshot,
-          stale: true,
-          refreshError: safeError,
-        };
-        setSnapshot(lastSnapshot);
-      }
+      const stale = snapshotCache.get(key);
+      if (stale && Date.now() >= Date.parse(stale.expiresAt)) {
+        const next = { ...stale, stale: true, refreshError: safeError };
+        snapshotCache.set(key, next);
+        setSnapshot(next);
+      } else if (!cached) setSnapshot(null);
     } finally {
-      pending.current = false;
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  }, []);
+  }, [board, metric]);
+
+  useEffect(() => {
+    setSelectedRank(1);
+  }, [board, metric]);
 
   useEffect(() => {
     void load();
@@ -395,7 +430,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
 
   const leader = snapshot?.entries[0];
   const others = snapshot?.entries.slice(1, 10) ?? [];
-  const unconfigured = nansen === 'unavailable' && !snapshot;
+  const unconfigured = nansen === 'unavailable' && !snapshot && !revealed;
   const age = snapshot
     ? Math.max(
         0,
@@ -406,6 +441,44 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
     <div className="parchment-hanger" data-testid="leaderboard-parchment">
       <div className="parchment-rod" aria-hidden="true" />
       <div className="leaderboard-parchment">
+        <div className="leaderboard-controls">
+          <div
+            className="leaderboard-tabs"
+            role="tablist"
+            aria-label="Leaderboard boards"
+          >
+            {LEADERBOARD_BOARDS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={board === id}
+                className={
+                  board === id ? 'leaderboard-tab is-active' : 'leaderboard-tab'
+                }
+                onClick={() => setBoard(id)}
+              >
+                {BOARD_LABELS[id]}
+              </button>
+            ))}
+          </div>
+          <label className="leaderboard-metric">
+            <span className="sr-only">Rank by</span>
+            <select
+              value={metric}
+              onChange={(event) =>
+                setMetric(event.target.value as LeaderboardMetric)
+              }
+              aria-label="Rank by"
+            >
+              {LEADERBOARD_METRICS.map((id) => (
+                <option key={id} value={id}>
+                  {METRIC_LABELS[id]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <header className="leaderboard-head">
           <span className="leaderboard-mark" aria-hidden="true">
             茶
@@ -414,14 +487,18 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             <>
               <p className="leaderboard-eyebrow">{SHELF_CAST_NAME}</p>
               <h1>
-                Top Hyperliquid Traders by <em>30-Day PnL</em>
+                Top Hyperliquid Traders by{' '}
+                <em>
+                  {metric === 'wins' ? '30-Day PnL' : METRIC_LABELS[metric]}
+                </em>
               </h1>
               <p className="leaderboard-intro">
-                The ten Smart HL Perps Traders leading by 30-day PnL. Each
-                spirit is a visual alias—not a claim about the wallet owner.
+                {board === 'perps'
+                  ? 'The ten Smart HL Perps Traders leading by 30-day PnL. Each spirit is a visual alias—not a claim about the wallet owner.'
+                  : `${BOARD_BLURB[board]}. Each spirit is a visual alias—not a claim about the wallet owner.`}
               </p>
               <div className="leaderboard-meta">
-                <span>30-day performance · Saved Nansen readings</span>
+                <span>{BOARD_BLURB[board]}</span>
                 <span className="leaderboard-attribution">
                   <span>
                     Powered by <strong>Nansen</strong>
@@ -440,6 +517,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
               </div>
               {freshnessAnchor === 'header' && (
                 <FreshnessPopover
+                  board={board}
                   snapshot={snapshot}
                   age={age}
                   onClose={() => setFreshnessAnchor(null)}
@@ -525,6 +603,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
           <>
             {freshnessAnchor === 'footer' && (
               <FreshnessPopover
+                board={board}
                 snapshot={snapshot}
                 age={age}
                 onClose={() => setFreshnessAnchor(null)}

@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { NansenError } from './client';
-import { LEADERBOARD_CACHE_KEY } from '../leaderboard/snapshot';
+import { leaderboardRefreshTargets } from '../leaderboard/boards';
 import { fetchNansenLeaderboard } from '../leaderboard/provider';
 import { THESES } from '../thesis/deck';
 import {
@@ -78,12 +78,18 @@ function jobsFor(
     load: () => loadDeckSnapshot(apiKey),
     preferExisting: preferExistingDeck,
   };
-  const leaderboard: Job = {
-    key: LEADERBOARD_CACHE_KEY,
+  const leaderboards: Job[] = leaderboardRefreshTargets().map((target) => ({
+    key: target.key,
     load: async () => ({
-      entries: await fetchNansenLeaderboard(apiKey, now),
+      entries: await fetchNansenLeaderboard(
+        apiKey,
+        now,
+        fetch,
+        target.board,
+        target.metric,
+      ),
     }),
-  };
+  }));
   const details: Job[] = THESES.flatMap((thesis) =>
     thesis.tickers.map((ticker) => ({
       key: detailCacheKey(thesis.id, ticker.symbol),
@@ -99,7 +105,7 @@ function jobsFor(
       },
     })),
   );
-  return { first: [deck, leaderboard], details };
+  return { first: [deck, ...leaderboards], details };
 }
 
 /**

@@ -149,7 +149,7 @@ export function CameraRig({
     const mobile = size.width < 760;
     const position =
       mobile && station === 'Counter'
-        ? ([0.05, 1.66, 7.82] as const)
+        ? ([-1.4, 1.6, 7.4] as const)
         : mobile && station === 'Entrance'
           ? ([0.55, 1.67, 9.38] as const)
           : mobile && station === 'TeaTable'
@@ -157,7 +157,7 @@ export function CameraRig({
             : travelPose.position;
     const look =
       mobile && station === 'Counter'
-        ? ([-1.16, 1.36, 2.9] as const)
+        ? ([-1.11, 1.17, 2.43] as const)
         : mobile && station === 'Entrance'
           ? ([-3.14, 1.44, 6.4] as const)
           : mobile && station === 'AvatarSeat'
@@ -183,7 +183,10 @@ export function CameraRig({
       (previous === 'Entrance' || previous === 'Counter') !==
         (station === 'Entrance' || station === 'Counter');
     travel.current.retarget(to, target, crossingRooms ? 3.1 : undefined);
-    if (firstFrame) travel.current.finish();
+    // The first look after the waiting room is the Counter pose, with no fly-in.
+    const snap =
+      firstFrame || (previous === 'Entrance' && station === 'Counter');
+    if (snap) travel.current.finish();
     priorStation.current = station;
     priorShelfFocused.current = station === 'Shelf' && shelfFocused;
     shelfApproachLeg.current = approachingShelf;
@@ -193,7 +196,7 @@ export function CameraRig({
     c.update();
     camera.position.copy(travel.current.position);
     c.target.copy(travel.current.target);
-    if (firstFrame) {
+    if (snap) {
       lookAround(c, angles.current, reduced);
       zoom.current = {
         goal: angles.current.distance,
@@ -328,14 +331,16 @@ export function CameraRig({
         i.time += dt;
         i.gain = damp(i.gain, i.dragging ? 0 : 1, 3, dt);
         const g = i.gain;
+        // Kept under a pixel on the near counter edge. A larger sway
+        // slides the table edges and the shadow lines.
         i.position.set(
-          Math.sin(i.time * 0.43) * 0.0012 * g,
-          Math.sin(i.time * 0.91) * 0.002 * g,
+          Math.sin(i.time * 0.43) * 0.00015 * g,
+          Math.sin(i.time * 0.91) * 0.00022 * g,
           0,
         );
         i.target.set(
-          Math.sin(i.time * 0.37 + 1) * 0.0008 * g,
-          Math.sin(i.time * 0.67) * 0.0007 * g,
+          Math.sin(i.time * 0.37 + 1) * 0.0001 * g,
+          Math.sin(i.time * 0.67) * 0.0001 * g,
           0,
         );
         camera.position.add(i.position);
@@ -359,7 +364,7 @@ export function CameraRig({
       onEnd={() => {
         idle.current.dragging = false;
       }}
-      target={size.width < 760 ? [-1.16, 1.36, 2.9] : [-1.43, 1.37, 2.92]}
+      target={size.width < 760 ? [-1.11, 1.17, 2.43] : [-1.32, 1.38, 2.82]}
     />
   );
 }

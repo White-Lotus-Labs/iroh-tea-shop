@@ -67,7 +67,7 @@ test('the Shelf stays in the room until opened, then reveals ranked wallets with
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+  await page.route('**/api/smart-wallet-leaderboard*', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -170,7 +170,7 @@ test('the Shelf stays in the room until opened, then reveals ranked wallets with
     /Iroh|Bumi|Pakku|Roku|Avatar/,
   );
   await expect(page.getByTestId('leaderboard-parchment')).toContainText(
-    '30-day performance · Saved Nansen readings',
+    'Smart HL Perps Traders · last 30 days',
   );
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
@@ -243,7 +243,7 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+  await page.route('**/api/smart-wallet-leaderboard*', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -257,6 +257,20 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
       name: /Top Hyperliquid Traders by 30-Day PnL/,
     }),
   ).toBeVisible();
+  await page.getByRole('tab', { name: 'Smart Wallets' }).click();
+  await expect(
+    page.getByText('Fund and Smart Trader wallets · last 30 days').first(),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'Mem Traders' }).click();
+  await expect(
+    page.getByText('Token Millionaire wallets · last 30 days').first(),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'Perps Traders' }).click();
+  await page.getByLabel('Rank by').selectOption('roi');
+  await expect(
+    page.getByRole('heading', { name: /Highest ROI/ }),
+  ).toBeVisible();
+  await page.getByLabel('Rank by').selectOption('wins');
   await expect(page.getByText(/Powered by\s+Nansen/).first()).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Explain data freshness' }).first(),
@@ -330,7 +344,7 @@ test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', 
       body: JSON.stringify({ nansen: 'configured' }),
     }),
   );
-  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+  await page.route('**/api/smart-wallet-leaderboard*', (route) =>
     route.fulfill({
       status: 503,
       contentType: 'application/json',
@@ -359,7 +373,7 @@ test('an invalid server response shows a safe parchment error', async ({
       body: JSON.stringify({ nansen: 'configured' }),
     }),
   );
-  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+  await page.route('**/api/smart-wallet-leaderboard*', (route) =>
     route.fulfill({
       status: 502,
       contentType: 'text/html',
@@ -380,7 +394,7 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+  await page.route('**/api/smart-wallet-leaderboard*', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -413,7 +427,7 @@ test('a stale real snapshot is labelled and small screens keep values readable',
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.route('**/api/smart-wallet-leaderboard', (route) =>
+  await page.route('**/api/smart-wallet-leaderboard*', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',

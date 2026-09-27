@@ -213,9 +213,15 @@ export default function TeaRoomShell({
   );
   const navigate = useCallback(
     (next: Station) => {
-      // Re-clicking the current station must not clear cameraAt — the open
-      // hint depends on cameraSettled, and the camera will not travel again.
-      if (next === station) return;
+      // Re-clicking Counter closes the desk and returns this camera pose.
+      // cameraAt stays set so the open hint does not wait for a new arrival.
+      if (next === station) {
+        if (next === 'Counter') {
+          setPanelOpen(false);
+          window.dispatchEvent(new Event(RECENTER_EVENT));
+        }
+        return;
+      }
       setCameraAt(null);
       setShelfFocused(false);
       setStation(next);
@@ -318,15 +324,16 @@ export default function TeaRoomShell({
     setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
-  const pickThesis = useCallback(
-    (id: ThesisId) => {
-      setSelectedThesis(id);
-      if (station === 'Counter') return setPanelOpen(true);
-      navigate('Counter');
-      deepLinkOpenOnce.current = true;
-    },
-    [station, navigate],
-  );
+  const openThesisDesk = useCallback(() => {
+    setSelectedThesis(null);
+    if (station === 'Counter') {
+      setPanelOpen(true);
+      queueMicrotask(() => panel.current?.focus());
+      return;
+    }
+    navigate('Counter');
+    deepLinkOpenOnce.current = true;
+  }, [station, navigate]);
   const onTalkToUncle = useCallback((text: string) => {
     setUncleDraft({ text, key: Date.now() });
     setCameraAt(null);
@@ -485,7 +492,7 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
-            onThesisPick={pickThesis}
+            onThesisPick={openThesisDesk}
             onNavigate={navigate}
             onStaged={onStaged}
             hostModel={revealed}

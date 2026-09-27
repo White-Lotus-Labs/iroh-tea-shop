@@ -52,72 +52,59 @@
 
 .deck-head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px 20px;
+  gap: 12px 24px;
   padding-right: 48px;
 }
 
-.deck-head-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
+.deck-head-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
-.deck-kicker {
-  margin-left: 14px;
-  color: #8a2f22;
-  vertical-align: 0.5em;
-  font: 700 10px/1 var(--font-body);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+.app-shell .reading-panel .deck-head .eyebrow {
+  margin: 0 0 4px;
 }
 
 .app-shell .reading-panel .thesis-deck .deck-head h1.deck-title {
   margin: 0;
+  font-size: clamp(30px, 2.5vw, 38px);
 }
 
 .deck-status {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 7px 13px;
-  border: 1px solid var(--scroll-line);
-  border-radius: 999px;
-  background: rgba(255, 250, 238, 0.62);
+  gap: 7px;
+  margin: 2px 0 0;
   color: var(--scroll-muted);
-  font: 600 11px/1.2 var(--font-body);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 500 12px/1.35 var(--font-body);
+  letter-spacing: 0.02em;
 }
 
-.deck-status-dot,
-.leaf-live-dot {
+.deck-status[data-state='live']::before {
+  content: '';
   flex: none;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--jade);
-  box-shadow: 0 0 0 3px rgba(47, 125, 91, 0.18);
+  box-shadow: 0 0 0 3px rgba(44, 110, 82, 0.16);
 }
 
-.deck-status[data-state='loading'] .deck-status-dot {
+.deck-status[data-state='loading']::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   background: var(--gold);
   box-shadow: 0 0 0 3px rgba(184, 145, 63, 0.2);
-  animation: deck-pulse 900ms ease-in-out infinite alternate;
 }
 
 .deck-status[data-state='offline'] {
-  border-color: rgba(163, 40, 31, 0.32);
   color: #7a3326;
-}
-
-.deck-status[data-state='offline'] .deck-status-dot {
-  background: var(--seal);
-  box-shadow: 0 0 0 3px rgba(163, 40, 31, 0.15);
 }
 
 .deck-stale {
@@ -724,21 +711,37 @@
 
 .deck-discuss {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  min-height: 44px;
-  padding-left: 8px;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 16px 6px 8px;
+  border: 1px solid rgba(74, 47, 29, 0.32);
+  border-radius: 3px;
+  background: rgba(255, 252, 243, 0.72);
+  color: var(--scroll-ink);
+  font: 600 13.5px/1 var(--font-body);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(74, 47, 29, 0.14);
+}
+
+.deck-discuss:hover {
+  border-color: rgba(138, 47, 34, 0.55);
+  background: #fffaf0;
 }
 
 .deck-discuss-seal {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  border-radius: 2px 4px 3px 2px;
   background: var(--seal);
-  color: #fbeee0;
-  font-family: var(--font-cjk);
-  font-size: 15px;
+  color: #fbefdc;
+  font: 600 14px/1 var(--font-cjk);
+  box-shadow: inset 0 0 0 1.5px rgba(251, 239, 220, 0.75);
+  transform: rotate(-4deg);
 }
 
 .thesis-deck[data-budget='light'] .book-shadow,
@@ -834,9 +837,14 @@
     font-size: 12px;
   }
 
-  .deck-head-actions,
+  .deck-head {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-right: 40px;
+  }
+
   .deck-discuss {
-    width: 100%;
+    width: auto;
   }
 }
 
@@ -1237,12 +1245,20 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   margin: 0 0 26px;
   color: var(--scroll-muted);
-  font: 600 11px/1.3 var(--font-body);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 500 12px/1.35 var(--font-body);
+  letter-spacing: 0.02em;
+}
+
+.leaf-live-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--jade);
+  box-shadow: 0 0 0 3px rgba(44, 110, 82, 0.16);
 }
 
 .scroll-section-title {
@@ -1804,103 +1820,4 @@ html.thesis-vt::view-transition-group(root) {
 .thesis-reading a:focus-visible {
   outline: 2px solid var(--seal);
   outline-offset: 3px;
-}
-
-/* ---------- Ember halo on the 3D thesis cards ---------- */
-
-.thesis-card-halo-wrap {
-  pointer-events: none;
-}
-
-/* A 36px hit area around an 18px ember. */
-.thesis-card-halo {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  pointer-events: auto;
-}
-
-.thesis-card-halo::before,
-.thesis-card-halo::after {
-  content: '';
-  position: absolute;
-  top: 9px;
-  left: 9px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-}
-
-.thesis-card-halo::before {
-  background: radial-gradient(
-    circle at 44% 40%,
-    #fff3cf 0 16%,
-    #f6b45a 40%,
-    #c8501f 68%,
-    rgba(200, 80, 31, 0) 72%
-  );
-  box-shadow: 0 0 10px 2px rgba(246, 180, 90, 0.55);
-}
-
-.thesis-card-halo::after {
-  border: 1.5px solid rgba(246, 180, 90, 0.7);
-  animation: ember-pulse 2.4s ease-out infinite;
-}
-
-.thesis-card-halo:hover::before,
-.thesis-card-halo:focus-visible::before {
-  box-shadow: 0 0 14px 4px rgba(246, 180, 90, 0.75);
-}
-
-.thesis-card-halo:focus-visible {
-  outline: 2px solid var(--gold-bright);
-  outline-offset: 0;
-}
-
-.thesis-card-halo[data-reduced='true']::after {
-  animation: none;
-  opacity: 0.6;
-}
-
-.thesis-card-halo-label {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
-  padding: 5px 10px 6px;
-  border: 1px solid rgba(233, 201, 131, 0.55);
-  border-radius: 2px;
-  background: rgba(33, 22, 13, 0.9);
-  color: #f6e8c8;
-  font: 600 12px/1.2 var(--font-body);
-  white-space: nowrap;
-  opacity: 0;
-  transform: translate(-50%, 4px);
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease;
-  pointer-events: none;
-}
-
-.thesis-card-halo:hover .thesis-card-halo-label,
-.thesis-card-halo:focus-visible .thesis-card-halo-label {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-@keyframes ember-pulse {
-  from {
-    opacity: 0.85;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(2);
-  }
 }

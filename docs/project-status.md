@@ -20,7 +20,7 @@ Each book shows a conviction seal. The seal is a summary of smart-money numbers,
 
 **Host.** Uncle answers in a chat. He uses Nansen's Research Agent. This part is live. Sending a message calls Nansen at that moment. Guests keep the thread until they reload. If you sign in, your chats are kept in the database and you can reopen them.
 
-**Shelf.** Ten spirits stand in for the ten Smart HL Perps Traders with the best 30-day PnL. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. The numbers under them are the saved leaderboard. Clicking through opens that address in Nansen's profiler.
+**Shelf.** Ten spirits stand in for the wallets on the saved Hyperliquid leaderboard. The scroll has three boards: Perps Traders, Smart Wallets, and Mem Traders. The default sort is 30-day PnL. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. Clicking through opens that address in Nansen's profiler.
 
 **Observatorium.** A brass orrery you can wind. It is not connected to market data.
 
@@ -32,7 +32,7 @@ Nansen is the only market source. The app never invents a conviction number or a
 
 Visitors do not trigger the deck, the asset pages, or the shelf. Those are saved in SQLite (`NansenSnapshot` rows) and served from there.
 
-The server fills that table when it starts, then about once an hour. One fill is 80 Nansen requests: 12 for the thesis seals, 67 for the twelve asset pages, and 1 for the shelf. The README has the split. Solana skips the spot endpoints. If a fill fails, the last good row stays on screen and can be marked stale.
+The server fills that table when it starts, then about once an hour. One fill is 94 Nansen requests: 12 for the thesis seals, 67 for the twelve asset pages, and 15 for the shelf boards. The README has the split. Solana skips the spot endpoints. If a fill fails, the last good row stays on screen and can be marked stale.
 
 Until the first fill finishes, the desk and the shelf say the readings are still being saved.
 
@@ -46,7 +46,7 @@ Sign-in is optional. A nickname and a password create a user and a session cooki
 
 ## What is stored in SQLite
 
-One file, `prisma/dev.db` on a single Node process:
+One SQLite file on a single Node process. Locally that file is `prisma/dev.db` (`DATABASE_URL=file:./dev.db`). On Railway the web service sets `DATABASE_URL=file:/data/dev.db` and mounts a volume at `/data`. The separate SQLite web service cannot share that file.
 
 - users and sessions
 - Uncle's chats and messages, for signed-in people

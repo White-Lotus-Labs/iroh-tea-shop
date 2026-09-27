@@ -390,8 +390,10 @@ export function OrreryLight() {
  */
 export function MechanicalPlanetarySystem({
   reduced = false,
+  onHover,
 }: {
   reduced?: boolean;
+  onHover?: (on: boolean) => void;
 }) {
   const speedRef = useRef(1);
   const [hovered, setHovered] = useState(false);
@@ -523,10 +525,12 @@ export function MechanicalPlanetarySystem({
       onPointerOver={(e) => {
         e.stopPropagation();
         setHovered(true);
+        onHover?.(true);
         document.body.style.cursor = 'pointer';
       }}
       onPointerOut={() => {
         setHovered(false);
+        onHover?.(false);
         document.body.style.cursor = '';
       }}
     >
@@ -733,12 +737,6 @@ export function MechanicalPlanetarySystem({
           </group>
         </group>
 
-        {hovered && (
-          <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.138, 0.146, 36]} />
-            <meshBasicMaterial color="#ffe184" transparent opacity={0.65} />
-          </mesh>
-        )}
       </group>
     </group>
   );

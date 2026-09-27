@@ -1431,6 +1431,65 @@ body:has(.auth-shell) {
   color: var(--scroll-muted);
   font: 500 12px/1.4 var(--font-body);
 }
+.leaderboard-controls {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 14px;
+  margin-top: 0;
+  padding: 2px 0 10px;
+  background: var(--scroll-paper);
+}
+.leaderboard-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--scroll-line);
+  border-radius: 999px;
+  background: rgba(255, 250, 238, 0.55);
+}
+.leaderboard-tab {
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--scroll-muted);
+  font: 650 11.5px/1.2 var(--font-body);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.leaderboard-tab.is-active,
+.leaderboard-tab[aria-selected='true'] {
+  background: rgba(138, 47, 34, 0.12);
+  color: #8a2f22;
+  box-shadow: inset 0 0 0 1px rgba(138, 47, 34, 0.28);
+}
+.leaderboard-tab:hover {
+  color: var(--scroll-ink);
+}
+.leaderboard-metric select {
+  min-height: 32px;
+  padding: 5px 28px 5px 10px;
+  border: 1px solid var(--scroll-line);
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--scroll-muted) 50%)
+      calc(100% - 14px) / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--scroll-muted) 50%, transparent 50%)
+      calc(100% - 9px) / 5px 5px no-repeat,
+    rgba(255, 250, 238, 0.85);
+  color: var(--scroll-ink);
+  font: 600 12px/1.2 var(--font-body);
+  appearance: none;
+  cursor: pointer;
+}
 .leaderboard-attribution {
   display: inline-flex;
   align-items: center;
@@ -2036,6 +2095,9 @@ body:has(.auth-shell) {
   }
   .leaderboard-meta {
     font-size: 11.5px;
+  }
+  .leaderboard-tab {
+    padding: 5px 8px;
   }
   .wallet-hero {
     grid-template-columns: 84px minmax(0, 1fr);
@@ -3711,6 +3773,12 @@ body:has(.auth-shell) {
 }
 .halo-tag {
   padding: 2px 8px 3px;
+}
+.halo-core-wrap {
+  pointer-events: none;
+}
+.halo-label.is-note {
+  padding: 6px 14px 7px 12px;
 }
 .halo-label-seal {
   display: grid;

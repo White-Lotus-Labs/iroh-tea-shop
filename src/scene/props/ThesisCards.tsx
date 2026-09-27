@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import {
   ExtrudeGeometry,
   MeshBasicMaterial,
@@ -13,8 +12,7 @@ import {
   type Texture,
 } from 'three';
 import { THESES } from '../../thesis/deck';
-import type { Thesis, ThesisId } from '../../thesis/types';
-import type { Point } from '../stations';
+import type { Thesis } from '../../thesis/types';
 import { canvasTexture, useBuilt } from './craft';
 import { lightExperience } from '../lightExperience';
 
@@ -103,57 +101,18 @@ function useCover(image: string) {
   return cover;
 }
 
-/** A small ember that marks a clickable thing in the room. Props match StationHalos' HaloMarker. */
-export function ThesisCardHalo({
-  position,
-  label,
-  active,
-  reduced,
-  onClick,
-}: {
-  position: Point;
-  label: string;
-  active: boolean;
-  reduced: boolean;
-  onClick: () => void;
-}) {
-  if (!active) return null;
-  return (
-    <Html
-      position={position}
-      center
-      zIndexRange={[5, 0]}
-      wrapperClass="thesis-card-halo-wrap"
-    >
-      <button
-        type="button"
-        className="thesis-card-halo"
-        data-reduced={reduced ? 'true' : 'false'}
-        aria-label={label}
-        onClick={onClick}
-      >
-        <span className="thesis-card-halo-label" aria-hidden="true">
-          {label}
-        </span>
-      </button>
-    </Html>
-  );
-}
-
 function ThesisCard({
   thesis,
   index,
   shared,
-  halo,
   reduced,
   onPick,
 }: {
   thesis: Thesis;
   index: number;
   shared: ReturnType<typeof buildShared>;
-  halo: boolean;
   reduced: boolean;
-  onPick?: (id: ThesisId) => void;
+  onPick?: () => void;
 }) {
   const cover = useCover(thesis.image);
   const card = useRef<Group>(null);
@@ -162,6 +121,18 @@ function ThesisCard({
   const spring = useRef({ at: 0, velocity: 0 });
   const [face] = useState(
     () => new MeshStandardMaterial({ color: '#e6d8bb', roughness: 0.78 }),
+  );
+  const [rim] = useState(
+    () =>
+      new MeshBasicMaterial({
+        color: '#e9c983',
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
+      }),
   );
   const [blob] = useState(
     () =>
@@ -183,8 +154,9 @@ function ThesisCard({
     () => () => {
       face.dispose();
       blob.dispose();
+      rim.dispose();
     },
-    [face, blob],
+    [face, blob, rim],
   );
   useFrame((_, delta) => {
     const s = spring.current;
@@ -209,10 +181,10 @@ function ThesisCard({
     group.position.y = REST_Y + index * 0.0015 + s.at * LIFT;
     group.rotation.x = LEAN + s.at * TILT;
     blob.opacity = 0.55 - Math.min(1, Math.max(0, s.at)) * 0.3;
+    rim.opacity = onPick ? s.at : 0;
     posed.current = s.velocity === 0 && s.at === target;
   });
   const [x, yaw] = FAN[index];
-  const pick = () => onPick?.(thesis.id);
   const handlers = onPick
     ? {
         onPointerOver: (event: ThreeEvent<PointerEvent>) => {
@@ -228,7 +200,7 @@ function ThesisCard({
           event.stopPropagation();
           // A camera orbit that ends on a card is not a pick.
           if (event.delta > DRAG_PX) return;
-          pick();
+          onPick();
         },
       }
     : {};
@@ -247,17 +219,17 @@ function ThesisCard({
         rotation={[LEAN, yaw, 0, 'YXZ']}
       >
         <mesh
+          geometry={shared.rim}
+          material={rim}
+          position={[0, -0.0016, 0]}
+          renderOrder={0}
+        />
+        <mesh
           geometry={shared.card}
           material={[face, shared.edge]}
           castShadow
+          renderOrder={1}
           {...handlers}
-        />
-        <ThesisCardHalo
-          position={[W * 0.34, 0.006, -L * 0.36]}
-          label={`Read ${thesis.title}`}
-          active={halo && Boolean(onPick)}
-          reduced={reduced}
-          onClick={pick}
         />
       </group>
     </group>
@@ -266,29 +238,29 @@ function ThesisCard({
 
 function buildShared() {
   const card = cardGeometry(),
+    rim = card.clone().scale(1.08, 1, 1.08),
     blob = new PlaneGeometry(W * 1.4, L * 1.3).rotateX(-Math.PI / 2),
     blobMap = canvasTexture(64, 64, drawBlob),
     edge = new MeshStandardMaterial({ color: '#e6d8bb', roughness: 0.8 });
   return {
     card,
+    rim,
     blob,
     blobMap,
     edge,
     dispose() {
-      [card, blob, blobMap, edge].forEach((item) => item.dispose());
+      [card, rim, blob, blobMap, edge].forEach((item) => item.dispose());
     },
   };
 }
 
 /** Three thesis cards fanned on the counter beside the teacups. */
 export function ThesisCards({
-  halos,
   reduced,
   onPick,
 }: {
-  halos: boolean;
   reduced: boolean;
-  onPick?: (id: ThesisId) => void;
+  onPick?: () => void;
 }) {
   const shared = useBuilt(buildShared);
   return (
@@ -299,7 +271,6 @@ export function ThesisCards({
           thesis={thesis}
           index={index}
           shared={shared}
-          halo={halos}
           reduced={reduced}
           onPick={onPick}
         />

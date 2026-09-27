@@ -88,3 +88,36 @@ test('GET says readings are still being saved when the database is empty', async
   expect(await response.json()).toEqual({ error: NANSEN_WARMING_MESSAGE });
   expect(upstream).not.toHaveBeenCalled();
 });
+
+test('GET reads the board and sort named in the query', async () => {
+  const { writeNansenSnapshot } = await import('../src/nansen/snapshot-store');
+  const { boardCacheKey } = await import('../src/leaderboard/boards');
+  await writeNansenSnapshot(
+    temp.db,
+    boardCacheKey('meme', 'roi'),
+    {
+      entries: [
+        {
+          rank: 1,
+          address: `0x${'2'.repeat(40)}`,
+          displayName: 'Meme Trader',
+          pnl: 10,
+          roi: 2,
+          accountValue: null,
+        },
+      ],
+    },
+    Date.parse('2026-09-27T12:00:00Z'),
+  );
+  const { GET } = await import('../src/app/api/smart-wallet-leaderboard/route');
+  const response = await GET(
+    new Request(
+      'http://127.0.0.1/api/smart-wallet-leaderboard?board=meme&metric=roi',
+    ),
+  );
+  expect(response.status).toBe(200);
+  const body = (await response.json()) as {
+    entries: { displayName: string }[];
+  };
+  expect(body.entries[0]?.displayName).toBe('Meme Trader');
+});

@@ -34,7 +34,6 @@ import { lightExperience } from './lightExperience';
 import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
-import type { ThesisId } from '../thesis/types';
 import { bookResting } from '../ui/waiting-room/bookMotion';
 
 function RoomGeometry({
@@ -61,11 +60,14 @@ function RoomGeometry({
   station: Station;
   menuClosed: boolean;
   onMenuOpen: () => void;
-  onThesisPick?: (id: ThesisId) => void;
+  onThesisPick?: () => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
   hostModel: boolean;
 }) {
+  const [hostHalo, setHostHalo] = useState(false);
+  const [orreryHot, setOrreryHot] = useState(false);
+  const [shelfHot, setShelfHot] = useState(false);
   const posters = station !== 'Entrance';
   // Deck state (mood, menuClosed) re-renders this component on every thesis
   // switch. Each drei ContactShadows then redraws the whole room, so the static
@@ -85,12 +87,13 @@ function RoomGeometry({
           frames={1}
           color="#25180f"
         />
-        <MechanicalPlanetarySystem reduced={reduced} />
+        <MechanicalPlanetarySystem reduced={reduced} onHover={setOrreryHot} />
         <TeaShelf
           onSelect={onShelfSelect}
           revealed={shelfRevealed}
           reduced={reduced}
           posters={posters}
+          onHover={setShelfHot}
         />
       </>
     ),
@@ -98,8 +101,8 @@ function RoomGeometry({
   );
   const covered = station === 'Counter' && !menuClosed;
   const finish = useMemo(
-    () => <ScenePolish reduced={reduced} covered={covered} />,
-    [reduced, covered],
+    () => <ScenePolish covered={covered} />,
+    [covered],
   );
   return (
     <>
@@ -144,11 +147,7 @@ function RoomGeometry({
       {/* Later group: no lights, so the shell's programs stay valid when it arrives. */}
       <Staged reduced={reduced} precompile={compileRoom} onReady={onStaged}>
         {detail}
-        <ThesisCards
-          halos={station === 'Counter' && menuClosed}
-          reduced={reduced}
-          onPick={onThesisPick}
-        />
+        <ThesisCards reduced={reduced} onPick={onThesisPick} />
         <StationHalos
           station={station}
           menuClosed={menuClosed}
@@ -156,6 +155,9 @@ function RoomGeometry({
           onNavigate={onNavigate}
           onMenuOpen={onMenuOpen}
           onShelfSelect={onShelfSelect}
+          onHostHover={setHostHalo}
+          orreryHot={orreryHot}
+          shelfHot={shelfHot}
         />
         {finish}
       </Staged>
@@ -167,6 +169,12 @@ function RoomGeometry({
             reduced={reduced}
             activity={irohActivity}
             model={hostModel}
+            lit={hostHalo}
+            onActivate={() =>
+              station === 'AvatarSeat'
+                ? onMenuOpen()
+                : onNavigate('AvatarSeat')
+            }
           />
         </Suspense>
       </TeaChamber>
@@ -201,10 +209,12 @@ function linkedNow({ gl, scene, camera }: RootState) {
   gl.setRenderTarget(previous);
   target.dispose();
   for (const material of materials) {
-    const { currentProgram: program } = gl.properties.get(material) as {
-      currentProgram?: { isReady: () => boolean };
-    };
-    if (program && !program.isReady()) return false;
+    if (!material) continue;
+    const props = gl.properties.get(material) as
+      | { currentProgram?: { isReady?: () => boolean } }
+      | undefined;
+    const ready = props?.currentProgram?.isReady;
+    if (typeof ready === 'function' && !ready()) return false;
   }
   return true;
 }
@@ -330,7 +340,7 @@ export default function TeaRoom({
   shelfRevealed: boolean;
   menuClosed: boolean;
   onMenuOpen: () => void;
-  onThesisPick?: (id: ThesisId) => void;
+  onThesisPick?: () => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
   hostModel: boolean;
