@@ -210,12 +210,14 @@ export function PetalCanvas({
   count,
   reduced,
   className,
+  area,
   size,
   seed,
 }: {
   count: number;
   reduced: boolean;
   className?: string;
+  area?: PetalArea;
   size?: number;
   seed?: number;
 }) {
@@ -228,7 +230,13 @@ export function PetalCanvas({
       camera={{ position: [0, 1, 14], fov: 45, near: 0.1, far: 60 }}
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
     >
-      <SakuraPetals count={count} reduced={reduced} size={size} seed={seed} />
+      <SakuraPetals
+        count={count}
+        reduced={reduced}
+        area={area}
+        size={size}
+        seed={seed}
+      />
     </Canvas>
   );
 }
