@@ -94,7 +94,18 @@ Measured 2026-09-27T12:41:32Z the same way, after WebP waiting-room art, deferri
 - Desktop raw transfer stays over 2.5 MB. The wire number is under 2.5 MB.
 - Desktop images stay over 1.2 MB: diorama, back wall, thesis covers on the counter, and the sketchbook riffle. Mobile images pass.
 - Entrance time on this headless Linux host is about 9.5 s unthrottled and 10.3 s on Fast 4G (down from 15.0 s). The 2.4 s figure was a Metal GPU. Step inside still waits for the 3D room.
-- AO, bloom, and the environment chunk stay off the entrance download. They load after Step inside. Shelf poster textures do too.
+- AO, bloom, and the environment chunk stay off the entrance download. They load after Step inside. Shelf poster textures do too. (Superseded by the sketchbook-first load order below.)
+
+## Sketchbook-first load order (2026-09-27)
+
+Visitors read the sketchbook first, so the room may load slowly as long as the first spread shows and turns fast.
+
+- The room chunk and its textures start only after the sketchbook bakes its first spread (`data-bake` ≥ 2), or after 12 s.
+- Surface textures are painted in a Web Worker (`src/scene/surfaceTexels.worker.ts`), not on the main thread.
+- Room reflections are a one-shot cube map in the lit shell, so they no longer recompile every program when they arrive. AO and bloom mount with the staged room detail, and Enter waits for that stage, so nothing pops in after the guest steps inside.
+- Music is a 36 s seamless loop: Opus (about 86 KB) with an MP3 fallback (about 144 KB). Nothing downloads before a gesture, and the on/off choice persists.
+- Shelf posters carry baked names and warm once the room is ready. The duplicate shelf mini-scroll is gone.
+- Files with a content hash (`name.abc123.ext`) in `images`, `audio`, and `models` are cached as immutable; other images for a week.
 
 ## Low-end motion path
 
