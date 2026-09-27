@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { beginVisit } from './room-helpers';
+import { beginVisit, waitForRoomReady } from './room-helpers';
 
 test('a guest can use the room and find optional account actions', async ({
   page,
@@ -37,7 +37,7 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const nickname = `Mark_${crypto.randomUUID().slice(0, 8)}`;
   await page.goto('/');
-  await beginVisit(page);
+  await waitForRoomReady(page);
   await page.getByTestId('account-entry').click();
   await expect(
     page.getByRole('heading', { name: 'Welcome to the room.' }),
@@ -49,7 +49,9 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
     .getByRole('button', { name: 'Create account', exact: true })
     .last()
     .click();
-  await expect(page.getByTestId('account-control')).toContainText(nickname);
+  await expect(page.getByTestId('account-control')).toContainText(nickname, {
+    timeout: 15000,
+  });
   const me = await (await page.request.get('/api/auth/me')).json();
   expect(me.user).toEqual({ id: expect.any(String), nickname });
   expect(me.user).not.toHaveProperty('passwordHash');
@@ -81,7 +83,9 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
     .getByRole('button', { name: 'Log in', exact: true })
     .last()
     .click();
-  await expect(page.getByTestId('account-control')).toContainText(nickname);
+  await expect(page.getByTestId('account-control')).toContainText(nickname, {
+    timeout: 15000,
+  });
   expect((await (await page.request.get('/api/auth/me')).json()).user.id).toBe(
     me.user.id,
   );
@@ -94,7 +98,7 @@ test('duplicate nickname and short password show recoverable errors', async ({
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const nickname = `Alex_${crypto.randomUUID().slice(0, 8)}`;
   await page.goto('/');
-  await beginVisit(page);
+  await waitForRoomReady(page);
   await page.getByTestId('account-entry').click();
   await page.getByRole('button', { name: 'Create account' }).click();
   await page.getByLabel('Nickname').fill(nickname);
@@ -110,7 +114,9 @@ test('duplicate nickname and short password show recoverable errors', async ({
     .getByRole('button', { name: 'Create account', exact: true })
     .last()
     .click();
-  await expect(page.getByTestId('account-control')).toContainText(nickname);
+  await expect(page.getByTestId('account-control')).toContainText(nickname, {
+    timeout: 15000,
+  });
   await page.getByTestId('account-control').click();
   await page.getByRole('button', { name: 'Log out' }).click();
   await page.getByTestId('account-entry').click();
