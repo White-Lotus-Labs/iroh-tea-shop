@@ -9,6 +9,7 @@ import {
   prepareResearchRequest,
 } from '../../../iroh/history';
 import { SESSION_COOKIE } from '../../../auth/cookie';
+import { withUnclePersona } from '../../../nansen/uncle';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -138,6 +139,7 @@ export async function POST(request: Request) {
   const onAbort = () => upstreamController.abort();
   request.signal.addEventListener('abort', onAbort, { once: true });
   const timer = setTimeout(() => upstreamController.abort(), TIMEOUT_MS);
+  const upstreamText = conversationId ? text : withUnclePersona(text);
   let upstream: Response;
   try {
     upstream = await fetch(ENDPOINT, {
@@ -148,7 +150,7 @@ export async function POST(request: Request) {
         accept: 'text/event-stream',
       },
       body: JSON.stringify({
-        text,
+        text: upstreamText,
         ...(conversationId ? { conversation_id: conversationId } : {}),
       }),
       signal: upstreamController.signal,

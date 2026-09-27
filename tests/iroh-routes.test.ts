@@ -115,11 +115,17 @@ describe('Iroh chat HTTP routes', () => {
     await ask(firstChat.chat.id, 'What is ETH doing?');
     await ask(firstChat.chat.id, 'How about seven days?');
     await ask(secondChat.chat.id, 'Fresh SOL question');
-    expect(outbound).toEqual([
-      { text: 'What is ETH doing?' },
-      { text: 'How about seven days?', conversation_id: 'conv_1' },
-      { text: 'Fresh SOL question' },
-    ]);
+    expect(outbound).toHaveLength(3);
+    expect(outbound[0].text).toContain('You are Uncle');
+    expect(outbound[0].text).toContain('What is ETH doing?');
+    expect(outbound[0]).not.toHaveProperty('conversation_id');
+    expect(outbound[1]).toEqual({
+      text: 'How about seven days?',
+      conversation_id: 'conv_1',
+    });
+    expect(outbound[2].text).toContain('You are Uncle');
+    expect(outbound[2].text).toContain('Fresh SOL question');
+    expect(outbound[2]).not.toHaveProperty('conversation_id');
     const saved = await db.chat.findUniqueOrThrow({
       where: { id: firstChat.chat.id },
       include: { messages: { orderBy: { id: 'asc' } } },
