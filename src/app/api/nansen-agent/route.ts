@@ -6,8 +6,11 @@ import {
 } from '../../../nansen/sse';
 import {
   ChatNotFoundError,
-  prepareResearchRequest,
+  getChat,
+  prepareAdmittedResearchRequest,
+  rollbackUnstartedResearchRequest,
 } from '../../../iroh/history';
+import { claimChatTurn } from '../../../iroh/turn-guard';
 import { SESSION_COOKIE } from '../../../auth/cookie';
 import {
   agentDailyCap,
@@ -20,6 +23,11 @@ import {
   QUESTION_TOO_LONG_MESSAGE,
 } from '../../../nansen/limits';
 import { withUnclePersona } from '../../../nansen/uncle';
+import { parseRetryAfter } from '../../../nansen/client';
+import {
+  nansenRequestManager,
+  NansenManagerError,
+} from '../../../nansen/request-manager';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -143,56 +151,96 @@ export async function POST(request: Request) {
   let text = value.text.trim();
   let conversationId = value.conversation_id as string | undefined;
   let persisted: { userId: string; chatId: string } | null = null;
-  let authenticated:
-    | { db: Awaited<typeof import('../../../auth/db')>['db']; userId: string }
-    | undefined;
+  let releaseTurn: (() => void) | null = null;
+  let db: typeof import('../../../auth/db').db | null = null;
   const hasSessionCookie = request.headers
     .get('cookie')
     ?.split(';')
     .some((part) => part.trim().startsWith(`${SESSION_COOKIE}=`));
   if (value.chatId !== undefined || hasSessionCookie) {
-    const [{ db }, { userFromRequest }, { getChat }] = await Promise.all([
+    const [{ db: database }, { userFromRequest }] = await Promise.all([
       import('../../../auth/db'),
       import('../../../iroh/request-user'),
-      import('../../../iroh/history'),
     ]);
-    const user = await userFromRequest(db, request);
+    db = database;
+    const user = await userFromRequest(database, request);
     if (!user) return jsonError(401, 'Sign in to continue this chat.');
     if (typeof value.chatId !== 'string' || conversationId)
       return jsonError(400, 'Choose a chat before asking Iroh.');
-    if (!(await getChat(db, user.id, value.chatId)))
+    if (!(await getChat(database, user.id, value.chatId)))
       return jsonError(404, 'Chat not found.');
-    authenticated = { db, userId: user.id };
+    releaseTurn = claimChatTurn(value.chatId);
+    if (!releaseTurn)
+      return jsonError(409, 'Another question is active in this chat.');
+    persisted = { userId: user.id, chatId: value.chatId };
   }
 
+  // Main's daily cup gate stays ahead of the manager and upstream call.
   const cap = agentDailyCap.claim(clientIpFromRequest(request));
-  if (!cap.allowed) return capError(cap);
+  if (!cap.allowed) {
+    releaseTurn?.();
+    return capError(cap);
+  }
 
-  if (authenticated && typeof value.chatId === 'string') {
+  const preparation: {
+    value: Awaited<ReturnType<typeof prepareAdmittedResearchRequest>> | null;
+  } = { value: null };
+  const rollbackPrepared = async () => {
+    if (!preparation.value || !persisted || !db) return;
+    await rollbackUnstartedResearchRequest(
+      db,
+      persisted.userId,
+      persisted.chatId,
+      preparation.value.userMessageId,
+      preparation.value.previousTitle,
+    );
+    preparation.value = null;
+  };
+  let lease;
+  try {
+    lease = await nansenRequestManager.acquireIroh(
+      request.signal,
+      persisted && db
+        ? async (signal) => {
+            preparation.value = await prepareAdmittedResearchRequest(
+              db!,
+              persisted!.userId,
+              persisted!.chatId,
+              question.trim(),
+              signal,
+            );
+          }
+        : undefined,
+    );
+  } catch (error) {
     try {
-      const prepared = await prepareResearchRequest(
-        authenticated.db,
-        authenticated.userId,
-        value.chatId,
-        question.trim(),
-      );
-      text = prepared.text;
-      conversationId = prepared.conversationId ?? undefined;
-      persisted = { userId: authenticated.userId, chatId: value.chatId };
-    } catch (error) {
-      if (error instanceof ChatNotFoundError)
-        return jsonError(404, 'Chat not found.');
-      throw error;
+      await rollbackPrepared();
+    } finally {
+      releaseTurn?.();
     }
+    if (error instanceof ChatNotFoundError)
+      return jsonError(404, 'Chat not found.');
+    if (error instanceof NansenManagerError)
+      return jsonError(error.status, error.message);
+    if (request.signal.aborted) return jsonError(499, 'Question cancelled.');
+    throw error;
+  }
+
+  if (preparation.value) {
+    text = preparation.value.text;
+    conversationId = preparation.value.conversationId ?? undefined;
   }
 
   const upstreamController = new AbortController();
   const onAbort = () => upstreamController.abort();
-  request.signal.addEventListener('abort', onAbort, { once: true });
+  lease.signal.addEventListener('abort', onAbort, { once: true });
   const timer = setTimeout(() => upstreamController.abort(), TIMEOUT_MS);
   const upstreamText = conversationId ? text : withUnclePersona(text);
   let upstream: Response;
+  let fetchStarted = false;
   try {
+    if (lease.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
+    fetchStarted = true;
     upstream = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
@@ -208,16 +256,32 @@ export async function POST(request: Request) {
       cache: 'no-store',
     });
   } catch {
-    clearTimeout(timer);
-    request.signal.removeEventListener('abort', onAbort);
+    let rollbackFailed = false;
+    try {
+      if (!fetchStarted) await rollbackPrepared();
+    } catch {
+      rollbackFailed = true;
+    } finally {
+      clearTimeout(timer);
+      lease.signal.removeEventListener('abort', onAbort);
+      lease.release();
+      releaseTurn?.();
+    }
+    if (rollbackFailed)
+      return jsonError(500, 'The cancelled question could not be cleaned up.');
+    if (lease.signal.aborted) return jsonError(499, 'Question cancelled.');
     return jsonError(502, 'Nansen Research Agent is temporarily unavailable.');
   }
   if (!upstream.ok) {
-    clearTimeout(timer);
-    request.signal.removeEventListener('abort', onAbort);
+    if (upstream.status === 429)
+      lease.noteRateLimit(parseRetryAfter(upstream.headers.get('retry-after')));
     const creditError =
       (upstream.status === 402 || upstream.status === 403) &&
       (await hasCreditError(upstream));
+    clearTimeout(timer);
+    lease.signal.removeEventListener('abort', onAbort);
+    lease.release();
+    releaseTurn?.();
     return jsonError(
       upstream.status,
       creditError ? upstreamMessage(402) : upstreamMessage(upstream.status),
@@ -229,12 +293,24 @@ export async function POST(request: Request) {
     !upstream.headers.get('content-type')?.includes('text/event-stream')
   ) {
     clearTimeout(timer);
-    request.signal.removeEventListener('abort', onAbort);
+    lease.signal.removeEventListener('abort', onAbort);
     upstreamController.abort();
+    lease.release();
+    releaseTurn?.();
     return jsonError(502, 'Nansen Research Agent returned an invalid stream.');
   }
 
-  const reader = upstream.body.getReader();
+  let reader: ReadableStreamDefaultReader<Uint8Array>;
+  try {
+    reader = upstream.body.getReader();
+  } catch {
+    clearTimeout(timer);
+    lease.signal.removeEventListener('abort', onAbort);
+    upstreamController.abort();
+    lease.release();
+    releaseTurn?.();
+    return jsonError(502, 'Nansen Research Agent returned an invalid stream.');
+  }
   const bodyStream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const text = new TextDecoder();
@@ -257,6 +333,8 @@ export async function POST(request: Request) {
           return;
         }
         if (event.type === 'error') upstreamError = true;
+        if (event.type === 'error' && event.status_code === 429)
+          lease.noteRateLimit(1000);
         controller.enqueue(encodeEvent(event));
       };
       try {
@@ -283,6 +361,10 @@ export async function POST(request: Request) {
             }),
           );
       } finally {
+        lease.release();
+        clearTimeout(timer);
+        lease.signal.removeEventListener('abort', onAbort);
+        await reader.cancel().catch(() => {});
         let saveFailed = false;
         if (persisted) {
           try {
@@ -322,9 +404,7 @@ export async function POST(request: Request) {
         } catch {
           /* The browser already cancelled. */
         }
-        clearTimeout(timer);
-        request.signal.removeEventListener('abort', onAbort);
-        await reader.cancel().catch(() => {});
+        releaseTurn?.();
         try {
           controller.close();
         } catch {
@@ -334,8 +414,10 @@ export async function POST(request: Request) {
     },
     cancel() {
       upstreamController.abort();
+      void reader.cancel().catch(() => {});
+      lease.release();
       clearTimeout(timer);
-      request.signal.removeEventListener('abort', onAbort);
+      lease.signal.removeEventListener('abort', onAbort);
     },
   });
   return new Response(bodyStream, {

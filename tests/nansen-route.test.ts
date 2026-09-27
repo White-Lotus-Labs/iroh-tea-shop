@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from '../src/app/api/nansen-agent/route';
+import { nansenRequestManager } from '../src/nansen/request-manager';
 
 const request = (body: unknown, clientIp?: string) =>
   new Request('http://localhost/api/nansen-agent', {
@@ -135,14 +136,16 @@ describe('Nansen agent route', () => {
         async () =>
           new Response('{"error":"secret details"}', {
             status,
-            headers: { 'retry-after': '12' },
+            headers: { 'retry-after': status === 429 ? '0' : '12' },
           }),
       ),
     );
     const response = await POST(request({ text: 'hello' }));
     expect(response.status).toBe(status);
     expect(await response.text()).toContain(message);
-    expect(response.headers.get('retry-after')).toBe('12');
+    expect(response.headers.get('retry-after')).toBe(
+      status === 429 ? '0' : '12',
+    );
   });
 
   it('rejects empty and malformed requests before fetch', async () => {
@@ -327,5 +330,25 @@ describe('Nansen agent route', () => {
     expect(output).toContain('"type":"finish","conversation_id":null');
     expect(output).toContain('data: [DONE]');
     expect(output).not.toContain('interrupted');
+  });
+
+  it('shares an SSE 429 cooldown with later Nansen work', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            'data: {"type":"error","error":"limited","status_code":429}\n\n',
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      ),
+    );
+    const response = await POST(request({ text: 'hello' }));
+    expect(await response.text()).toContain('"status_code":429');
+    const started = Date.now();
+    const lease = await nansenRequestManager.acquireIroh();
+    expect(Date.now() - started).toBeGreaterThanOrEqual(850);
+    lease.release();
   });
 });
