@@ -364,7 +364,6 @@ export function CameraRig({
       onEnd={() => {
         idle.current.dragging = false;
       }}
-      target={size.width < 760 ? [-1.11, 1.17, 2.43] : [-1.32, 1.38, 2.82]}
     />
   );
 }
