@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { beginVisit, waitForRoomReady } from './room-helpers';
+import { beginVisit } from './room-helpers';
 
 test('a guest can use the room and find optional account actions', async ({
   page,
@@ -42,9 +42,8 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const nickname = `Mark_${crypto.randomUUID().slice(0, 8)}`;
-  await page.goto('/');
-  await waitForRoomReady(page);
-  await page.getByTestId('account-entry').click();
+  // Waiting room covers the topbar; account UI lives on /account.
+  await page.goto('/account');
   await expect(
     page.getByRole('heading', { name: 'Welcome to the room.' }),
   ).toBeVisible();
@@ -65,7 +64,7 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
     (item) => item.name === 'tea_session',
   );
   expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Lax' });
-  await page.reload();
+  await page.goto('/');
   await expect(page.getByTestId('account-control')).toContainText(nickname);
   await beginVisit(page);
   await page
@@ -83,9 +82,8 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
     'data-station',
     'Entrance',
   );
-  await page.reload();
+  await page.goto('/account');
   expect((await page.request.get('/api/auth/me')).status()).toBe(401);
-  await page.getByTestId('account-entry').click();
   await page.getByLabel('Nickname').fill(nickname.toLowerCase());
   await page.getByLabel('Password').fill('correct horse');
   await page
@@ -106,9 +104,7 @@ test('duplicate nickname and short password show recoverable errors', async ({
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const nickname = `Alex_${crypto.randomUUID().slice(0, 8)}`;
-  await page.goto('/');
-  await waitForRoomReady(page);
-  await page.getByTestId('account-entry').click();
+  await page.goto('/account');
   await page.getByRole('button', { name: 'Create account' }).click();
   await page.getByLabel('Nickname').fill(nickname);
   await page.getByLabel('Password').fill('short');
@@ -126,9 +122,9 @@ test('duplicate nickname and short password show recoverable errors', async ({
   await expect(page.getByTestId('account-control')).toContainText(nickname, {
     timeout: 15000,
   });
-  await page.getByTestId('account-control').click();
-  await page.getByRole('button', { name: 'Log out' }).click();
-  await page.getByTestId('account-entry').click();
+  // Logged-in /account redirects home; waiting room covers the topbar logout.
+  await page.request.post('/api/auth/logout');
+  await page.goto('/account');
   await page.getByRole('button', { name: 'Create account' }).click();
   await page.getByLabel('Nickname').fill(nickname.toLowerCase());
   await page.getByLabel('Password').fill('long enough');

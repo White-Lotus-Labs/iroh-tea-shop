@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
   BufferGeometry,
@@ -205,6 +205,15 @@ export function SakuraPetals({
   return <mesh geometry={geometry} material={material} frustumCulled={false} />;
 }
 
+function canWebGL() {
+  try {
+    const canvas = document.createElement('canvas');
+    return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
+
 /** A full-bleed transparent canvas of drifting petals, framed like the source. */
 export function PetalCanvas({
   count,
@@ -221,6 +230,12 @@ export function PetalCanvas({
   size?: number;
   seed?: number;
 }) {
+  // Probe before mounting R3F; a null WebGL context throws outside React boundaries.
+  const [ok, setOk] = useState(false);
+  useEffect(() => {
+    setOk(canWebGL());
+  }, []);
+  if (!ok) return null;
   return (
     <Canvas
       className={className}
@@ -229,6 +244,7 @@ export function PetalCanvas({
       gl={{ antialias: true, alpha: true }}
       camera={{ position: [0, 1, 14], fov: 45, near: 0.1, far: 60 }}
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+      fallback={null}
     >
       <SakuraPetals
         count={count}
