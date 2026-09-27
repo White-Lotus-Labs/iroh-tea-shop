@@ -18,7 +18,6 @@ import {
   type SmartWalletLeaderboardSnapshot,
 } from '../leaderboard/model';
 import type { NansenAvailability } from '../nansen/availability';
-import { formatRelative } from './deckModel';
 import {
   SHELF_CAST_NAME,
   SHELF_GUEST_NAME,
@@ -27,6 +26,16 @@ import {
 import { shelfLabel } from './shelfLabels';
 
 const snapshotCache = new Map<string, SmartWalletLeaderboardSnapshot>();
+
+// Same wording as deckModel's formatRelative. Importing that module here
+// would pull the whole deck model into the first-paint shell chunk.
+function ageLabel(iso: string) {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+}
 
 function viewKey(board: LeaderboardBoard, metric: LeaderboardMetric) {
   return `${board}:${metric}`;
@@ -477,7 +486,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   const entries = snapshot?.entries.slice(0, 10) ?? [];
   const leader = entries[0];
   const unconfigured = nansen === 'unavailable' && !snapshot && !revealed;
-  const updated = snapshot ? formatRelative(snapshot.fetchedAt) : '';
+  const updated = snapshot ? ageLabel(snapshot.fetchedAt) : '';
   return (
     <div className="parchment-hanger" data-testid="leaderboard-parchment">
       <div className="parchment-rod" aria-hidden="true" />
