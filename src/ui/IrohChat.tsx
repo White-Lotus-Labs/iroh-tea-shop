@@ -43,10 +43,13 @@ export function IrohChat({
     return ((await response.json()) as { chats: ChatSummary[] }).chats;
   };
   // Failures show fixed copy, never raw fetch text such as 'Failed to fetch'.
+  // Returns null when an unmount, openChat, or newer newChat made it stale.
   const createChat = async () => {
+    const generation = loadGeneration.current;
     const response = await fetch('/api/iroh/chats', { method: 'POST' });
     if (!response.ok) throw new Error();
     const { chat } = (await response.json()) as { chat: ChatSummary };
+    if (generation !== loadGeneration.current) return null;
     session.restore(chat.id, [], null);
     setSelectedId(chat.id);
     return chat;
@@ -93,6 +96,7 @@ export function IrohChat({
     setHistoryError(null);
     try {
       const chat = await createChat();
+      if (!chat) return;
       setHistory((current) => [chat, ...current]);
       setDraft('');
       input.current?.focus();
@@ -120,7 +124,7 @@ export function IrohChat({
           if (current !== target) await openChat(target);
         } else {
           const chat = await createChat();
-          if (!cancelled) setHistory([chat]);
+          if (chat) setHistory([chat]);
         }
       } catch {
         if (!cancelled) {
@@ -269,7 +273,9 @@ export function IrohChat({
                 </div>
                 {message.content && <IrohMessage content={message.content} />}
                 {message.status === 'stopped' && (
-                  <small>Stopped · partial answer</small>
+                  <small>
+                    {message.content ? 'Stopped · partial answer' : 'Stopped'}
+                  </small>
                 )}
               </article>
             ))}

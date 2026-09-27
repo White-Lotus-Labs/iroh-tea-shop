@@ -95,6 +95,8 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   const composer = page.getByRole('textbox', {
     name: 'Ask an onchain research question',
   });
+  // Enabled means the saved-chat restore ran, so the prefill survived it.
+  await expect(composer).toBeEnabled();
   await expect(composer).toHaveValue(
     'Uncle, conviction on “AI Taking Over the World” is weak. What could disprove it?',
   );

@@ -240,7 +240,7 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
   await expect.poll(() => Boolean(release)).toBe(true);
   await page.getByRole('button', { name: 'Stop generation' }).click();
   release();
-  await expect(page.getByText('Stopped · partial answer')).toBeVisible();
+  await expect(page.getByText('Stopped', { exact: true })).toBeVisible();
   await expect(input).toBeEnabled();
   await page.getByRole('button', { name: 'Begin a new conversation' }).click();
   await expect(page.getByText('Is anyone buying ETH?')).not.toBeVisible();
@@ -255,6 +255,11 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
   page,
 }) => {
   test.setTimeout(90_000);
+  // Configured Nansen renders 'Try again' on other errors, so the count-0
+  // check below guards the daily-cap branch.
+  await page.route('**/api/nansen-status', (route) =>
+    route.fulfill({ json: { nansen: 'configured' } }),
+  );
   await page.route('**/api/nansen-agent', (route) =>
     route.fulfill({
       status: 429,
