@@ -41,11 +41,13 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
   await status.hover();
   const popup = page.locator('.status-popup');
   await expect(popup).toBeVisible();
-  await expect(popup).toContainText('Demo data');
-  await expect(popup).toContainText('Uncle');
+  await expect(popup).toContainText('Thesis');
   await expect(popup).toContainText('Offline');
+  await expect(popup).toContainText('Uncle');
+  await expect(popup).not.toContainText('Demo data');
   await expect(popup).not.toContainText('Live');
   await expect(popup).not.toContainText('Nansen Research');
+  await expect(popup).not.toContainText('Live Nansen');
 
   await openStationPanel(page, 'Host');
   const chat = page.locator('.iroh-chat');
@@ -124,8 +126,11 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   );
   await page.getByRole('button', { name: 'Data source status' }).hover();
   const popup = page.locator('.status-popup');
-  await expect(popup).toContainText('Demo data');
+  await expect(popup).toContainText('Thesis');
+  await expect(popup).toContainText('Live Nansen');
+  await expect(popup).toContainText('Uncle');
   await expect(popup).toContainText('Live · Nansen Research');
+  await expect(popup).not.toContainText('Demo data');
   await expect(popup).not.toContainText('Offline');
 
   await openStationPanel(page, 'Host');

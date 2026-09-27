@@ -7,6 +7,7 @@ import {
   DECK_CACHE_KEY,
   DECK_TTL_MS,
   loadDeckSnapshot,
+  preferExistingDeck,
 } from '../../../thesis/nansen';
 
 export const runtime = 'nodejs';
@@ -20,6 +21,7 @@ function deckService() {
     DECK_CACHE_KEY,
     () => loadDeckSnapshot(key),
     DECK_TTL_MS,
+    preferExistingDeck,
   );
 }
 

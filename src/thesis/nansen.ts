@@ -278,16 +278,105 @@ function errorSignal(
   };
 }
 
+export const SUMMARY_CONCURRENCY = 4;
+export const RETRY_BACKOFF_MS = 600;
+export const RETRY_AFTER_CAP_MS = 3_000;
+
+function sleep(ms: number, wait: (ms: number) => Promise<void> = defaultWait) {
+  return wait(ms);
+}
+
+function defaultWait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryable(error: unknown): boolean {
+  if (!(error instanceof NansenError)) return true; // timeouts / network
+  return error.status === 429 || error.status >= 500;
+}
+
+function retryDelayMs(error: unknown): number {
+  if (error instanceof NansenError && error.retryAfterMs > 0)
+    return Math.min(RETRY_AFTER_CAP_MS, error.retryAfterMs);
+  return RETRY_BACKOFF_MS;
+}
+
+/** One retry on 429, 5xx, and timeouts; honors Retry-After up to 3s. */
+export async function withNansenRetry<T>(
+  run: () => Promise<T>,
+  wait: (ms: number) => Promise<void> = defaultWait,
+): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (!isRetryable(error)) throw error;
+    await sleep(retryDelayMs(error), wait);
+    return await run();
+  }
+}
+
+async function nansenPostRetry<T = unknown>(
+  path: string,
+  body: unknown,
+  apiKey: string,
+  wait: (ms: number) => Promise<void> = defaultWait,
+): Promise<T> {
+  return withNansenRetry(() => nansenPost<T>(path, body, apiKey), wait);
+}
+
+/** Run at most `concurrency` async jobs at a time; preserve order. */
+export async function mapPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function worker() {
+    for (;;) {
+      const index = next++;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index]!, index);
+    }
+  }
+  const workers = Array.from(
+    { length: Math.min(Math.max(1, concurrency), items.length || 1) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+  return results;
+}
+
+export function countErroredTickers(theses: ThesisSummary[]): number {
+  return theses.reduce(
+    (total, thesis) =>
+      total + thesis.tickers.filter((ticker) => ticker.status === 'error').length,
+    0,
+  );
+}
+
+/** Keep a better cached deck when a refresh returns more ticker errors. */
+export function preferExistingDeck(
+  fresh: { theses: ThesisSummary[] },
+  existing: { theses: ThesisSummary[] },
+): string | null {
+  if (countErroredTickers(fresh.theses) > countErroredTickers(existing.theses))
+    return 'Fresh deck had more ticker errors than the cached snapshot.';
+  return null;
+}
+
 async function fetchTickerSignal(
   ticker: Ticker,
   apiKey: string,
+  wait: (ms: number) => Promise<void> = defaultWait,
 ): Promise<TickerSignal> {
   if (usesPositionSignal(ticker)) {
     try {
-      const payload = await nansenPost(
+      const payload = await nansenPostRetry(
         'tgm/position-intelligence',
         { token_address: ticker.perp },
         apiKey,
+        wait,
       );
       return normalizePositionSignal(ticker.symbol, payload);
     } catch {
@@ -296,7 +385,7 @@ async function fetchTickerSignal(
   }
   if (!ticker.token) return errorSignal(ticker.symbol, 'flow-intelligence');
   try {
-    const payload = await nansenPost(
+    const payload = await nansenPostRetry(
       'tgm/flow-intelligence',
       {
         chain: ticker.token.chain,
@@ -304,6 +393,7 @@ async function fetchTickerSignal(
         timeframe: '7d',
       },
       apiKey,
+      wait,
     );
     return normalizeFlowSignal(ticker.symbol, payload);
   } catch {
@@ -311,20 +401,33 @@ async function fetchTickerSignal(
   }
 }
 
-export async function loadDeckSnapshot(apiKey: string): Promise<{
+export async function loadDeckSnapshot(
+  apiKey: string,
+  options: {
+    concurrency?: number;
+    wait?: (ms: number) => Promise<void>;
+  } = {},
+): Promise<{
   theses: ThesisSummary[];
 }> {
-  const theses: ThesisSummary[] = [];
-  for (const thesis of THESES) {
-    const tickers = await Promise.all(
-      thesis.tickers.map((ticker) => fetchTickerSignal(ticker, apiKey)),
-    );
-    theses.push({
+  const concurrency = options.concurrency ?? SUMMARY_CONCURRENCY;
+  const wait = options.wait ?? defaultWait;
+  const jobs = THESES.flatMap((thesis) =>
+    thesis.tickers.map((ticker) => ({ thesisId: thesis.id, ticker })),
+  );
+  const signals = await mapPool(jobs, concurrency, ({ ticker }) =>
+    fetchTickerSignal(ticker, apiKey, wait),
+  );
+  let offset = 0;
+  const theses: ThesisSummary[] = THESES.map((thesis) => {
+    const tickers = signals.slice(offset, offset + thesis.tickers.length);
+    offset += thesis.tickers.length;
+    return {
       id: thesis.id,
       conviction: computeConviction(tickers),
       tickers,
-    });
-  }
+    };
+  });
   return { theses };
 }
 
@@ -365,21 +468,21 @@ async function loadMovements(
   const filters = { include_smart_money_labels: [...SMART_MONEY_LABELS] };
   const [buy, sell, dex] = await Promise.all([
     settled(
-      nansenPost(
+      nansenPostRetry(
         'tgm/who-bought-sold',
         { ...base, buy_or_sell: 'BUY', filters },
         apiKey,
       ),
     ),
     settled(
-      nansenPost(
+      nansenPostRetry(
         'tgm/who-bought-sold',
         { ...base, buy_or_sell: 'SELL', filters },
         apiKey,
       ),
     ),
     settled(
-      nansenPost(
+      nansenPostRetry(
         'tgm/dex-trades',
         { ...base, only_smart_money: true },
         apiKey,
@@ -451,14 +554,14 @@ async function loadPerps(
   if (!ticker.perp) return { status: 'not-applicable' };
   const [position, trades] = await Promise.all([
     settled(
-      nansenPost(
+      nansenPostRetry(
         'tgm/position-intelligence',
         { token_address: ticker.perp },
         apiKey,
       ),
     ),
     settled(
-      nansenPost(
+      nansenPostRetry(
         'smart-money/perp-trades',
         {
           filters: { token_symbol: ticker.perp },
@@ -500,7 +603,7 @@ export async function loadTickerDetail(
     loadMovements(ticker, apiKey, now),
     needsSpotMeta
       ? settled(
-          nansenPost(
+          nansenPostRetry(
             'tgm/holders',
             {
               chain: ticker.token!.chain,
@@ -517,7 +620,7 @@ export async function loadTickerDetail(
       : Promise.resolve(null),
     needsSpotMeta
       ? settled(
-          nansenPost(
+          nansenPostRetry(
             'tgm/token-information',
             {
               chain: ticker.token!.chain,
