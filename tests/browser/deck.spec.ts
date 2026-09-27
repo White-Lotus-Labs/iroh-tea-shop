@@ -112,8 +112,11 @@ test('deck shows an honest offline state when Nansen answers 503', async ({
   await mockNansen(page, 503);
   await openCounter(page);
   await expect(page.locator('.deck-status')).toContainText(
-    'Offline · Nansen is not configured.',
+    'Nansen is not configured.',
   );
+  await expect(
+    page.locator('.deck-status').getByRole('button', { name: 'Try again' }),
+  ).toBeVisible();
   await expect(
     page.locator('.plaque-level', { hasText: 'Offline' }),
   ).toHaveCount(3);

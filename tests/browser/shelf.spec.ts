@@ -230,8 +230,19 @@ test('a hanging spirit paper answers hover and opens the Shelf', async ({
 
   await page.getByRole('button', { name: 'Close Shelf menu' }).click();
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  const approach = page.getByRole('button', { name: 'See the top traders' });
+  await expect(approach).toBeFocused();
   await page.mouse.click(...portrait);
   await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  expect(await cameraPose(page)).toEqual(beforeOpen);
+
+  // Keyboard: Escape closes the parchment, Enter on the hint reopens it.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await expect(approach).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  await expect(page.locator('.reading-panel')).toBeFocused();
   expect(await cameraPose(page)).toEqual(beforeOpen);
 });
 
@@ -361,9 +372,7 @@ test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', 
   await expect(page.getByTestId('leaderboard-parchment')).toContainText(
     'Nansen API is not configured.',
   );
-  await expect(
-    page.getByRole('button', { name: 'Retry leaderboard' }),
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 });
 
 test('an invalid server response shows a safe parchment error', async ({
@@ -446,9 +455,8 @@ test('a stale real snapshot is labelled and small screens keep values readable',
   await page.goto('/');
   await focusShelf(page);
   await expect(page.getByText(/showing the last saved copy/)).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: 'Retry leaderboard' }),
-  ).toBeVisible();
+  // A server-stale row has nothing newer to fetch, so no retry is offered.
+  await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

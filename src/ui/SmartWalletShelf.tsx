@@ -27,6 +27,16 @@ import { shelfLabel } from './shelfLabels';
 
 const snapshotCache = new Map<string, SmartWalletLeaderboardSnapshot>();
 
+// Same wording as deckModel's formatRelative. Importing that module here
+// would pull the whole deck model into the first-paint shell chunk.
+function ageLabel(iso: string) {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+}
+
 function viewKey(board: LeaderboardBoard, metric: LeaderboardMetric) {
   return `${board}:${metric}`;
 }
@@ -318,12 +328,12 @@ function WalletRow({
 function FreshnessPopover({
   board,
   snapshot,
-  age,
+  updated,
   onClose,
 }: {
   board: LeaderboardBoard;
   snapshot: SmartWalletLeaderboardSnapshot | null;
-  age: number;
+  updated: string;
   onClose: () => void;
 }) {
   return (
@@ -350,9 +360,7 @@ function FreshnessPopover({
       </p>
       <p>The shop saves this ranking and refreshes it about once an hour.</p>
       <p className="leaderboard-freshness-age">
-        {snapshot
-          ? `Snapshot updated ${age === 0 ? 'just now' : `${age} min ago`}.`
-          : 'Fetching snapshot…'}
+        {snapshot ? `Snapshot updated ${updated}.` : 'Loading…'}
       </p>
     </div>
   );
@@ -385,10 +393,13 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   useEffect(() => {
     if (!freshnessAnchor) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFreshnessAnchor(null);
+      if (e.key !== 'Escape') return;
+      // Capture phase: Escape closes the popover and keeps the panel open.
+      e.stopPropagation();
+      setFreshnessAnchor(null);
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [freshnessAnchor]);
 
   const load = useCallback(async () => {
@@ -475,12 +486,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   const entries = snapshot?.entries.slice(0, 10) ?? [];
   const leader = entries[0];
   const unconfigured = nansen === 'unavailable' && !snapshot && !revealed;
-  const age = snapshot
-    ? Math.max(
-        0,
-        Math.floor((Date.now() - Date.parse(snapshot.fetchedAt)) / 60_000),
-      )
-    : 0;
+  const updated = snapshot ? ageLabel(snapshot.fetchedAt) : '';
   return (
     <div className="parchment-hanger" data-testid="leaderboard-parchment">
       <div className="parchment-rod" aria-hidden="true" />
@@ -562,7 +568,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                 <FreshnessPopover
                   board={board}
                   snapshot={snapshot}
-                  age={age}
+                  updated={updated}
                   onClose={() => setFreshnessAnchor(null)}
                 />
               )}
@@ -571,7 +577,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
         </header>
         {snapshot?.stale && (
           <p className="leaderboard-stale" role="status">
-            Last updated {age} min ago · showing the last saved copy.
+            Updated {updated} · showing the last saved copy.
           </p>
         )}
         {leader ? (
@@ -614,26 +620,22 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
               </p>
             )}
           </div>
+        ) : loading ? (
+          <p className="leaderboard-message" role="status">
+            Loading saved Nansen readings…
+          </p>
         ) : unconfigured ? (
           <div className="leaderboard-message">
             <p>Nansen research is offline.</p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={loading}
-            >
-              Retry
+            <button type="button" onClick={() => void load()}>
+              Try again
             </button>
           </div>
-        ) : loading ? (
-          <p className="leaderboard-message" role="status">
-            Reading the Nansen leaderboard…
-          </p>
         ) : error ? (
           <div className="leaderboard-message" role="alert">
             <p>{error}</p>
             <button type="button" onClick={() => void load()}>
-              Retry leaderboard
+              Try again
             </button>
           </div>
         ) : (
@@ -647,7 +649,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
               <FreshnessPopover
                 board={board}
                 snapshot={snapshot}
-                age={age}
+                updated={updated}
                 onClose={() => setFreshnessAnchor(null)}
               />
             )}
@@ -668,12 +670,11 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                   <span aria-hidden="true">i</span>
                 </button>
               </div>
-              {snapshot && (
-                <span>Updated {age === 0 ? 'just now' : `${age} min ago`}</span>
-              )}
-              {snapshot?.stale && (
+              {snapshot && <span>Updated {updated}</span>}
+              {/* A server-stale row only re-reads the same saved copy. */}
+              {error && snapshot && (
                 <button type="button" onClick={() => void load()}>
-                  Retry leaderboard
+                  Try again
                 </button>
               )}
             </footer>
