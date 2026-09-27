@@ -34,6 +34,22 @@
 .inv-signers {
   left: max(28px, calc(50% - 590px));
 }
+/* The lanterns glow right behind the side columns; a soft shade keeps the
+   small caps readable without drawing a box. */
+.inv-signers::before,
+.inv-turn::before {
+  content: '';
+  position: absolute;
+  inset: -56px -72px;
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    rgba(12, 8, 6, 0.52),
+    rgba(12, 8, 6, 0.28) 60%,
+    transparent
+  );
+  pointer-events: none;
+}
 .inv-turn {
   right: max(28px, calc(50% - 590px));
   display: grid;
@@ -151,7 +167,8 @@
   }
 }
 
-@media (max-width: 999px) {
+/* Everything that is not WIDE_QUERY in Invitation.tsx. */
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
   .inv-signers,
   .inv-turn {
     top: auto;
@@ -170,7 +187,9 @@
     bottom: 10px;
   }
   .inv-label,
-  .inv-honesty {
+  .inv-honesty,
+  .inv-signers::before,
+  .inv-turn::before {
     display: none;
   }
   .inv-signers ul {
