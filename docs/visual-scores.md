@@ -1,6 +1,6 @@
 # Visual scores
 
-Scores follow `docs/visual-rubric.md`. Shots come from the headed Metal run (1600×900 at 2x) unless a row says otherwise. Shot folders are under `/Users/jackie/dev/tea-wt/_scratch/shots/`.
+Scores follow `docs/visual-rubric.md`. Shots come from the Metal run (1600×900 at 2x): headed in rounds 0 to 2, headless from round 3 on (see `docs/visual-rubric.md`). Shot folders are under `/Users/jackie/dev/tea-wt/_scratch/shots/`.
 
 Frame rate is uncapped (no vsync) on an Apple M5 Max. "Min fps" is the slowest shot.
 
@@ -150,6 +150,77 @@ Changes: the veranda shaft gain goes from 0.5 to 0.65, so the beam now reads in 
 | Orrery                       | 8     | No change.                                                                            |
 | Mood/color grade             | 8     | No change.                                                                            |
 | Prop and architecture detail | 7     | No change.                                                                            |
+
+## Round 8: real brush text, framed walls, coffered ceiling
+
+Shots: `_scratch/shots/r8`. Frame rate: `room-wide` 72, `tea-table` 74, `counter` 69, `host-full` 86 fps. A first try with a 1024² plaster texture dropped the wide views to 52–56 fps. A bisect showed the texture caused the whole drop, so it went back to 512² with a 2 m tile.
+
+Changes: every piece of fake text is gone. The counter kanban is one carved gold 茶 (tea). The menu stand reads 御品書 (menu) with four real teas and kanji prices. The jar labels name real teas (煎茶, 玉露, 抹茶 and others). The tokonoma scroll reads 和敬清寂, the four principles of tea. The walls gained wainscot stiles, bronze nail covers on the nageshi, stronger plaster mottling and soft edge grime in every bay. A staggered wall shelf with a bud vase and an incense box went up on the left wall. The ceiling is now plank boards on a batten grid with cross battens, a perimeter molding and lantern ceiling plates.
+
+| Part                         | Score | Reason                                                                                                       |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------ |
+| Lighting and shadows         | 8     | No change.                                                                                                   |
+| Environment/atmosphere       | 8     | No change.                                                                                                   |
+| Walls/architecture           | 8     | Panelled wainscot, rails with nail covers, mottled plaster with grime and a coffered ceiling; no flat slabs. |
+| Floor and table              | 8     | No change.                                                                                                   |
+| Tea set and steam            | 8     | No change.                                                                                                   |
+| Orrery                       | 8     | No change.                                                                                                   |
+| Mood/color grade             | 8     | No change.                                                                                                   |
+| Prop and architecture detail | 8     | Legible, intentional text everywhere; the ceiling and walls now have part-level joinery.                     |
+
+## Round 9: floor dressing, temae utensils, ranma
+
+Shots: `_scratch/shots/r9`. Frame rate: `tea-table` 72, `brazier` 71, `room-wide` 67 fps.
+
+Changes: a fifth tatami row, a second guest zabuton and a stack of spare zabuton. By the brazier: a lidded mizusashi water jar, a bronze kensui with a bamboo hishaku on its lid rest, and a folded fukusa. A two-panel furosaki byobu with gold leaf and an ink pine stands behind the brazier. A low lacquer hanadai holds a chabana and an incense stick; its smoke uses `Steam` and hides under reduced motion. Lit ranma with kumiko lattice fill the band above the veranda and the shoji. A new `brazier` review shot covers this corner.
+
+| Part                         | Score | Reason                                                                              |
+| ---------------------------- | ----- | ----------------------------------------------------------------------------------- |
+| Lighting and shadows         | 8     | No change.                                                                          |
+| Environment/atmosphere       | 8     | No change.                                                                          |
+| Walls/architecture           | 8     | The ranma break up the last flat band on the back wall.                             |
+| Floor and table              | 8     | The foreground now has mats, cushions and a flower stand; walking lines stay clear. |
+| Tea set and steam            | 8     | No change.                                                                          |
+| Orrery                       | 8     | No change.                                                                          |
+| Mood/color grade             | 8     | The gold byobu adds a warm accent beside the brazier glow.                          |
+| Prop and architecture detail | 8     | The brazier corner reads as a real temae setup; the jar is still plain cream.       |
+
+## Round 10: counter life, waiting-room walls
+
+Shots: `_scratch/shots/r10` (full set, 11 shots). Frame rate: mean 69.5 fps, min 55.2 fps (`counter`), with a load average of 12–16 from other agents.
+
+Changes: a brass tenbin balance, a hand bell and stacks of wrapped pu-erh cakes (printed 普洱) on the counter and the shelf cabinet. The waiting-room side walls now use the same framed wall as the chamber, without shadow casting. The wall bays are de-duplicated, which fixed a duplicate React key warning. A new `entrance` review shot covers the first station.
+
+| Part                         | Score | Reason                                                                                       |
+| ---------------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| Walls/architecture           | 8     | Both rooms now share framed walls; the waiting room has no blank slabs.                      |
+| Prop and architecture detail | 8     | The counter has merchant tools; small props at the counter are still sparse at the entrance. |
+| Other parts                  | 8     | No change.                                                                                   |
+
+## Rounds 11 and 12: scrolls, Shino jar, waiting bench, draw-call merge
+
+Shots: `_scratch/shots/r11`, `_scratch/shots/abnow`. The machine was shared with other agents' headless browsers (load average 22 to 54), so single runs were not comparable. Frame rate comes from a paired test: the round 7 build and the current build back to back on the same shots.
+
+| Shot        | Round 7 build | Round 12 build |
+| ----------- | ------------- | -------------- |
+| `tea-table` | 50.5 fps      | 58.5 fps       |
+| `room-wide` | 53.4 fps      | 47.8 fps       |
+| `counter`   | 44.5 fps      | 49.9 fps       |
+
+Before the merge, the same paired test showed the round 12 build about 20% slower (`counter` 40 fps against 52.8). The fix merges the tatami (45 boxes into two meshes), each framed wall (about 10 boxes into one mesh) and the wall grime (about 40 planes into one mesh per wall).
+
+Changes: a second calligraphy scroll, 一期一会 (one time, one meeting), on the right wall; a Shino glaze on the mizusashi; a larger wall shelf with lighter wood and flush cleats. In the waiting room: seven wooden menu plaques with real tea names and prices, a waiting bench with a red mōsen and a teacup, and the bamboo ink scroll above it.
+
+| Part                         | Score | Reason                                                                                                       |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------ |
+| Lighting and shadows         | 8     | No change.                                                                                                   |
+| Environment/atmosphere       | 8     | No change.                                                                                                   |
+| Walls/architecture           | 8     | Every visible wall has joinery, trim, grime and at least one hung object.                                    |
+| Floor and table              | 8     | No change.                                                                                                   |
+| Tea set and steam            | 8     | No change.                                                                                                   |
+| Orrery                       | 8     | No change.                                                                                                   |
+| Mood/color grade             | 8     | No change.                                                                                                   |
+| Prop and architecture detail | 9     | Every station now shows sculpted, purposeful objects with real text; the wide views read as a lived-in shop. |
 
 ## Proposed
 
