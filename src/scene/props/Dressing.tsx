@@ -124,7 +124,7 @@ function Cushion({
 }
 
 /** Loose props in the tea chamber: cushions, plants and small objects. */
-export function ChamberDressing() {
+export function ChamberDressing({ reduced }: { reduced: boolean }) {
   return (
     <group>
       <Cushion position={[-0.76, 0.053, -0.93]} />
@@ -139,7 +139,7 @@ export function ChamberDressing() {
       ))}
       <Bonsai position={[-1.3, 0, -5.75]} seed={3} stand turn={0.1} />
       <TemaeSet />
-      <FlowerStand position={[2.85, 0, -0.05]} />
+      <FlowerStand position={[2.85, 0, -0.05]} reduced={reduced} />
       <Byobu position={[2.4, 0, -2.62]} turn={-Math.PI / 2} />
     </group>
   );

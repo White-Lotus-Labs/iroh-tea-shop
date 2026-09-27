@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import {
@@ -137,30 +137,10 @@ function stringGeometry() {
   return geometry;
 }
 
-function useShellReducedMotion() {
-  const gl = useThree((state) => state.gl);
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const shell = gl.domElement.closest('.app-shell');
-    if (!shell) return;
-    const read = () =>
-      setReduced(shell.getAttribute('data-motion') === 'reduce');
-    read();
-    const observer = new MutationObserver(read);
-    observer.observe(shell, {
-      attributes: true,
-      attributeFilter: ['data-motion'],
-    });
-    return () => observer.disconnect();
-  }, [gl]);
-  return reduced;
-}
-
 /** Ranks 1-3 hang as paper talismans in the Shelf's open middle bay. */
-export function HangingPaper() {
+export function HangingPaper({ reduced }: { reduced: boolean }) {
   const textures = useTexture(ART);
   const gl = useThree((state) => state.gl);
-  const reduced = useShellReducedMotion();
   const pivots = useRef<(Group | null)[]>([]);
   const hoverTarget = useRef([0, 0, 0]);
 

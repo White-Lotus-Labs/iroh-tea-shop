@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   CylinderGeometry,
   LatheGeometry,
@@ -203,11 +202,13 @@ export function TemaeSet() {
 
 const LEG = 0.17;
 /** A low lacquer flower stand (hanadai) with a chabana and a burning incense stick. */
-export function FlowerStand({ position }: { position: Point }) {
-  const [reduced] = useState(
-    // ponytail: reads the OS setting once; the shell's in-app motion toggle is not threaded here.
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
+export function FlowerStand({
+  position,
+  reduced,
+}: {
+  position: Point;
+  reduced: boolean;
+}) {
   const built = useBuilt(() => {
     const wood = merge([
       block([0.56, 0.026, 0.36], [0, LEG + 0.013, 0], '#1c100a'),

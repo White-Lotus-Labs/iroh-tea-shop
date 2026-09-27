@@ -765,7 +765,13 @@ export function WaitingRoom() {
   );
 }
 
-export function TeaChamber({ children }: { children: React.ReactNode }) {
+export function TeaChamber({
+  children,
+  reduced,
+}: {
+  children: React.ReactNode;
+  reduced: boolean;
+}) {
   return (
     <group name="tea-chamber">
       <Floor center={-1.5} length={9.7} />
@@ -825,7 +831,7 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
         color="#1c110a"
       />
       <TeaTable />
-      <ChamberDressing />
+      <ChamberDressing reduced={reduced} />
       <PaperLantern position={[-1.05, 2.45, -2.6]} drop={0.96} light={3.6} />
       <pointLight
         position={[-2.3, 2.45, -5.25]}

@@ -181,10 +181,15 @@ function StationMenuHalo({
       </Billboard>
       {settled && teaser && (
         <Html
-          position={[0, 0.3, 0]}
+          // Shelf: keep the hanging papers clear; sit the tag below-left of the ring.
+          position={station === 'Shelf' ? [-0.72, -0.48, 0] : [0, 0.3, 0]}
           center
           zIndexRange={[6, 0]}
-          wrapperClass="halo-label-wrap"
+          wrapperClass={
+            station === 'Shelf'
+              ? 'halo-label-wrap halo-label-wrap--below'
+              : 'halo-label-wrap'
+          }
           pointerEvents={clickable ? 'auto' : 'none'}
         >
           <div
@@ -264,7 +269,7 @@ function RoomGeometry({
         distance={3.2}
       />
       <WaitingRoom />
-      <TeaChamber>
+      <TeaChamber reduced={reduced}>
         <ContactShadows
           position={[0, 0.016, -2.55]}
           opacity={0.3}
@@ -281,7 +286,11 @@ function RoomGeometry({
         <Suspense fallback={null}>
           <TeaHost3D reduced={reduced} activity={irohActivity} />
         </Suspense>
-        <TeaShelf onSelect={onShelfSelect} revealed={shelfRevealed} />
+        <TeaShelf
+          onSelect={onShelfSelect}
+          revealed={shelfRevealed}
+          reduced={reduced}
+        />
         {menuClosed && (
           <StationMenuHalo
             station={station}

@@ -376,12 +376,18 @@ export default function TeaRoomShell({
           {canApproachShelf && (
             <button
               type="button"
-              className="shelf-approach"
+              className="panel-open-hint shelf-approach"
               aria-label="Approach the Shelf"
               onClick={focusShelf}
             >
-              <span>THE SHELF</span>
-              Approach the Shelf <span aria-hidden="true">↗</span>
+              <span className="panel-open-hint-seal" aria-hidden="true">
+                {STATION_TEASERS.Shelf!.glyph}
+              </span>
+              <span className="panel-open-hint-body" aria-hidden="true">
+                <span className="panel-open-hint-title">
+                  Approach the <em>Shelf</em>
+                </span>
+              </span>
             </button>
           )}
 

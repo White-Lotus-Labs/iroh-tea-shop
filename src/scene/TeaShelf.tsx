@@ -194,9 +194,11 @@ function LeaderboardScroll({ revealed }: { revealed: boolean }) {
 export function TeaShelf({
   onSelect,
   revealed,
+  reduced,
 }: {
   onSelect: () => void;
   revealed: boolean;
+  reduced: boolean;
 }) {
   return (
     <group
@@ -208,7 +210,7 @@ export function TeaShelf({
       }}
     >
       <Suspense fallback={null}>
-        <HangingPaper />
+        <HangingPaper reduced={reduced} />
       </Suspense>
       <group scale={[0.82, 0.86, 0.76]}>
         {[-1.99, -0.91, 0.91, 1.99].map((z) => (
