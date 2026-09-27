@@ -812,6 +812,10 @@
     grid-area: book;
     animation: sb-arrive 1.1s var(--wr-ease-out) 0.2s both;
   }
+  /* The tail must end above the arrow row, 18px under the book. */
+  .sb-ribbon {
+    height: 40px;
+  }
   .sb-arrow {
     grid-area: prev;
     justify-self: end;
