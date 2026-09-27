@@ -3638,82 +3638,98 @@ body:has(.auth-shell) {
   }
 }
 
-/* ---------- 3D halo label (decorative twin of the open hint) ---------- */
-.halo-label-wrap {
+/* ---------- 3D halo labels: small ink tags beside each ember ---------- */
+.halo-label-wrap,
+.halo-tag-wrap {
   pointer-events: none;
 }
-.halo-label {
-  position: relative;
+/* The wrapper's origin is the ember; the tag sits just to its right. */
+.halo-label,
+.halo-tag {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   width: max-content;
-  max-width: min(460px, 70vw);
-  padding: 7px 14px 8px 8px;
-  border: 1px solid rgba(233, 201, 131, 0.55);
+  max-width: min(380px, 60vw);
+  margin-left: 17px;
+  translate: 0 -50%;
+  padding: 3px 9px 4px 4px;
+  border: 1px solid rgba(233, 201, 131, 0.38);
   border-radius: 2px;
-  background: linear-gradient(
-    180deg,
-    rgba(34, 22, 13, 0.86),
-    rgba(20, 13, 8, 0.8)
-  );
+  background: rgba(24, 15, 9, 0.74);
   color: #f7ead0;
-  box-shadow:
-    0 10px 24px rgba(8, 4, 2, 0.5),
-    inset 0 1px rgba(255, 226, 170, 0.14);
+  box-shadow: 0 6px 16px rgba(8, 4, 2, 0.42);
   user-select: none;
-  animation: halo-label-rise 520ms var(--ease-lift) both;
+  animation: halo-label-rise 320ms var(--ease-lift) both;
 }
-/* A short gilt thread pins the tag to the smoke ring below it. */
-.halo-label::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  width: 1px;
-  height: 18px;
-  background: linear-gradient(rgba(233, 201, 131, 0.85), transparent);
-}
-.halo-label[data-clickable='true'] {
-  cursor: pointer;
-}
-.halo-label[data-clickable='true']:hover {
-  border-color: var(--gold-bright);
-  box-shadow:
-    0 12px 28px rgba(8, 4, 2, 0.55),
-    0 0 22px rgba(243, 197, 121, 0.35);
+.halo-tag {
+  padding: 2px 8px 3px;
 }
 .halo-label-seal {
   display: grid;
   flex: none;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 2px 4px 3px 2px;
+  width: 17px;
+  height: 17px;
+  border-radius: 1px 3px 2px 1px;
   background: var(--seal);
   color: #fbefdc;
-  font: 600 15px / 1 var(--font-cjk);
+  font: 600 10.5px / 1 var(--font-cjk);
   box-shadow:
-    inset 0 0 0 1.5px rgba(251, 239, 220, 0.8),
-    inset 0 0 0 3px var(--seal);
+    inset 0 0 0 1px rgba(251, 239, 220, 0.75),
+    inset 0 0 0 2px var(--seal);
   transform: rotate(-4deg);
 }
-.halo-label-text {
-  --ink-start: 260ms;
-  font: italic 500 17px / 1.25 var(--font-display);
+.halo-label-text,
+.halo-tag-text {
+  --ink-start: 140ms;
+  font: italic 500 13px / 1.25 var(--font-display);
   letter-spacing: 0.01em;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
-  text-wrap: balance;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.halo-tag-text {
+  --ink-start: 0ms;
+  letter-spacing: 0.03em;
 }
 @keyframes halo-label-rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateX(-5px);
   }
   to {
     opacity: 1;
     transform: none;
   }
+}
+
+/* Recenter: a quiet round seal in the stage corner, clear of the dock. */
+.recenter-view {
+  position: absolute;
+  z-index: 13;
+  right: 22px;
+  bottom: 26px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(233, 201, 131, 0.42);
+  border-radius: 50%;
+  background: rgba(24, 15, 9, 0.66);
+  color: #f3dcb0;
+  font: 17px / 1 var(--font-body);
+  cursor: pointer;
+  transition:
+    border-color 160ms,
+    box-shadow 160ms;
+}
+.recenter-view:hover {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 16px rgba(243, 197, 121, 0.35);
+}
+.recenter-view:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
 }
 
 /* ---------- Mobile ---------- */
@@ -3854,10 +3870,11 @@ body:has(.auth-shell) {
   }
   .halo-label {
     max-width: 200px;
-    padding: 5px 10px 6px 6px;
   }
-  .halo-label-text {
-    font-size: 15px;
+  .recenter-view {
+    top: 90px;
+    right: 12px;
+    bottom: auto;
   }
 }
 

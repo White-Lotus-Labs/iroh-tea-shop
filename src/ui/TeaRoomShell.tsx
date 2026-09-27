@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MotionPreference, Station } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import type { IrohActivity } from '../scene/TeaHost3D';
-import { STATIONS } from '../scene/stations';
+import { RECENTER_EVENT, STATIONS } from '../scene/stations';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
 import { SmartWalletShelf } from './SmartWalletShelf';
@@ -401,7 +401,20 @@ export default function TeaRoomShell({
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
             onThesisPick={pickThesis}
+            onNavigate={navigate}
           />
+
+          {!isEntrance && sceneAvailable && (
+            <button
+              type="button"
+              className="recenter-view"
+              aria-label="Recenter view"
+              title="Recenter view"
+              onClick={() => window.dispatchEvent(new Event(RECENTER_EVENT))}
+            >
+              <span aria-hidden="true">◎</span>
+            </button>
+          )}
 
           {canApproachShelf && (
             <button
