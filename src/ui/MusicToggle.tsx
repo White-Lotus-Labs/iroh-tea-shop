@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import {
   backgroundMusicSources,
   loopBounds,
-  localStore,
   readBackgroundMusic,
   writeBackgroundMusic,
 } from './backgroundMusic';
@@ -94,7 +93,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
     (next: boolean) => {
       want.current = next;
       setOn(next);
-      writeBackgroundMusic(localStore(), next);
+      writeBackgroundMusic(next);
       if (next) start();
       else fade();
     },
@@ -102,7 +101,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
   );
 
   useEffect(() => {
-    if (!readBackgroundMusic(localStore())) return;
+    if (!readBackgroundMusic()) return;
     want.current = true;
     setOn(true);
   }, []);

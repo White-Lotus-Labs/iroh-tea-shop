@@ -36,7 +36,6 @@ import {
   xIntentUrl,
   type DeckState,
 } from './deckModel';
-import { localStore } from './backgroundMusic';
 import { useMotionBudget } from './motionBudget';
 import { ThesisLeaf } from './ThesisLeaf';
 import './styles/deck.css';
@@ -157,7 +156,7 @@ export function ThesisDeck({
   }, [nansen]);
 
   useEffect(() => {
-    setFollowed(readFollowed(localStore()));
+    setFollowed(readFollowed());
     const tick = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(tick);
   }, []);
@@ -233,7 +232,7 @@ export function ThesisDeck({
   }, [readingId, close]);
 
   const onToggleFollow = useCallback((id: ThesisId) => {
-    setFollowed(toggleFollowed(localStore(), id));
+    setFollowed(toggleFollowed(id));
   }, []);
 
   // On phones the books sit in a snap carousel; start on the middle one.

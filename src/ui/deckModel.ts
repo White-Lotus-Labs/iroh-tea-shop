@@ -146,11 +146,13 @@ export const FOLLOW_KEY = 'tea.followedTheses';
 
 // ponytail: follows live in localStorage, so they do not sync across devices
 // or accounts. Upgrade path: a Prisma FollowedThesis(userId, thesisId) table.
-export function readFollowed(
-  storage: Pick<Storage, 'getItem'> | null,
-): ThesisId[] {
+// Storage defaults to localStorage, read inside the try: the getter itself
+// throws when the browser blocks site data.
+export function readFollowed(storage?: Pick<Storage, 'getItem'>): ThesisId[] {
   try {
-    const raw: unknown = JSON.parse(storage?.getItem(FOLLOW_KEY) ?? '[]');
+    const raw: unknown = JSON.parse(
+      (storage ?? localStorage).getItem(FOLLOW_KEY) ?? '[]',
+    );
     return Array.isArray(raw)
       ? raw.filter((v): v is ThesisId =>
           ['robinhood', 'bullrun', 'ai'].includes(v),
@@ -162,15 +164,15 @@ export function readFollowed(
 }
 
 export function toggleFollowed(
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null,
   id: ThesisId,
+  storage?: Pick<Storage, 'getItem' | 'setItem'>,
 ): ThesisId[] {
   const current = readFollowed(storage);
   const next = current.includes(id)
     ? current.filter((v) => v !== id)
     : [...current, id];
   try {
-    storage?.setItem(FOLLOW_KEY, JSON.stringify(next));
+    (storage ?? localStorage).setItem(FOLLOW_KEY, JSON.stringify(next));
   } catch {
     /* Full or blocked storage keeps the follow in memory. */
   }

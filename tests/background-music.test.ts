@@ -24,10 +24,10 @@ describe('background music preference', () => {
   it('is on until the guest turns it off', () => {
     const storage = memory();
     expect(readBackgroundMusic(storage)).toBe(true);
-    writeBackgroundMusic(storage, false);
+    writeBackgroundMusic(false, storage);
     expect(storage.getItem(BACKGROUND_MUSIC_KEY)).toBe('off');
     expect(readBackgroundMusic(storage)).toBe(false);
-    writeBackgroundMusic(storage, true);
+    writeBackgroundMusic(true, storage);
     expect(readBackgroundMusic(storage)).toBe(true);
   });
 
@@ -41,9 +41,7 @@ describe('background music preference', () => {
       },
     };
     expect(readBackgroundMusic(storage)).toBe(true);
-    expect(() => writeBackgroundMusic(storage, true)).not.toThrow();
-    expect(readBackgroundMusic(null)).toBe(true);
-    expect(() => writeBackgroundMusic(null, false)).not.toThrow();
+    expect(() => writeBackgroundMusic(true, storage)).not.toThrow();
   });
 });
 

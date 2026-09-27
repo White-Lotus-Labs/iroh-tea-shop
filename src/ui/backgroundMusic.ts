@@ -25,32 +25,29 @@ export function loopBounds(samples: Float32Array, sampleRate: number) {
   return { start: start / sampleRate, end: end / sampleRate };
 }
 
-/** window.localStorage, or null when the browser blocks site data (the getter throws). */
-export function localStore(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
+// Storage defaults to localStorage, read inside the try: the getter itself
+// throws when the browser blocks site data.
 
 /** On unless the guest turned it off. */
 export function readBackgroundMusic(
-  storage: Pick<Storage, 'getItem'> | null,
+  storage?: Pick<Storage, 'getItem'>,
 ): boolean {
   try {
-    return storage?.getItem(BACKGROUND_MUSIC_KEY) !== 'off';
+    return (storage ?? localStorage).getItem(BACKGROUND_MUSIC_KEY) !== 'off';
   } catch {
     return true;
   }
 }
 
 export function writeBackgroundMusic(
-  storage: Pick<Storage, 'setItem'> | null,
   enabled: boolean,
+  storage?: Pick<Storage, 'setItem'>,
 ) {
   try {
-    storage?.setItem(BACKGROUND_MUSIC_KEY, enabled ? 'on' : 'off');
+    (storage ?? localStorage).setItem(
+      BACKGROUND_MUSIC_KEY,
+      enabled ? 'on' : 'off',
+    );
   } catch {
     /* Private mode and blocked storage keep the in-memory choice. */
   }
