@@ -198,9 +198,9 @@ describe('saved Nansen readings', () => {
 
   test('keeps a good ticker page when a later refresh gets only errors', async () => {
     const temp = openTempDb();
-    let fail = false;
+    let fail: (path: string) => boolean = () => false;
     mockNansen((path) => {
-      if (fail) throw new Error('HTTP:402');
+      if (fail(path)) throw new Error('HTTP:402');
       if (path === 'tgm/position-intelligence') return positionOk;
       if (path === 'tgm/flow-intelligence') return flowOk;
       return { data: [] };
@@ -210,10 +210,12 @@ describe('saved Nansen readings', () => {
       const { readNansenSnapshot } = await import(
         '../src/nansen/snapshot-store'
       );
-      const { detailCacheKey } = await import('../src/thesis/nansen');
+      const { DECK_CACHE_KEY, detailCacheKey } = await import(
+        '../src/thesis/nansen'
+      );
       const now = Date.parse('2026-09-27T12:00:00Z');
       await refreshSavedNansenData(temp.db, 'key', now);
-      fail = true;
+      fail = () => true;
       const later = now + NANSEN_REFRESH_MS;
       const again = await refreshSavedNansenData(temp.db, 'key', later);
       const key = detailCacheKey('robinhood', 'UNI');
@@ -225,10 +227,14 @@ describe('saved Nansen readings', () => {
       );
       expect(detail?.perps.status).toBe('ok');
       expect(detail?.stale).toBe(true);
-      // A lasting failure must not freeze the page on one old reading.
+      // A total outage keeps the saved rows, however old they are.
       const much = now + 2 * NANSEN_REFRESH_MS;
       const third = await refreshSavedNansenData(temp.db, 'key', much);
-      expect(third.saved).toContain(key);
+      expect(third.kept).toEqual(expect.arrayContaining([key, DECK_CACHE_KEY]));
+      // A lasting partial failure must not freeze the page on one old reading.
+      fail = (path) => path === 'tgm/holders';
+      const fourth = await refreshSavedNansenData(temp.db, 'key', much);
+      expect(fourth.saved).toContain(key);
     } finally {
       await temp.close();
     }

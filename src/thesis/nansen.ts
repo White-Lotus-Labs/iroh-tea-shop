@@ -331,6 +331,16 @@ export function preferExistingDetail(
   return null;
 }
 
+/** Every ticker errored: the fresh deck holds no usable reading. */
+export const deckFailed = (fresh: { theses: ThesisSummary[] }) =>
+  fresh.theses.every((thesis) =>
+    thesis.tickers.every((ticker) => ticker.status === 'error'),
+  );
+
+/** Every section is unavailable: the fresh page holds no usable reading. */
+export const detailFailed = (fresh: TickerDetail) =>
+  countUnavailable(fresh) === DETAIL_SECTIONS.length;
+
 async function fetchTickerSignal(
   ticker: Ticker,
   apiKey: string,
