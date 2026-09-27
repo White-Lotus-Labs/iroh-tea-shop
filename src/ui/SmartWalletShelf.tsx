@@ -3,11 +3,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   formatMoney,
   formatRoi,
+  shortenAddress,
   type SmartWalletLeaderboardEntry,
   type SmartWalletLeaderboardSnapshot,
 } from '../leaderboard/model';
 import type { NansenAvailability } from '../nansen/availability';
-import { shelfIdentityForRank } from './shelfIdentities';
+import {
+  SHELF_CAST_NAME,
+  SHELF_GUEST_NAME,
+  shelfIdentityForRank,
+} from './shelfIdentities';
 import { shelfLabel } from './shelfLabels';
 
 let lastSnapshot: SmartWalletLeaderboardSnapshot | null = null;
@@ -29,57 +34,189 @@ function isSnapshot(value: unknown): value is SmartWalletLeaderboardSnapshot {
   );
 }
 
-function Wallet({
-  entry,
-  featured = false,
+function nansenProfilerUrl(address: string) {
+  return `https://app.nansen.ai/profiler?address=${encodeURIComponent(address)}&chain=hyperliquid`;
+}
+
+function tone(value: number | null) {
+  return value === null || value === 0 ? 'flat' : value > 0 ? 'up' : 'down';
+}
+
+function Portrait({ rank }: { rank: number }) {
+  const identity = shelfIdentityForRank(rank);
+  const index = identity?.portraitIndex ?? 9;
+  return (
+    <div className="wallet-portrait-frame">
+      <div
+        className="wallet-portrait"
+        role="img"
+        aria-label={identity?.name ?? SHELF_GUEST_NAME}
+        style={{
+          backgroundPosition: `${(index % 5) * 25}% ${index < 5 ? 0 : 100}%`,
+        }}
+      />
+    </div>
+  );
+}
+
+function RoiChip({ roi }: { roi: number | null }) {
+  return (
+    <span className={`wallet-roi wallet-roi-${tone(roi)}`}>
+      <span className="sr-only">ROI </span>
+      {formatRoi(roi)}
+    </span>
+  );
+}
+
+function WalletActions({
+  address,
+  labelled = false,
 }: {
-  entry: SmartWalletLeaderboardEntry;
-  featured?: boolean;
+  address: string;
+  labelled?: boolean;
 }) {
-  const identity = shelfIdentityForRank(entry.rank);
-  const portraitIndex = identity?.portraitIndex ?? 9;
+  const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
+  useEffect(() => {
+    if (copy === 'idle') return;
+    const timer = window.setTimeout(() => setCopy('idle'), 1600);
+    return () => window.clearTimeout(timer);
+  }, [copy]);
+  return (
+    <div className="wallet-actions">
+      <button
+        type="button"
+        className="wallet-action"
+        aria-label={`Copy wallet address ${address}`}
+        title="Copy address"
+        onClick={() => {
+          if (!navigator.clipboard) return setCopy('failed');
+          navigator.clipboard.writeText(address).then(
+            () => setCopy('copied'),
+            () => setCopy('failed'),
+          );
+        }}
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+          <path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5" />
+        </svg>
+      </button>
+      <a
+        className={`wallet-action${labelled ? ' wallet-action-text' : ''}`}
+        href={nansenProfilerUrl(address)}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Open wallet in Nansen (new tab)"
+        title="Open in Nansen"
+      >
+        {labelled && <span aria-hidden="true">Open in Nansen</span>}
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M9 2.5h4.5V7M13.5 2.5 7 9M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" />
+        </svg>
+      </a>
+      <span className="wallet-copied" role="status" data-state={copy}>
+        {copy === 'copied' ? 'Copied' : copy === 'failed' ? 'Copy failed' : ''}
+      </span>
+    </div>
+  );
+}
+
+function Leader({ entry }: { entry: SmartWalletLeaderboardEntry }) {
+  const name = shelfIdentityForRank(entry.rank)?.name ?? SHELF_GUEST_NAME;
   const label = shelfLabel(entry.displayName, entry.address);
   return (
     <article
-      className={`wallet-rank${featured ? ' wallet-rank-featured' : ''}`}
+      className="wallet-hero"
       data-rank={entry.rank}
-      data-testid={featured ? 'top-wallet' : undefined}
-      aria-label={`Rank ${entry.rank}, ${identity?.name ?? 'White Lotus guest'}${label ? `, ${label}` : ''}, wallet ${entry.address}`}
+      data-testid="top-wallet"
+      aria-label={`Rank ${entry.rank}, ${name}${label ? `, ${label}` : ''}`}
     >
-      <div className="wallet-portrait-frame">
-        <div
-          className="wallet-portrait"
-          role="img"
-          aria-label={identity?.name ?? 'White Lotus guest'}
-          style={{
-            backgroundPosition: `${(portraitIndex % 5) * 25}% ${portraitIndex < 5 ? 0 : 100}%`,
-          }}
-        />
-        <span className="wallet-place" aria-hidden="true">
+      <div className="wallet-hero-portrait">
+        <Portrait rank={entry.rank} />
+        <span className="wallet-seal" aria-hidden="true">
           {entry.rank}
         </span>
       </div>
-      <div className="wallet-card-details">
-        <div className="wallet-identity">
-          <h2>{identity?.name ?? 'White Lotus guest'}</h2>
-          {label && <p className="wallet-label">{label}</p>}
-        </div>
-        <dl className="wallet-metrics">
+      <div className="wallet-hero-body">
+        <p className="wallet-hero-eyebrow">First spirit · 30-day leader</p>
+        <h2>{name}</h2>
+        {label && <p className="wallet-label">{label}</p>}
+        <dl className="wallet-hero-metrics">
           <div>
-            <dt>PNL</dt>
-            <dd>{formatMoney(entry.pnl, true)}</dd>
+            <dt>PnL</dt>
+            <dd className={`wallet-tone-${tone(entry.pnl)}`}>
+              {formatMoney(entry.pnl, true)}
+            </dd>
           </div>
           <div>
             <dt>ROI</dt>
-            <dd>{formatRoi(entry.roi)}</dd>
+            <dd>
+              <RoiChip roi={entry.roi} />
+            </dd>
           </div>
           <div>
-            <dt>ACCOUNT VALUE</dt>
+            <dt>Account value</dt>
             <dd>{formatMoney(entry.accountValue)}</dd>
           </div>
         </dl>
+        <div className="wallet-hero-address">
+          <code title={entry.address}>{shortenAddress(entry.address)}</code>
+          <WalletActions address={entry.address} labelled />
+        </div>
       </div>
     </article>
+  );
+}
+
+function WalletRow({
+  entry,
+  leaderPnl,
+}: {
+  entry: SmartWalletLeaderboardEntry;
+  leaderPnl: number | null;
+}) {
+  const name = shelfIdentityForRank(entry.rank)?.name ?? SHELF_GUEST_NAME;
+  const label = shelfLabel(entry.displayName, entry.address);
+  const share =
+    entry.pnl !== null && leaderPnl
+      ? Math.min(1, Math.abs(entry.pnl) / Math.abs(leaderPnl))
+      : 0;
+  return (
+    <li className="wallet-row" data-rank={entry.rank}>
+      <span className="wallet-seal">
+        <span className="sr-only">Rank </span>
+        {entry.rank}
+      </span>
+      <Portrait rank={entry.rank} />
+      <div className="wallet-who">
+        <h3>{name}</h3>
+        {label ? (
+          <p className="wallet-label">{label}</p>
+        ) : (
+          <p className="wallet-address" title={entry.address}>
+            {shortenAddress(entry.address)}
+          </p>
+        )}
+      </div>
+      <div className="wallet-pnl">
+        <span className={`wallet-pnl-value wallet-tone-${tone(entry.pnl)}`}>
+          <span className="sr-only">PnL </span>
+          {formatMoney(entry.pnl, true)}
+        </span>
+        <span className="wallet-bar" aria-hidden="true">
+          <span
+            className={`wallet-tone-${tone(entry.pnl)}`}
+            style={{ width: `${(share * 100).toFixed(1)}%` }}
+          />
+        </span>
+      </div>
+      <RoiChip roi={entry.roi} />
+      <span className="wallet-value">
+        <span className="sr-only">Account value </span>
+        {formatMoney(entry.accountValue)}
+      </span>
+      <WalletActions address={entry.address} />
+    </li>
   );
 }
 
@@ -215,34 +352,30 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
       <div className="parchment-rod" aria-hidden="true" />
       <div className="leaderboard-parchment">
         <header className="leaderboard-head">
-          <svg
-            className="leaderboard-lotus"
-            viewBox="0 0 48 34"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path d="M24 29C15 22 16 13 24 4c8 9 9 18 0 25Z" />
-            <path d="M24 29C12 29 7 23 6 13c10 2 16 8 18 16Zm0 0c12 0 17-6 18-16-10 2-16 8-18 16Z" />
-            <path d="M24 29C15 33 7 30 2 24c8-2 16-1 22 5Zm0 0c9 4 17 1 22-5-8-2-16-1-22 5Z" />
-          </svg>
+          <span className="leaderboard-mark" aria-hidden="true">
+            茶
+          </span>
           {!unconfigured && (
             <>
+              <p className="leaderboard-eyebrow">{SHELF_CAST_NAME}</p>
               <h1>Top 10 Hyperliquid Leaderboard</h1>
-              <p className="leaderboard-subhead">The White Lotus Order</p>
-              <div className="leaderboard-attribution">
-                <span>
-                  Powered by <strong>Nansen</strong>
+              <div className="leaderboard-meta">
+                <span>Smart HL Perps Traders · last 30 days</span>
+                <span className="leaderboard-attribution">
+                  <span>
+                    Powered by <strong>Nansen</strong>
+                  </span>
+                  <button
+                    type="button"
+                    className="leaderboard-info-btn"
+                    onClick={() => toggleFreshness('header')}
+                    aria-label="Explain data freshness"
+                    aria-expanded={freshnessAnchor === 'header'}
+                    title="Data freshness info"
+                  >
+                    <span aria-hidden="true">i</span>
+                  </button>
                 </span>
-                <button
-                  type="button"
-                  className="leaderboard-info-btn"
-                  onClick={() => toggleFreshness('header')}
-                  aria-label="Explain data freshness"
-                  aria-expanded={freshnessAnchor === 'header'}
-                  title="Data freshness info"
-                >
-                  <span aria-hidden="true">ⓘ</span>
-                </button>
               </div>
               {freshnessAnchor === 'header' && (
                 <FreshnessPopover
@@ -261,12 +394,31 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
         )}
         {leader ? (
           <div className="leaderboard-content" aria-busy={loading}>
-            <Wallet entry={leader} featured />
-            <div className="wallet-grid" data-testid="rank-grid">
-              {others.map((entry) => (
-                <Wallet key={entry.address} entry={entry} />
-              ))}
-            </div>
+            <Leader entry={leader} />
+            {others.length > 0 && (
+              <>
+                <div className="wallet-list-head" aria-hidden="true">
+                  <span>Spirit</span>
+                  <span>30-day PnL</span>
+                  <span>ROI</span>
+                  <span>Account value</span>
+                </div>
+                <ol
+                  className="wallet-list"
+                  start={2}
+                  aria-label="Ranks 2 to 10"
+                  data-testid="rank-grid"
+                >
+                  {others.map((entry) => (
+                    <WalletRow
+                      key={entry.address}
+                      entry={entry}
+                      leaderPnl={leader.pnl}
+                    />
+                  ))}
+                </ol>
+              </>
+            )}
             {snapshot!.entries.length < 10 && (
               <p className="leaderboard-note">
                 Nansen returned {snapshot!.entries.length} ranked wallets for
@@ -321,7 +473,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                   aria-expanded={freshnessAnchor === 'footer'}
                   title="Data freshness info"
                 >
-                  <span aria-hidden="true">ⓘ</span>
+                  <span aria-hidden="true">i</span>
                 </button>
               </div>
               {snapshot && (

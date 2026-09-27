@@ -184,8 +184,8 @@ export function HangingPaper() {
       uTwist: { value: 1.3 },
       uRipple: { value: 0.34 },
       uSize: { value: new Vector2(SW, SH) },
-        uRim: { value: 0.22 },
-        uRimA: { value: 0.5 },
+      uRim: { value: 0.22 },
+      uRimA: { value: 0.5 },
       uRimCol: { value: new Vector3(1, 0.9, 0.74) },
       uHoverCol: { value: new Vector3(1, 0.82, 0.58) },
     };
@@ -197,15 +197,13 @@ export function HangingPaper() {
     const materials = SHEETS.map((s, index) => {
       const material = new MeshPhysicalMaterial({
         map: textures[s.art],
-          color: '#e6dac4',
-          side: DoubleSide,
-          roughness: 0.7,
-          metalness: 0,
-          clearcoat: 0.1,
-          clearcoatRoughness: 0.45,
-          sheen: 0.22,
-          sheenRoughness: 0.85,
-          sheenColor: '#f3dfb8',
+        color: '#cdbfa6',
+        side: DoubleSide,
+        roughness: 0.74,
+        metalness: 0,
+        clearcoat: 0.08,
+        clearcoatRoughness: 0.5,
+        specularIntensity: 0.6,
         transparent: true,
         opacity: 0.97,
       });
