@@ -459,7 +459,7 @@ const browser = await chromium.launch({
   headless: true,
   channel: 'chromium',
   args: [
-    '--use-angle=metal',
+    ...(process.platform === 'darwin' ? ['--use-angle=metal'] : []),
     '--enable-gpu',
     '--ignore-gpu-blocklist',
     '--enable-webgl',
