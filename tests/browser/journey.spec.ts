@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { DECK_FIXTURE } from '../../src/thesis/fixtures';
 import { registerBrowserAccount } from './auth-helper';
 import { beginVisit, openStationPanel } from './room-helpers';
 
@@ -119,6 +120,24 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
     page.getByRole('button', { name: 'Open the Thesis Desk' }),
   ).toBeFocused();
   await expect(page.locator('.topbar')).not.toHaveAttribute('inert');
+
+  // The desk fetches even without a key, and Try again recovers it.
+  let deckStatus = 503;
+  await page.route('**/api/theses', (route) =>
+    deckStatus === 200
+      ? route.fulfill({ json: DECK_FIXTURE })
+      : route.fulfill({
+          status: 503,
+          json: { error: 'Nansen is unavailable right now.' },
+        }),
+  );
+  await page.keyboard.press('Enter');
+  const status = page.locator('.deck-status');
+  await expect(status).toHaveText(/^Nansen is unavailable right now\./);
+  deckStatus = 200;
+  await status.getByRole('button', { name: 'Try again' }).click();
+  await expect(status).toContainText('Saved Nansen readings');
+
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })

@@ -119,11 +119,9 @@ export function ThesisDeck({
   const reported = useRef<ThesisId | null>(null);
   const lastPick = useRef(selectedThesis);
 
+  // Saved readings are served without an API key, so always ask the server.
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (nansen === 'unavailable') {
-      setDeck({ status: 'offline', reason: 'Nansen is not configured.' });
-      return;
-    }
     const controller = new AbortController();
     setDeck({ status: 'loading' });
     fetch('/api/theses', { cache: 'no-store', signal: controller.signal })
@@ -153,7 +151,7 @@ export function ThesisDeck({
           });
       });
     return () => controller.abort();
-  }, [nansen]);
+  }, [nansen, attempt]);
 
   useEffect(() => {
     setFollowed(readFollowed(window.localStorage));
@@ -257,7 +255,11 @@ export function ThesisDeck({
           <h1 className="deck-title">
             Thesis <em>Desk</em>
           </h1>
-          <DeckStatus deck={deck} now={now} />
+          <DeckStatus
+            deck={deck}
+            now={now}
+            onRetry={() => setAttempt((a) => a + 1)}
+          />
         </div>
         <button
           type="button"
@@ -319,17 +321,28 @@ export function ThesisDeck({
   );
 }
 
-function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
+function DeckStatus({
+  deck,
+  now,
+  onRetry,
+}: {
+  deck: DeckState;
+  now: number;
+  onRetry: () => void;
+}) {
   if (deck.status === 'loading')
     return (
       <p className="deck-status" data-state="loading" role="status">
-        Reading saved Nansen data…
+        Loading saved Nansen readings…
       </p>
     );
   if (deck.status === 'offline')
     return (
       <p className="deck-status" data-state="offline" role="status">
-        Offline · {deck.reason}
+        {deck.reason}{' '}
+        <button type="button" className="leaf-retry" onClick={onRetry}>
+          Try again
+        </button>
       </p>
     );
   return (
@@ -544,7 +557,7 @@ function Meter({
         <div className="meter-copy" role="status">
           <span className="plaque-shimmer" />
           <span className="plaque-shimmer plaque-shimmer--short" />
-          <span className="sr-only">Reading conviction from Nansen…</span>
+          <span className="sr-only">Loading saved Nansen readings…</span>
         </div>
       </div>
     );
