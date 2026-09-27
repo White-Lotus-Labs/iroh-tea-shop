@@ -570,7 +570,9 @@
   .tz {
     --tz-pad: 16px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(320px, 1fr);
+    /* 78vw keeps the row near the rig's own aspect, so a narrow phone has no
+       empty band above the branch. */
+    grid-template-rows: auto minmax(min(320px, 78vw), 1fr);
     gap: 2px;
     padding: 0 var(--tz-pad) 4px;
     overflow-x: hidden;
@@ -660,6 +662,8 @@
   .tz-step strong {
     font-family: var(--wr-serif);
     font-size: 14px;
+    /* The larger caption must not grow its line past the reserved height. */
+    line-height: 1;
     font-weight: 400;
     font-style: italic;
     color: var(--wr-gold-hi);
@@ -701,6 +705,52 @@
   .tz-card-nav {
     margin-top: 10px;
     padding-top: 4px;
+  }
+}
+/* Short stacked screens: the noren tightens so the slips peek above the fold. */
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
+  @media (max-height: 700px) {
+    .tz-band {
+      padding: 12px 16px 10px;
+    }
+    .tz-band h1 {
+      margin-bottom: 2px;
+      font-size: 23px;
+    }
+    .tz-tagline {
+      margin-bottom: 5px;
+      font-size: 13.5px;
+    }
+    .tz-summary {
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+    .tz-flap-face {
+      padding: 6px 4px 13px;
+    }
+    .tz-flap-face::after {
+      bottom: 6px;
+    }
+    .tz-flap-num {
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+    }
+    .tz-step {
+      min-height: calc(3 * 1.4em);
+      margin-top: 6px;
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+    .tz-honesty {
+      margin-top: 4px;
+    }
+  }
+  /* Every station fits two lines from here, so reserve two, not three. */
+  @media (min-width: 600px) {
+    .tz-step {
+      min-height: calc(2 * 1.45em);
+    }
   }
 }
 @media (max-width: 420px) {
