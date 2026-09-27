@@ -1,4 +1,5 @@
 import { leaderboardRefreshTargets } from '../leaderboard/boards';
+import { memeCallPlan } from '../leaderboard/meme';
 import { THESES } from '../thesis/deck';
 import type { Ticker } from '../thesis/types';
 
@@ -63,14 +64,18 @@ export function nansenCallPlan(): {
       })),
     ),
   );
-  const leaderboard: PlannedNansenCall[] = leaderboardRefreshTargets().map(
-    () => ({
-      surface: 'leaderboard' as const,
-      endpoint: 'perp-leaderboard',
-      thesisId: null,
-      symbol: null,
-    }),
-  );
+  // One perp-leaderboard call per Hyperliquid target, then the meme pool and its entity lookups.
+  const leaderboard: PlannedNansenCall[] = [
+    ...leaderboardRefreshTargets()
+      .filter((target) => target.board !== 'meme')
+      .map(() => 'perp-leaderboard'),
+    ...memeCallPlan(),
+  ].map((endpoint) => ({
+    surface: 'leaderboard' as const,
+    endpoint,
+    thesisId: null,
+    symbol: null,
+  }));
   const background = [...deck, ...details, ...leaderboard];
   return {
     deck,

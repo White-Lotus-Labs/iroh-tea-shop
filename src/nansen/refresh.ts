@@ -1,6 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
 import { NansenError } from './client';
 import { leaderboardRefreshTargets } from '../leaderboard/boards';
+import { fetchMemePool, rankMeme } from '../leaderboard/meme';
+import type { SmartWalletLeaderboardEntry } from '../leaderboard/model';
 import { fetchNansenLeaderboard } from '../leaderboard/provider';
 import { THESES } from '../thesis/deck';
 import {
@@ -78,18 +80,20 @@ function jobsFor(
     load: () => loadDeckSnapshot(apiKey),
     preferExisting: preferExistingDeck,
   };
-  const leaderboards: Job[] = leaderboardRefreshTargets().map((target) => ({
-    key: target.key,
-    load: async () => ({
-      entries: await fetchNansenLeaderboard(
-        apiKey,
-        now,
-        fetch,
-        target.board,
-        target.metric,
-      ),
+  // Both meme sorts rank the same pool, so the first meme job fetches it once.
+  let memePool: Promise<SmartWalletLeaderboardEntry[]> | undefined;
+  const pool = () => (memePool ??= fetchMemePool(apiKey, now));
+  const leaderboards: Job[] = leaderboardRefreshTargets().map(
+    ({ board, metric, key }) => ({
+      key,
+      load: async () => ({
+        entries:
+          board === 'meme'
+            ? rankMeme(await pool(), metric)
+            : await fetchNansenLeaderboard(apiKey, now, fetch, board, metric),
+      }),
     }),
-  }));
+  );
   const details: Job[] = THESES.flatMap((thesis) =>
     thesis.tickers.map((ticker) => ({
       key: detailCacheKey(thesis.id, ticker.symbol),

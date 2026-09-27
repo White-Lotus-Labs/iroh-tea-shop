@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+  boardCacheKey,
+  DEFAULT_LEADERBOARD_CACHE_KEY,
+  leaderboardRefreshTargets,
+  parseMetric,
+} from '../src/leaderboard/boards';
+import {
   normalizeLeaderboard,
   formatMoney,
   formatRoi,
@@ -18,6 +24,37 @@ const row = (n: number, overrides: Record<string, unknown> = {}) => ({
   roi: 0.274,
   account_value: 4_600_000,
   ...overrides,
+});
+
+describe('leaderboard boards', () => {
+  test('saves 15 Hyperliquid rows and 2 meme rows under stable keys', () => {
+    const targets = leaderboardRefreshTargets();
+    expect(targets).toHaveLength(17);
+    expect(targets[0]!.key).toBe(DEFAULT_LEADERBOARD_CACHE_KEY);
+    expect(boardCacheKey('whales', 'holdings')).toBe(
+      'smart-wallet-leaderboard:hl:whales:account:30d:top-10',
+    );
+    expect(targets.filter((target) => target.board === 'meme')).toEqual([
+      {
+        board: 'meme',
+        metric: 'wins',
+        key: 'smart-wallet-leaderboard:meme:wins:30d:top-10',
+      },
+      {
+        board: 'meme',
+        metric: 'roi',
+        key: 'smart-wallet-leaderboard:meme:roi:30d:top-10',
+      },
+    ]);
+  });
+
+  test('a sort the board does not have falls back to biggest wins', () => {
+    expect(parseMetric('account', 'perps')).toBe('account');
+    expect(parseMetric('account', 'meme')).toBe('wins');
+    expect(parseMetric('roi', 'meme')).toBe('roi');
+    expect(parseMetric(null, 'meme')).toBe('wins');
+    expect(parseMetric('nonsense', 'whales')).toBe('wins');
+  });
 });
 
 describe('Nansen leaderboard provider', () => {

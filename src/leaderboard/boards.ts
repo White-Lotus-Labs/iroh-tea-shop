@@ -1,7 +1,13 @@
-/** Nansen Hyperliquid leaderboard boards and sort metrics. */
+/** Nansen leaderboard boards and sort metrics. Meme is the one board not on Hyperliquid. */
 
-export const LEADERBOARD_BOARDS = ['perps', 'smart-money', 'whales'] as const;
+export const LEADERBOARD_BOARDS = [
+  'perps',
+  'smart-money',
+  'whales',
+  'meme',
+] as const;
 export type LeaderboardBoard = (typeof LEADERBOARD_BOARDS)[number];
+export type HlBoard = Exclude<LeaderboardBoard, 'meme'>;
 
 export const LEADERBOARD_METRICS = [
   'wins',
@@ -16,16 +22,29 @@ export type LeaderboardMetric = (typeof LEADERBOARD_METRICS)[number];
 /** Holdings reuses the account-value sort. This endpoint has no holdings field. */
 export type StoredLeaderboardMetric = Exclude<LeaderboardMetric, 'holdings'>;
 
+/** Meme rows come from one pool, so only the sorts that pool supports. */
+export const BOARD_METRICS: Record<
+  LeaderboardBoard,
+  readonly LeaderboardMetric[]
+> = {
+  perps: LEADERBOARD_METRICS,
+  'smart-money': LEADERBOARD_METRICS,
+  whales: LEADERBOARD_METRICS,
+  meme: ['wins', 'roi'],
+};
+
 export const BOARD_LABELS: Record<LeaderboardBoard, string> = {
   perps: 'Perps Traders',
   'smart-money': 'Smart Wallets',
   whales: 'Whales',
+  meme: 'Meme Traders',
 };
 
 export const BOARD_BLURB: Record<LeaderboardBoard, string> = {
   perps: 'Smart HL Perps Traders · last 30 days',
   'smart-money': 'Fund and Smart Trader wallets · last 30 days',
   whales: 'Accounts worth $10M or more · last 30 days',
+  meme: 'Smart Money wallets trading mostly memecoins · realized PnL · last 30 days',
 };
 
 /** One sentence per board for the Shelf intro. The meta line under it carries the filter and period. */
@@ -34,6 +53,15 @@ export const BOARD_INTRO: Record<LeaderboardBoard, string> = {
   'smart-money':
     'The ten Fund and Smart Trader wallets at the top of this ranking.',
   whales: 'The ten biggest Hyperliquid accounts at the top of this ranking.',
+  meme: 'The ten Smart Money meme traders at the top of this ranking.',
+};
+
+/** Where the rows come from, for the heading, the freshness note and the empty state. */
+export const BOARD_SOURCE: Record<LeaderboardBoard, string> = {
+  perps: 'Hyperliquid',
+  'smart-money': 'Hyperliquid',
+  whales: 'Hyperliquid',
+  meme: 'Smart Money meme',
 };
 
 export const METRIC_LABELS: Record<LeaderboardMetric, string> = {
@@ -67,8 +95,11 @@ export function parseBoard(value: string | null): LeaderboardBoard {
     : 'perps';
 }
 
-export function parseMetric(value: string | null): LeaderboardMetric {
-  return LEADERBOARD_METRICS.includes(value as LeaderboardMetric)
+export function parseMetric(
+  value: string | null,
+  board: LeaderboardBoard,
+): LeaderboardMetric {
+  return BOARD_METRICS[board].includes(value as LeaderboardMetric)
     ? (value as LeaderboardMetric)
     : 'wins';
 }
@@ -84,6 +115,8 @@ export function boardCacheKey(
   metric: LeaderboardMetric,
 ): string {
   const stored = storedMetric(metric);
+  if (board === 'meme')
+    return `smart-wallet-leaderboard:meme:${stored}:30d:top-10`;
   if (board === 'perps' && stored === 'wins')
     return DEFAULT_LEADERBOARD_CACHE_KEY;
   return `smart-wallet-leaderboard:hl:${board}:${stored}:30d:top-10`;
@@ -100,7 +133,7 @@ export function leaderboardRefreshTargets(): {
     key: string;
   }[] = [];
   for (const board of LEADERBOARD_BOARDS) {
-    for (const metric of LEADERBOARD_METRICS) {
+    for (const metric of BOARD_METRICS[board]) {
       if (metric === 'holdings') continue;
       targets.push({ board, metric, key: boardCacheKey(board, metric) });
     }
@@ -109,7 +142,7 @@ export function leaderboardRefreshTargets(): {
 }
 
 /** Build Nansen perp-leaderboard filters and sort for a board and metric. */
-export function boardQuery(board: LeaderboardBoard, metric: LeaderboardMetric) {
+export function boardQuery(board: HlBoard, metric: LeaderboardMetric) {
   const filters =
     board === 'perps'
       ? { include_smart_money_labels: ['Smart HL Perps Trader'] }

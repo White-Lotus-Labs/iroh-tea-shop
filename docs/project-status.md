@@ -1,6 +1,6 @@
 # How the tea shop works
 
-**Updated:** 27 September 2026
+**Updated:** 28 September 2026
 
 This is a guide to the app as it is, written so a person can read it without already knowing the code.
 
@@ -20,7 +20,9 @@ Each book shows a conviction seal. The seal is a summary of smart-money numbers,
 
 **Host.** Uncle answers in a chat. He uses Nansen's Research Agent. This part is live. Sending a message calls Nansen at that moment. Guests keep the thread until they reload. If you sign in, your chats are kept in the database and you can reopen them.
 
-**Shelf.** Ten spirits stand in for the wallets on the saved Hyperliquid leaderboard. The scroll has three boards: Perps Traders, Smart Wallets, and Whales (accounts worth $10M or more). Nansen has no meme-trader label for Hyperliquid perps, so Whales replaced the Meme board. The default sort is 30-day PnL. Rank 1 is open by default. Clicking another rank opens it in place with realized and unrealized PnL, 30-day volume, trade count, and its three largest open positions. That detail comes back with the same leaderboard call, so it adds no Nansen requests. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. Clicking through opens that address in Nansen's profiler.
+**Shelf.** Ten spirits stand in for the wallets on a saved Nansen leaderboard. The scroll has four boards: Perps Traders, Smart Wallets, and Whales (accounts worth $10M or more) on Hyperliquid, and Meme Traders. The default sort is 30-day PnL. Rank 1 is open by default. Clicking another rank opens it in place with realized and unrealized PnL, 30-day volume, trade count, and its three largest open positions. That detail comes back with the same leaderboard call, so it adds no Nansen requests. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. Clicking through opens that address in Nansen's profiler.
+
+Meme Traders uses Nansen's Smart Money PnL leaderboard on 18 chains, with Solana and EVM wallets in one list. Nansen has no meme filter, so the app keeps a wallet when at least half of its top-token profit is memecoins. Majors, staked and wrapped tokens, tokenized stocks, and the PUMP token do not count. The board sorts by realized PnL or by average trade ROI. Its cards show win rate, chains, tokens traded, and top tokens in place of account value, volume, and open positions. When a named person has wallets on both Solana and EVM, the row shows Nansen's entity total, marked Entity. That total uses another win-rate definition, so the row shows a dash for win rate.
 
 **Observatorium.** A brass orrery you can wind. It is not connected to market data.
 
@@ -32,7 +34,7 @@ Nansen is the only market source. The app never invents a conviction number or a
 
 Visitors do not trigger the deck, the asset pages, or the shelf. Those are saved in SQLite (`NansenSnapshot` rows) and served from there.
 
-The server fills that table when it starts, then about once an hour. One fill is 94 Nansen requests: 12 for the thesis seals, 67 for the twelve asset pages, and 15 for the shelf boards. The README has the split. Solana skips the spot endpoints. If a fill fails, the last good row stays on screen and can be marked stale.
+The server fills that table when it starts, then about once an hour. One fill is up to 103 Nansen requests: 12 for the thesis seals, 67 for the twelve asset pages, 15 for the Hyperliquid boards, and up to 9 for Meme Traders (one leaderboard call and up to 8 entity lookups). The README has the split. Solana skips the spot endpoints. If a fill fails, the last good row stays on screen and can be marked stale.
 
 Until the first fill finishes, the desk and the shelf say the readings are still being saved.
 

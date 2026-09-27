@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { boardCacheKey } from '../src/leaderboard/boards';
+import { memeCallPlan } from '../src/leaderboard/meme';
 import { nansenCallPlan } from '../src/nansen/call-plan';
 import { NANSEN_REFRESH_MS } from '../src/nansen/snapshot-store';
 import { openTempDb } from './temp-sqlite';
@@ -14,6 +16,20 @@ const flowOk = {
     },
   ],
 };
+
+const memeBoard = JSON.parse(
+  readFileSync(
+    'tests/fixtures/nansen/smart-money-pnl-leaderboard.json',
+    'utf8',
+  ),
+) as unknown;
+const ogleSummary = JSON.parse(
+  readFileSync(
+    'tests/fixtures/nansen/profiler-pnl-summary__entity-ogle.json',
+    'utf8',
+  ),
+) as unknown;
+const MEME_KEYS = [boardCacheKey('meme', 'wins'), boardCacheKey('meme', 'roi')];
 
 const positionOk = {
   data: [
@@ -62,19 +78,23 @@ describe('Nansen call plan', () => {
   test('counts the background save and leaves Uncle out of it', () => {
     const plan = nansenCallPlan();
     expect(plan.deck).toHaveLength(12);
-    expect(plan.leaderboard).toHaveLength(15);
+    expect(plan.leaderboard).toHaveLength(24);
     expect(plan.leaderboard[0]).toEqual({
       surface: 'leaderboard',
       endpoint: 'perp-leaderboard',
       thesisId: null,
       symbol: null,
     });
+    expect(plan.leaderboard.slice(15).map((call) => call.endpoint)).toEqual(
+      memeCallPlan(),
+    );
+    expect(memeCallPlan()).toHaveLength(9);
     expect(plan.details).toHaveLength(67);
-    expect(plan.backgroundCount).toBe(94);
+    expect(plan.backgroundCount).toBe(103);
     expect(plan.uncleEndpoint).toBe('agent/fast');
     expect(NANSEN_REFRESH_MS).toBe(60 * 60 * 1000);
     const readme = readFileSync('README.md', 'utf8');
-    expect(readme).toContain('94 Nansen requests');
+    expect(readme).toContain('103 Nansen requests');
     expect(readme).toContain('agent/fast');
   });
 });
@@ -83,7 +103,7 @@ describe('saved Nansen readings', () => {
   test('a refresh asks Nansen once per planned call and a second read does not', async () => {
     const temp = openTempDb();
     const called: string[] = [];
-    mockNansen((path) => {
+    mockNansen((path, body) => {
       called.push(path);
       if (path === 'tgm/token-information')
         return {
@@ -106,6 +126,12 @@ describe('saved Nansen readings', () => {
         };
       if (path === 'tgm/position-intelligence') return positionOk;
       if (path === 'tgm/flow-intelligence') return flowOk;
+      // The fixture has more than 8 entity rows in its top 20, so the lookups hit the cap.
+      if (path === 'smart-money/pnl-leaderboard') return memeBoard;
+      if (path === 'profiler/address/pnl-summary')
+        return (body as { entity_name: string }).entity_name === 'ogle'
+          ? ogleSummary
+          : { traded_times: 0, top5_tokens: [] };
       return { data: [] };
     });
     try {
@@ -124,8 +150,12 @@ describe('saved Nansen readings', () => {
         now,
       );
       expect(report.missing).toEqual([]);
-      expect(report.saved).toHaveLength(28);
+      expect(report.saved).toHaveLength(30);
+      expect(report.saved).toEqual(expect.arrayContaining(MEME_KEYS));
       expect(called).toHaveLength(nansenCallPlan().backgroundCount);
+      expect(
+        called.filter((path) => path === 'smart-money/pnl-leaderboard'),
+      ).toHaveLength(1);
       const before = called.length;
       const deck = await readNansenSnapshot(temp.db, DECK_CACHE_KEY, now);
       const board = await readNansenSnapshot<{ entries: unknown[] }>(
@@ -136,6 +166,13 @@ describe('saved Nansen readings', () => {
       expect(deck?.source).toBe('nansen');
       expect(deck?.stale).toBe(false);
       expect(board?.entries).toHaveLength(1);
+      const meme = await readNansenSnapshot<{
+        entries: { rank: number; entity?: string }[];
+      }>(temp.db, MEME_KEYS[0]!, now);
+      expect(meme?.entries.map((entry) => entry.rank)).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      ]);
+      expect(meme?.entries[5]?.entity).toBe('ogle');
       expect(called).toHaveLength(before);
       expect(JSON.stringify(deck)).not.toContain('server-only-secret');
     } finally {
@@ -189,6 +226,45 @@ describe('saved Nansen readings', () => {
       expect(board?.stale).toBe(true);
       expect(board?.entries[0]?.displayName).toBe('First Trader');
       expect(board?.fetchedAt).toBe('2026-09-27T12:00:00.000Z');
+    } finally {
+      await temp.close();
+    }
+  });
+
+  test('a failed meme leaderboard keeps both meme rows and marks them stale', async () => {
+    const temp = openTempDb();
+    let failMeme = false;
+    mockNansen((path) => {
+      if (path === 'smart-money/pnl-leaderboard') {
+        if (failMeme) throw new Error('HTTP:502');
+        return memeBoard;
+      }
+      if (path === 'tgm/position-intelligence') return positionOk;
+      if (path === 'tgm/flow-intelligence') return flowOk;
+      if (path === 'tgm/token-information') return { data: {} };
+      return { data: [] };
+    });
+    try {
+      const { refreshSavedNansenData } = await import('../src/nansen/refresh');
+      const { readNansenSnapshot } = await import(
+        '../src/nansen/snapshot-store'
+      );
+      const now = Date.parse('2026-09-27T12:00:00Z');
+      await refreshSavedNansenData(temp.db, 'key', now);
+      failMeme = true;
+      const later = now + NANSEN_REFRESH_MS;
+      const again = await refreshSavedNansenData(temp.db, 'key', later);
+      expect(again.kept).toEqual(MEME_KEYS);
+      for (const key of MEME_KEYS) {
+        const board = await readNansenSnapshot<{ entries: unknown[] }>(
+          temp.db,
+          key,
+          later,
+        );
+        expect(board?.stale).toBe(true);
+        expect(board?.entries).toHaveLength(10);
+        expect(board?.fetchedAt).toBe('2026-09-27T12:00:00.000Z');
+      }
     } finally {
       await temp.close();
     }
