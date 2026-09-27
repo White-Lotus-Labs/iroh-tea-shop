@@ -54,7 +54,7 @@ export function CameraRig({
         : mobile && station === 'Entrance'
           ? ([0.55, 1.67, 9.38] as const)
           : mobile && station === 'TeaTable'
-            ? ([0.0, 1.56, 0.72] as const)
+            ? ([-0.9, 1.48, -0.9] as const)
             : travelPose.position;
     const look =
       mobile && station === 'Counter'
@@ -64,7 +64,7 @@ export function CameraRig({
           : mobile && station === 'AvatarSeat'
             ? ([0.0, 0.72, -3.55] as const)
             : mobile && station === 'TeaTable'
-              ? ([0.0, 1.05, -3.0] as const)
+              ? ([-2.85, 0.85, -3.15] as const)
               : travelPose.target;
     const to = new Vector3(...position),
       target = new Vector3(...look),

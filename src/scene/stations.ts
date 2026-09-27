@@ -26,11 +26,11 @@ export const STATIONS: {
   },
   {
     id: 'TeaTable',
-    label: 'Tea table',
-    purpose: 'Notice',
-    position: [0.0, 1.56, 0.95],
-    target: [0.0, 1.05, -3.0],
-    hotspot: [0.95, 0.88, -2.35],
+    label: 'Observatorium',
+    purpose: 'The flows of chains',
+    position: [-1.2, 1.45, -1.4],
+    target: [-2.85, 0.8, -3.15],
+    hotspot: [-2.85, 1.3, -3.15],
   },
   {
     id: 'AvatarSeat',

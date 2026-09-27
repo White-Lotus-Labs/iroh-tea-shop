@@ -43,7 +43,7 @@ const DOCK: DockEntry[] = [
   {
     id: 'AvatarSeat',
     label: 'Host',
-    caption: 'Talk to Iroh',
+    caption: 'Talk to Uncle',
     seal: '谈',
     // Yixing teapot.
     glyph: (
