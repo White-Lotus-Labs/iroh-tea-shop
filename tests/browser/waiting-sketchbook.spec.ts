@@ -54,11 +54,11 @@ test('sketchbook turns by button, key, drag and index, and links the team', asyn
 
   await page
     .getByRole('navigation', { name: 'Sketchbook pages' })
-    .getByRole('button', { name: 'tldde · Colophon' })
+    .getByRole('button', { name: 'tldde · The team' })
     .click();
   await expect(book).toHaveAttribute(
     'aria-label',
-    'tldde · Colophon, spread 5 of 5',
+    'tldde · The team, spread 5 of 5',
   );
   await expect(next).toBeDisabled();
   for (const handle of HANDLES)
@@ -100,7 +100,9 @@ test('on a phone every page is one tap away, not only a swipe', async ({
   );
 });
 
-test('the sketchbook opens from a closed cover', async ({ browser }) => {
+test('the sketchbook starts open, riffles forward once, and lands on the first spread', async ({
+  browser,
+}) => {
   test.setTimeout(60_000);
   const context = await browser.newContext({
     reducedMotion: 'no-preference',
@@ -110,18 +112,31 @@ test('the sketchbook opens from a closed cover', async ({ browser }) => {
   await page.goto('/?waiting=sketchbook');
   const book = page.locator('.sb');
   await book.waitFor();
-  const phase = await book.getAttribute('data-open');
-  if (phase !== 'open') {
-    await expect(book).toHaveAttribute('data-open', /^(shut|opening)$/);
-    await expect(page.locator('.sb-cloth-name').first()).toHaveText(
-      'Tea After Pour',
-    );
-  }
-  await expect(book).toHaveAttribute('data-open', 'open', { timeout: 20_000 });
+  await expect(book).toHaveAttribute('data-open', 'open');
   await expect(page.locator('.sb-book')).toHaveAttribute(
     'aria-label',
     'The tea shop, spread 1 of 5',
   );
+  await expect(page.locator('.sb-lid')).toHaveCount(0);
+  await page.evaluate(() => {
+    const el = document.querySelector('.sb-book')!;
+    const seen: number[] = [];
+    (window as unknown as { __spreads: number[] }).__spreads = seen;
+    new MutationObserver(() => {
+      const n = Number(el.getAttribute('aria-label')?.match(/spread (\d)/)?.[1]);
+      if (n && seen[seen.length - 1] !== n) seen.push(n);
+    }).observe(el, { attributes: true, attributeFilter: ['aria-label'] });
+  });
+  await expect(book).toHaveAttribute('data-riffle', /on|fast/, {
+    timeout: 10_000,
+  });
+  await expect(book).not.toHaveAttribute('data-riffle', /.+/, {
+    timeout: 10_000,
+  });
+  const spreads = await page.evaluate(
+    () => (window as unknown as { __spreads: number[] }).__spreads,
+  );
+  expect(spreads).toEqual([2, 3, 4, 5, 1]);
   await context.close();
 });
 

@@ -12,7 +12,7 @@ import {
 import dynamic from 'next/dynamic';
 import { LotusMark } from './LotusMark';
 import type { PetalArea } from './SakuraPetals';
-import { SKETCH_PAGES, SPREAD_TITLES } from './sketchbookPages';
+import { SKETCH_IMAGES, SKETCH_PAGES, SPREAD_TITLES } from './sketchbookPages';
 import './Sketchbook.css';
 
 // Page curl after the Meng To sketchbook: a leaf is a chain of nested strips
@@ -43,6 +43,8 @@ type Spring = {
   k: number;
   c: number;
   done: () => void;
+  /** A riffle keeps a fixed tempo on the wall clock, even when frames drop. */
+  tween?: { from: number; dur: number; t0: number };
 };
 type Drag = {
   x0: number;
@@ -208,7 +210,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   const [view, setView] = useState(0);
   const [turn, setTurn] = useState<Turn | null>(null);
   const [turned, setTurned] = useState(false);
-  const [phase, setPhase] = useState<Phase>('shut');
+  const [phase, setPhase] = useState<Phase>('open');
   const stage = useRef<HTMLDivElement>(null);
   const book = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -221,6 +223,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   const spring = useRef<Spring | null>(null);
   const openSpring = useRef<Spring | null>(null);
   const drag = useRef<Drag | null>(null);
+  const auto = useRef(true);
   const tilt = useRef({ rx: 0, ry: 0, tx: 0, ty: 0 });
   const live = useRef({ mode, view, turn, reduced, phase });
   live.current = { mode, view, turn, reduced, phase };
@@ -341,14 +344,15 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   }, []);
 
   const begin = useCallback(
-    (dir: Dir, quiet = false) => {
+    (dir: Dir, quiet = false, wrap = false) => {
       finishOpen();
       settle();
       const { view, mode } = live.current;
-      const last =
-        (mode === 'spread' ? SKETCH_PAGES.length / 2 : SKETCH_PAGES.length) - 1;
-      const to = dir === 'next' ? view + 1 : view - 1;
-      if (to < 0 || to > last) return false;
+      const total =
+        mode === 'spread' ? SKETCH_PAGES.length / 2 : SKETCH_PAGES.length;
+      const adjacent = dir === 'next' ? view + 1 : view - 1;
+      const to = wrap ? (adjacent + total) % total : adjacent;
+      if (to < 0 || to >= total) return false;
       progress.current = 0;
       const next = { dir, from: view, to };
       live.current.turn = next;
@@ -359,26 +363,39 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     [finishOpen, settle],
   );
 
-  const release = useCallback((complete: boolean) => {
-    const turn = live.current.turn;
-    if (!turn) return;
-    const done = () => {
-      if (complete) {
-        live.current.view = turn.to;
-        setView(turn.to);
+  const release = useCallback(
+    (complete: boolean, dur = 0, then?: () => void) => {
+      const turn = live.current.turn;
+      if (!turn) return;
+      const done = () => {
+        if (complete) {
+          live.current.view = turn.to;
+          setView(turn.to);
+        }
+        live.current.turn = null;
+        setTurn(null);
+        then?.();
+      };
+      if (live.current.reduced) {
+        progress.current = complete ? 1 : 0;
+        done();
+        return;
       }
-      live.current.turn = null;
-      setTurn(null);
-    };
-    if (live.current.reduced) {
-      progress.current = complete ? 1 : 0;
-      done();
-      return;
-    }
-    spring.current = complete
-      ? { target: 1, v: 0, k: 170, c: 26, done }
-      : { target: 0, v: 0, k: 150, c: 24, done };
-  }, []);
+      spring.current = dur
+        ? {
+            target: 1,
+            v: 0,
+            k: 0,
+            c: 0,
+            done,
+            tween: { from: progress.current, dur, t0: -1 },
+          }
+        : complete
+          ? { target: 1, v: 0, k: 170, c: 26, done }
+          : { target: 0, v: 0, k: 150, c: 24, done };
+    },
+    [],
+  );
 
   const step = useCallback(
     (dir: Dir) => {
@@ -394,7 +411,17 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
       const dt = Math.min(0.032, (now - last) / 1000);
       last = now;
       const s = spring.current;
-      if (s) {
+      if (s?.tween) {
+        const tw = s.tween;
+        if (tw.t0 < 0) tw.t0 = now;
+        const k = Math.min(1, (now - tw.t0) / 1000 / tw.dur);
+        progress.current = tw.from + (s.target - tw.from) * k;
+        if (k >= 1) {
+          spring.current = null;
+          paint();
+          s.done();
+        } else paint();
+      } else if (s) {
         s.v += (-s.k * (progress.current - s.target) - s.c * s.v) * dt;
         progress.current += s.v * dt;
         if (
@@ -471,54 +498,49 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     };
   }, [reduced]);
 
-  // The book arrives shut. It opens on its own, unless motion is reduced.
-  // The finish timer does not use requestAnimationFrame. A hidden test page
-  // can stall frames, and the cover would stay in "opening".
+  // The Meng To riffle: every leaf flips forward once, fastest mid-run, and
+  // the last leaf wraps the book back to the first spread. It never turns
+  // back. A click, a drag, or a key stops it.
   useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (media.matches) {
-      openP.current = 1;
-      setPhase('open');
-      return;
-    }
-    const start = window.setTimeout(() => setPhase('opening'), 1700);
-    const done = window.setTimeout(() => finishOpen(), 3200);
-    return () => {
-      window.clearTimeout(start);
-      window.clearTimeout(done);
-    };
-  }, [finishOpen]);
-
-  useEffect(() => {
-    if (phase !== 'opening') return;
-    openSpring.current = {
-      target: 1,
-      v: 0,
-      k: 4,
-      c: 4,
-      done: () => {
-        openP.current = 1;
-        setPhase('open');
-      },
-    };
-  }, [phase]);
-
-  // Shortly after the book is open, the right page lifts at its corner and
-  // settles back: enough to show that paper can be picked up.
-  useEffect(() => {
-    if (reduced || turned || phase !== 'open') return;
-    const timer = window.setTimeout(() => {
-      if (live.current.turn || drag.current || !begin('next', true)) return;
-      spring.current = {
-        target: 0.14,
-        v: 0,
-        k: 55,
-        c: 10,
-        done: () => release(false),
+    if (reduced) return;
+    const skip =
+      '(prefers-reduced-motion: reduce), (max-width: 640px), (pointer: coarse)';
+    if (window.matchMedia(skip).matches) return;
+    let cancel = false;
+    const el = root.current;
+    const end = () => el?.removeAttribute('data-riffle');
+    const pictures = Promise.all(
+      SKETCH_IMAGES.map((src) => {
+        const img = new Image();
+        img.src = src;
+        return img.decode().catch(() => {});
+      }),
+    );
+    const cap = new Promise((resolve) => window.setTimeout(resolve, 2500));
+    const start = window.setTimeout(async () => {
+      await Promise.race([pictures, cap]);
+      if (cancel || !auto.current || live.current.turn) return;
+      const steps =
+        live.current.mode === 'spread'
+          ? SKETCH_PAGES.length / 2
+          : SKETCH_PAGES.length;
+      let r = 0;
+      const flip = () => {
+        if (cancel || !auto.current || r >= steps) return end();
+        const bell = Math.sin(Math.PI * (r / (steps - 1)));
+        el?.setAttribute('data-riffle', bell > 0.55 ? 'fast' : 'on');
+        if (!begin('next', true, true)) return end();
+        r++;
+        release(true, 0.32 - 0.21 * bell, flip);
       };
-    }, 2600);
-    return () => window.clearTimeout(timer);
-  }, [reduced, turned, phase, begin, release]);
+      flip();
+    }, 1100);
+    return () => {
+      cancel = true;
+      window.clearTimeout(start);
+      end();
+    };
+  }, [reduced, begin, release]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -527,6 +549,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
       const target = event.target as HTMLElement | null;
       if (target?.closest('input, textarea, select, [contenteditable]')) return;
       event.preventDefault();
+      auto.current = false;
       step(event.key === 'ArrowRight' ? 'next' : 'prev');
     };
     window.addEventListener('keydown', key);
@@ -543,6 +566,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || live.current.phase !== 'open') return;
+    auto.current = false;
     if ((event.target as HTMLElement).closest('a, button')) return;
     const r = book.current?.getBoundingClientRect();
     if (!r) return;
@@ -614,13 +638,24 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   const open = phase === 'open';
   return (
     <div ref={root} className="sb" data-mode={mode} data-open={phase}>
+      <svg className="sb-defs" aria-hidden="true" focusable="false">
+        <filter id="sb-blur-1">
+          <feGaussianBlur stdDeviation="4 0" />
+        </filter>
+        <filter id="sb-blur-2">
+          <feGaussianBlur stdDeviation="11 0" />
+        </filter>
+      </svg>
       <div className="sb-stage">
         <button
           type="button"
           className="sb-arrow is-prev"
           aria-label="Previous page"
           disabled={view === 0 && !turn}
-          onClick={() => step('prev')}
+          onClick={() => {
+            auto.current = false;
+            step('prev');
+          }}
         >
           <svg viewBox="0 0 10 20" aria-hidden="true">
             <polyline points="8,2 2,10 8,18" />
@@ -673,12 +708,10 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
                   <span className="gutter-shade" aria-hidden="true" />
                 </div>
               )}
-              <span className="sb-ribbon" aria-hidden="true" />
               {phase !== 'open' && (
                 <div ref={lid} className="sb-lid">
                   <span className="sb-lid-edge" aria-hidden="true" />
                   <Cover bind={bindLid} />
-                  <span className="sb-lid-ribbon" aria-hidden="true" />
                 </div>
               )}
               {leaf && (
@@ -699,7 +732,10 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
           className="sb-arrow is-next"
           aria-label="Next page"
           disabled={view === count - 1 && !turn}
-          onClick={() => step('next')}
+          onClick={() => {
+            auto.current = false;
+            step('next');
+          }}
         >
           <svg viewBox="0 0 10 20" aria-hidden="true">
             <polyline points="2,2 8,10 2,18" />
@@ -717,6 +753,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
               type="button"
               aria-current={current ? 'page' : undefined}
               onClick={() => {
+                auto.current = false;
                 if (current) return;
                 const { view } = live.current;
                 if (Math.abs(target - view) === 1)

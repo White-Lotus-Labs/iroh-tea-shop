@@ -69,8 +69,8 @@ const NOTES: Record<string, Note[]> = {
     { text: 'no coffee', x: 90, y: 60, to: [83, 79] },
   ],
   tldde: [
-    { text: 'the Observatorium', x: -2, y: 2, to: [19, 19] },
-    { text: 'the cat', x: 82, y: 6, to: [74, 18] },
+    { text: 'the Observatorium', x: -2, y: 2, to: [18, 25] },
+    { text: 'the cat', x: 82, y: 6, to: [72, 22] },
   ],
 };
 
@@ -139,13 +139,23 @@ function memberPage(member: Member, n: number, folio: number): SketchPage {
   };
 }
 
+const SHOP_SKETCH = '/images/waiting-room/sketch-shop-front.jpg';
+const ROOM_SKETCH = '/images/waiting-room/sketch-tea-room.jpg';
+
+/** Every picture in the book, so a fast riffle never shows a blank page. */
+export const SKETCH_IMAGES = [
+  SHOP_SKETCH,
+  ROOM_SKETCH,
+  ...TEAM.map((member) => member.portrait),
+];
+
 export const SKETCH_PAGES: SketchPage[] = [
   {
     key: 'cover',
     render: (live) => (
       <div className="sb-page-inner sb-cover-art">
         <Sketch
-          src="/images/waiting-room/sketch-shop-front.jpg"
+          src={SHOP_SKETCH}
           alt="Ink and watercolour sketch of the tea shop front at dusk, doors open under a cherry tree."
           live={live}
         />
@@ -186,8 +196,8 @@ export const SKETCH_PAGES: SketchPage[] = [
     render: (live) => (
       <div className="sb-page-inner sb-room">
         <Sketch
-          src="/images/waiting-room/sketch-tea-room.jpg"
-          alt="Ink sketch of the tea room: the counter and lantern, a low tea table with a teapot, and the old host seated beside the shelf."
+          src={ROOM_SKETCH}
+          alt="Ink sketch of the tea room: the counter and lantern, a low tea table with a teapot, and Iroh seated beside the shelf with a cup, his straw hat on the floor."
           live={live}
           className="sb-room-art"
         />
@@ -234,7 +244,7 @@ export const SKETCH_PAGES: SketchPage[] = [
     key: 'hello',
     render: (live) => (
       <div className="sb-page-inner sb-hello">
-        <p className="sb-kicker">Colophon</p>
+        <p className="sb-kicker">The team</p>
         <h2 className="sb-heading">Made by five friends of the White Lotus.</h2>
         <ul>
           {TEAM.map((member) => (
@@ -279,5 +289,5 @@ export const SPREAD_TITLES = [
   'The room',
   '0x_iroh · 0x_Takezo',
   'david_grii · PandaCoderexe',
-  'tldde · Colophon',
+  'tldde · The team',
 ];
