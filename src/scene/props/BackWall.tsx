@@ -446,7 +446,7 @@ const LEAVES: { t: number; curve: 'branch' | 'twig'; turn: number }[] = [
 ];
 
 /** Chabana: a glazed vase on a thin board holding a single camellia branch. */
-function Chabana({ position }: { position: Point }) {
+export function Chabana({ position }: { position: Point }) {
   const leaves = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
     const mesh = leaves.current!,
@@ -685,6 +685,54 @@ function Tokonoma() {
   );
 }
 
+const RANMA = { y0: 3.075, y1: 3.262 };
+const ranmaSpans = [
+  [veranda.x0 + 0.02, -1.9],
+  [shoji.x0, shoji.x1],
+];
+const ranmaBars: [Point, Point][] = ranmaSpans.flatMap(([x0, x1]) => [
+  ...Array.from(
+    { length: Math.floor((x1 - x0) / 0.055) },
+    (_, i): [Point, Point] => [
+      [x0 + 0.03 + i * 0.055, (RANMA.y0 + RANMA.y1) / 2, face - 0.03],
+      [0.008, RANMA.y1 - RANMA.y0, 0.014],
+    ],
+  ),
+  ...[0.33, 0.67].map((f): [Point, Point] => [
+    [(x0 + x1) / 2, RANMA.y0 + (RANMA.y1 - RANMA.y0) * f, face - 0.028],
+    [x1 - x0, 0.007, 0.012],
+  ]),
+]);
+
+/** A lit transom (ranma) over each opening: glowing paper behind a fine kumiko lattice. */
+function Ranma() {
+  return (
+    <group name="ranma">
+      {ranmaSpans.map(([x0, x1]) => (
+        <group key={x0}>
+          <Solid
+            position={[(x0 + x1) / 2, (RANMA.y0 + RANMA.y1) / 2, face - 0.012]}
+            size={[x1 - x0, RANMA.y1 - RANMA.y0, 0.01]}
+            color="#e8c896"
+            surface="shoji"
+            cast={false}
+          />
+          {[RANMA.y0, RANMA.y1].map((y) => (
+            <Solid
+              key={y}
+              position={[(x0 + x1) / 2, y, face - 0.035]}
+              size={[x1 - x0 + 0.02, 0.022, 0.03]}
+              color={timber}
+              cast={false}
+            />
+          ))}
+        </group>
+      ))}
+      <Boxes items={ranmaBars} color="#24160e" cast={false} />
+    </group>
+  );
+}
+
 /** The sculpted back wall: veranda opening, lit shoji and tokonoma alcove. */
 export function BackWall() {
   const shojiW = shoji.x1 - shoji.x0,
@@ -761,6 +809,7 @@ export function BackWall() {
         glow={0.95}
         seed={5}
       />
+      <Ranma />
       <Tokonoma />
       <Veranda />
       <Suspense fallback={null}>

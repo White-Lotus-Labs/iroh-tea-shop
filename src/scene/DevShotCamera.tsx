@@ -38,6 +38,11 @@ export const SHOTS: Record<string, Shot> = {
     fov: 46,
   },
   shelf: stationShot('Shelf'),
+  brazier: {
+    position: [0.55, 1.15, -0.35],
+    target: [2.0, 0.25, -2.0],
+    fov: 50,
+  },
 };
 
 function ShotPose({ shot }: { shot: Shot }) {

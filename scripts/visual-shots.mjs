@@ -22,9 +22,10 @@ const ALL_SHOTS = [
   'tea-set',
   'observatorium',
   'shelf',
+  'brazier',
 ];
 // Steam is hidden under reduced motion, so the tea-set shot runs with full motion.
-const FULL_MOTION_SHOTS = new Set(['tea-set']);
+const FULL_MOTION_SHOTS = new Set(['tea-set', 'brazier']);
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {

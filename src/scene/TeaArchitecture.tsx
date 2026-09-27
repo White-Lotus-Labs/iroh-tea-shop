@@ -437,7 +437,7 @@ function Tatami({ center }: { center: Point }) {
   return (
     <group>
       {[-0.9, 0.9].flatMap((x) =>
-        [-1.35, -0.45, 0.45, 1.35].map((z) => (
+        [-1.35, -0.45, 0.45, 1.35, 2.25].map((z) => (
           <group key={`${x}${z}`}>
             <Solid
               position={[cx + x, 0.026, cz + z]}

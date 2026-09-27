@@ -10,6 +10,7 @@ import { SurfaceMaterial } from '../Surfaces';
 import type { Point } from '../stations';
 import { merge, place, useBuilt } from './craft';
 import { BambooPot, Bonsai } from './Plants';
+import { Byobu, FlowerStand, TemaeSet } from './Temae';
 
 const CUSHION = { w: 0.74, d: 0.8, seam: 0.036, top: 0.052, bottom: 0.032 };
 
@@ -95,12 +96,20 @@ function buildCushion() {
 }
 
 /** A zabuton: stuffed top and floor panels, piped seam and a centre tuft tie. */
-function Cushion({ position }: { position: Point }) {
+function Cushion({
+  position,
+  turn = 0.18,
+  color = '#3f4a37',
+}: {
+  position: Point;
+  turn?: number;
+  color?: string;
+}) {
   const built = useBuilt(buildCushion);
   return (
-    <group position={position} rotation={[0, 0.18, 0]}>
+    <group position={position} rotation={[0, turn, 0]}>
       <mesh geometry={built.body} castShadow receiveShadow>
-        <SurfaceMaterial surface="cloth" color="#3f4a37" />
+        <SurfaceMaterial surface="cloth" color={color} />
       </mesh>
       <mesh geometry={built.piping} castShadow>
         <SurfaceMaterial surface="cloth" color="#28301f" />
@@ -117,7 +126,19 @@ export function ChamberDressing() {
   return (
     <group>
       <Cushion position={[-0.76, 0.053, -0.93]} />
+      <Cushion position={[0.76, 0.053, -0.93]} turn={-0.12} />
+      {['#3f4a37', '#6a2f2a', '#3f4a37'].map((color, i) => (
+        <Cushion
+          key={i}
+          position={[-2.75, i * 0.086, 0.35]}
+          turn={0.5 + i * 0.13}
+          color={color}
+        />
+      ))}
       <Bonsai position={[-1.3, 0, -5.75]} seed={3} stand turn={0.1} />
+      <TemaeSet />
+      <FlowerStand position={[2.85, 0, -0.05]} />
+      <Byobu position={[2.4, 0, -2.62]} turn={-Math.PI / 2} />
     </group>
   );
 }
