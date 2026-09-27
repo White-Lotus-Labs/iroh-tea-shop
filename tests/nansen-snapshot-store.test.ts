@@ -76,6 +76,8 @@ describe('Nansen call plan', () => {
     const readme = readFileSync('README.md', 'utf8');
     expect(readme).toContain('94 Nansen requests');
     expect(readme).toContain('agent/fast');
+    // The Prisma CLI reads DATABASE_URL only from .env.
+    expect(readme).toMatch(/cp \.env\.example \.env\r?\n/);
   });
 });
 
