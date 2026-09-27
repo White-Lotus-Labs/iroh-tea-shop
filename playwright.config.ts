@@ -8,10 +8,12 @@ export default defineConfig({
     baseURL,
     headless: true,
     launchOptions: {
-      // Metal headless matches scripts/visual-shots.mjs; swiftshader stalls this scene.
+      // GPU headless matches scripts/visual-shots.mjs; swiftshader stalls this scene.
+      // macOS uses ANGLE Metal. Elsewhere Chromium picks its default GPU backend
+      // (D3D11 on Windows); Metal there falls back to SwiftShader.
       channel: 'chromium',
       args: [
-        '--use-angle=metal',
+        ...(process.platform === 'darwin' ? ['--use-angle=metal'] : []),
         '--enable-gpu',
         '--ignore-gpu-blocklist',
         '--enable-webgl',
