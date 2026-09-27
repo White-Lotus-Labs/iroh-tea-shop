@@ -1,9 +1,18 @@
 'use client';
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
-import { Invitation } from './Invitation';
 import { Sketchbook } from './Sketchbook';
-import { Tanzaku } from './Tanzaku';
 import './Versions.css';
+
+// Invitation / Tanzaku pull three.js; keep them off the sketchbook first paint.
+const Invitation = dynamic(
+  () => import('./Invitation').then((m) => m.Invitation),
+  { ssr: false },
+);
+const Tanzaku = dynamic(
+  () => import('./Tanzaku').then((m) => m.Tanzaku),
+  { ssr: false },
+);
 
 const VERSIONS = [
   { id: 'sketchbook', letter: 'A', name: 'Sketchbook' },
