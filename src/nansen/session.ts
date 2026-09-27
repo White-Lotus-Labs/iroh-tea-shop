@@ -125,8 +125,10 @@ export class IrohSession {
     const question = this.state.lastQuestion;
     // An error is set only after a failed send, so the failed turn is the last
     // two messages: the question and its reply. No request is active then.
+    // Drop that turn only when no answer text arrived; partial text stays.
     if (!this.state.error || !question) return false;
-    this.update({ messages: this.state.messages.slice(0, -2) });
+    if (!this.state.messages.at(-1)?.content)
+      this.update({ messages: this.state.messages.slice(0, -2) });
     return this.send(question);
   }
 
