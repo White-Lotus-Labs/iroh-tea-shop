@@ -175,7 +175,7 @@ function probe() {
     const shell = document.querySelector('.app-shell');
     if (shell?.getAttribute('aria-busy') !== 'false') return;
     const enter = [...document.querySelectorAll('button')].find((button) =>
-      button.textContent.includes('Step inside'),
+      button.textContent.includes('Enter Teashop'),
     );
     if (enter && !enter.disabled) audit.ready = performance.now();
   };
@@ -362,7 +362,7 @@ async function measure(browser, preset) {
 
   let afterStep = null;
   if (step && readyMs !== null) {
-    const enter = page.getByRole('button', { name: 'Step inside' });
+    const enter = page.getByRole('button', { name: 'Enter Teashop' });
     const clickAt = await page.evaluate((ms) => {
       window.__audit.watchFrames(ms);
       return performance.now();

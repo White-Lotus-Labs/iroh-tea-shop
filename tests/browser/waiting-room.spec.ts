@@ -13,7 +13,7 @@ test('waiting room holds the door until the room is ready, then steps inside', a
     room.getByRole('link', { name: 'Source on GitHub' }),
   ).toHaveAttribute('href', /github\.com\/White-Lotus-Labs/);
 
-  const enter = room.getByRole('button', { name: 'Enter the tea room' });
+  const enter = room.getByRole('button', { name: 'Enter Teashop' });
   // Headless WebGL compiles the scene slowly.
   await expect(enter).toBeEnabled({ timeout: 90_000 });
   await expect(room.getByRole('progressbar')).toHaveAttribute(

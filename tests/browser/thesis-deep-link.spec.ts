@@ -41,4 +41,8 @@ test('?thesis=ai lands on Counter, opens the panel, and scrolls the AI thesis', 
     name: 'AI Taking Over the World',
   });
   await expect(scroll).toBeVisible({ timeout: 45000 });
+  // Skipping the waiting room still loads the 3D host.
+  await expect(page.locator('canvas[data-iroh-host="model"]')).toHaveCount(1, {
+    timeout: 45000,
+  });
 });

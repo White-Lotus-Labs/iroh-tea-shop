@@ -116,8 +116,12 @@ export default function TeaRoomShell({
   const [sceneReady, setSceneReady] = useState(false);
   const [staged, setStaged] = useState(false);
   const onStaged = useCallback(() => setStaged(true), []);
+  // Latches once the guest leaves Entrance by any path (Enter, deep link,
+  // dock), so the 3D host loads and stays mounted after a trip back.
   const [revealed, setRevealed] = useState(false);
-  const onReveal = useCallback(() => setRevealed(true), []);
+  useEffect(() => {
+    if (station !== 'Entrance') setRevealed(true);
+  }, [station]);
   // Warm the 3D room behind the sketchbook once it rests.
   useEffect(() => void whenBookRests().then(warmTeaRoom), []);
   // Warm the shelf posters and the Counter / Host panels once the room is ready to enter.
@@ -433,7 +437,6 @@ export default function TeaRoomShell({
         progress={loaderProgress}
         reduced={reduced}
         onEnter={() => {
-          onReveal();
           focusHintOnArrive.current = true;
           navigate('Counter');
         }}
