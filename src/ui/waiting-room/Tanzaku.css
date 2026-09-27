@@ -565,7 +565,7 @@
   }
 }
 
-@media (max-width: 999px) {
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
   /* A short phone scrolls a little rather than shrinking the slips. */
   .tz {
     --tz-pad: 16px;
