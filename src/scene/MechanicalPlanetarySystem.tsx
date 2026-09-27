@@ -16,7 +16,9 @@ import {
   Vector3,
   CatmullRomCurve3,
 } from 'three';
+import { ContactShadows } from '@react-three/drei';
 import { damp } from './motion/dynamics';
+import { useSurfaceMaps } from './Surfaces';
 
 /**
  * A decorative gear wheel with a solid hub, radial cut-out spokes, an outer rim,
@@ -347,26 +349,26 @@ export function MechanicalPlanetarySystem({
   });
 
   // Reusable materials
+  const wear = useSurfaceMaps('plaster').rough;
   const brassMat = useMemo(
     () =>
       new MeshStandardMaterial({
-        color: '#cfa746',
-        metalness: 0.88,
-        roughness: 0.26,
+        color: '#d9b36e',
+        metalness: 1,
+        roughness: 0.42,
+        roughnessMap: wear,
       }),
-    [],
+    [wear],
   );
 
   const polishedGoldMat = useMemo(
     () =>
       new MeshPhysicalMaterial({
-        color: '#f0c74b',
-        emissive: '#d68b1c',
-        emissiveIntensity: 0.22,
-        metalness: 0.92,
-        roughness: 0.16,
-        clearcoat: 0.65,
-        clearcoatRoughness: 0.18,
+        color: '#f2cf86',
+        metalness: 1,
+        roughness: 0.2,
+        clearcoat: 0.4,
+        clearcoatRoughness: 0.12,
       }),
     [],
   );
@@ -374,11 +376,12 @@ export function MechanicalPlanetarySystem({
   const darkBronzeMat = useMemo(
     () =>
       new MeshStandardMaterial({
-        color: '#493725',
-        metalness: 0.78,
-        roughness: 0.45,
+        color: '#6a4a2c',
+        metalness: 1,
+        roughness: 0.5,
+        roughnessMap: wear,
       }),
-    [],
+    [wear],
   );
 
   const woodBaseMat = useMemo(
@@ -408,6 +411,18 @@ export function MechanicalPlanetarySystem({
         document.body.style.cursor = '';
       }}
     >
+      {floorStand && (
+        <ContactShadows
+          position={[0, 0.004, 0]}
+          scale={1}
+          far={0.9}
+          blur={2.2}
+          opacity={0.7}
+          resolution={256}
+          frames={1}
+          color="#140b06"
+        />
+      )}
       {/* Optional Antique Mahogany & Brass Tripod Floor Stand */}
       {floorStand && (
         <FloorStand

@@ -24,6 +24,8 @@ import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
 import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
+import { DevShotCamera } from './DevShotCamera';
+import { SceneEffects } from './SceneEffects';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 
@@ -229,16 +231,16 @@ function RoomGeometry({
   return (
     <>
       <color attach="background" args={['#2f2119']} />
-      <hemisphereLight args={['#b6bfcb', '#604a36', 0.9]} />
-      <ambientLight intensity={0.58} color="#ffe8ce" />
+      <hemisphereLight args={['#c9c0b6', '#5a3b25', 0.3]} />
       <directionalLight
         position={[-5, 6, -4]}
-        color="#ffce8d"
-        intensity={2.25}
+        color="#ffb877"
+        intensity={2.1}
         castShadow
         shadow-bias={-0.00035}
         shadow-normalBias={0.025}
         shadow-mapSize={[2048, 2048]}
+        shadow-radius={3}
         shadow-camera-left={-10}
         shadow-camera-right={10}
         shadow-camera-top={9}
@@ -246,14 +248,20 @@ function RoomGeometry({
       />
       <directionalLight
         position={[3, 3.8, 2.5]}
-        color="#e8d6be"
-        intensity={0.88}
+        color="#b8c2d6"
+        intensity={0.32}
       />
       <pointLight
         position={[1.1, 1.75, -0.7]}
-        color="#e8d7bf"
-        intensity={2.2}
+        color="#f5dcc0"
+        intensity={1}
         distance={5.3}
+      />
+      <pointLight
+        position={[0.55, 2.3, -4.75]}
+        color="#ffc27a"
+        intensity={2.4}
+        distance={3.2}
       />
       <WaitingRoom />
       <TeaChamber>
@@ -410,6 +418,8 @@ export default function TeaRoom({
           allowTravelWhileTyping={allowTravelWhileTyping}
           onArrive={onArrive}
         />
+        <DevShotCamera />
+        <SceneEffects reduced={reduced} />
       </Canvas>
     </SceneBoundary>
   );
