@@ -1266,38 +1266,6 @@ body:has(.auth-shell) {
 .app-shell[data-station='Shelf'][data-shelf-view='focusing'] .reading-panel {
   display: none;
 }
-/* Same scroll tag as .panel-open-hint, pinned bottom-right on the Shelf overview. */
-.shelf-approach.panel-open-hint {
-  left: auto;
-  right: clamp(28px, 5vw, 82px);
-  bottom: 132px;
-  z-index: 3;
-  transform: none;
-}
-.shelf-approach.panel-open-hint:active:not(:disabled) {
-  transform: translateY(2px) scale(0.985);
-}
-.app-shell[data-motion='reduce']
-  .shelf-approach.panel-open-hint:active:not(:disabled) {
-  transform: none;
-}
-/* Small screens: centered on the same baseline as Open Counter and Open Host. */
-@media (max-width: 760px) {
-  .shelf-approach.panel-open-hint {
-    left: 50%;
-    right: auto;
-    bottom: 112px;
-    transform: translateX(-50%);
-  }
-  .shelf-approach.panel-open-hint:active:not(:disabled) {
-    transform: translateX(-50%) translateY(2px) scale(0.985);
-  }
-  .app-shell[data-motion='reduce']
-    .shelf-approach.panel-open-hint:active:not(:disabled) {
-    transform: translateX(-50%);
-  }
-}
-
 /* The same parchment expands into a readable full leaderboard after travel. */
 .app-shell[data-station='Shelf'] .reading-panel {
   position: fixed;

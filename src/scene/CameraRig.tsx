@@ -129,6 +129,18 @@ export function CameraRig({
   useEffect(() => {
     const c = controls.current;
     if (!c) return;
+    // Opening a portrait from the settled Shelf view should reveal its panel
+    // in place, without replacing the view the guest just chose.
+    const openingAtShelf =
+      station === 'Shelf' &&
+      shelfFocused &&
+      !priorShelfFocused.current &&
+      priorStation.current === 'Shelf' &&
+      !travel.current?.active;
+    if (openingAtShelf) {
+      priorShelfFocused.current = true;
+      return;
+    }
     const anchor = STATIONS.find((s) => s.id === station)!;
     const pose = station === 'Shelf' && shelfFocused ? SHELF_FOCUS : anchor;
     const approachingShelf =
