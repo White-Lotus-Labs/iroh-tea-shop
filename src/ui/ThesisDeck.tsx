@@ -281,7 +281,7 @@ function DeckStatus({ deck, now }: { deck: DeckState; now: number }) {
       </p>
     );
   return (
-    <p className="deck-status" data-state="live" role="status">
+    <p className="deck-status" data-state="live">
       <span className="deck-status-dot" aria-hidden="true" />
       Live · Nansen · updated {formatRelative(deck.snapshot.fetchedAt, now)}
       {deck.snapshot.stale && <span className="deck-stale">Stale</span>}
