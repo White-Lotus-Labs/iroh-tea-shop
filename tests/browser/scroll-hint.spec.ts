@@ -21,4 +21,11 @@ test('the open hint keeps its name, describes the teaser, and gets focus back af
   await expect(page.locator('.reading-panel')).toHaveClass(/is-rolling-up/);
   await expect(hint).toBeFocused({ timeout: 5000 });
   await expect(page.locator('.reading-panel')).toHaveCount(0);
+
+  // Re-clicking the current dock station must not hide the open hint.
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Counter/ })
+    .click();
+  await expect(hint).toBeVisible();
 });

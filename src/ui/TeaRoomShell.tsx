@@ -70,6 +70,8 @@ export default function TeaRoomShell({
   const onReveal = useCallback(() => setRevealed(true), []);
   const panel = useRef<HTMLElement>(null);
   const openHint = useRef<HTMLButtonElement>(null);
+  // Deep link opens the Counter panel once after the camera arrives.
+  const deepLinkOpenOnce = useRef(false);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
   useEffect(() => {
@@ -84,6 +86,7 @@ export default function TeaRoomShell({
     if (!raw || !THESIS_IDS.includes(raw as ThesisId)) return;
     setInitialThesis(raw as ThesisId);
     setStation('Counter');
+    deepLinkOpenOnce.current = true;
   }, []);
   useEffect(() => {
     let cancelled = false;
@@ -122,12 +125,18 @@ export default function TeaRoomShell({
       }),
     [irohSession],
   );
-  const navigate = useCallback((next: Station) => {
-    setCameraAt(null);
-    setShelfFocused(false);
-    setStation(next);
-    setPanelOpen(false);
-  }, []);
+  const navigate = useCallback(
+    (next: Station) => {
+      // Re-clicking the current station must not clear cameraAt — the open
+      // hint depends on cameraSettled, and the camera will not travel again.
+      if (next === station) return;
+      setCameraAt(null);
+      setShelfFocused(false);
+      setStation(next);
+      setPanelOpen(false);
+    },
+    [station],
+  );
   const focusShelf = useCallback(() => {
     if (shelfFocused) return;
     setCameraAt(null);
@@ -143,6 +152,13 @@ export default function TeaRoomShell({
     setPanelOpen(true);
     queueMicrotask(() => panel.current?.focus());
   }, [station]);
+  useEffect(() => {
+    if (!deepLinkOpenOnce.current) return;
+    if (station !== 'Counter') return;
+    if (cameraAt !== 'Counter' && !sceneFailed) return;
+    deepLinkOpenOnce.current = false;
+    setPanelOpen(true);
+  }, [station, cameraAt, sceneFailed]);
   const closePanel = useCallback(() => {
     const paper = panel.current;
     const finish = () => {
@@ -300,7 +316,15 @@ export default function TeaRoomShell({
             <div className="status-popup" role="tooltip">
               <div className="status-row">
                 <span className="status-label">Thesis</span>
-                <span className="status-value demo">Demo data</span>
+                <span
+                  className={
+                    nansen === 'configured'
+                      ? 'status-value live'
+                      : 'status-value'
+                  }
+                >
+                  {nansen === 'configured' ? 'Live Nansen' : 'Offline'}
+                </span>
               </div>
 
               <div className="status-row">
