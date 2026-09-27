@@ -17,6 +17,7 @@ import { TeaShelf } from './TeaShelf';
 import { TeaChamber, WaitingRoom } from './TeaArchitecture';
 import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
+import { DevShotCamera } from './DevShotCamera';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 
@@ -298,6 +299,7 @@ export default function TeaRoom({
           allowTravelWhileTyping={allowTravelWhileTyping}
           onArrive={onArrive}
         />
+        <DevShotCamera />
       </Canvas>
     </SceneBoundary>
   );
