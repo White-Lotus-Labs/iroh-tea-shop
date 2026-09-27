@@ -46,9 +46,9 @@ test('Entrance to Counter shows the thesis desk placeholder', async ({
     'data-station',
     'AvatarSeat',
   );
-  await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
   await expect(
-    page.getByRole('textbox', { name: 'Ask Iroh a research question' }),
+    page.getByRole('textbox', { name: 'Ask Uncle a research question' }),
   ).toHaveValue(/Here is my own thesis/);
   expect(errors).toEqual([]);
 });
@@ -83,9 +83,9 @@ test('Host panel stays open after an explicit open', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await openStationPanel(page, 'Host');
-  await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
   await page.waitForTimeout(1500);
-  await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
 });
 
 test('mobile layout remains readable and the WebGL fallback preserves the journey', async ({
