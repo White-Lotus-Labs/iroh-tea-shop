@@ -139,102 +139,165 @@
   z-index: 2;
   justify-self: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 22px;
-  width: min(560px, calc(100vw - 32px));
-  margin: 0 0 max(22px, env(safe-area-inset-bottom));
-  padding: 10px 10px 10px 22px;
-  border: 1px solid var(--wr-rule);
-  border-radius: 18px;
-  background: var(--wr-glass);
-  box-shadow:
-    0 18px 40px rgba(8, 5, 3, 0.45),
-    inset 0 1px rgba(255, 235, 200, 0.07);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
-  backdrop-filter: blur(14px) saturate(1.1);
+  gap: 10px;
+  width: auto;
+  margin: 0 0 max(18px, env(safe-area-inset-bottom));
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
   animation: waiting-rise 0.9s var(--wr-ease-out) 0.35s both;
 }
 .waiting-status {
-  flex: 1;
   min-width: 0;
+  text-align: center;
 }
 .waiting-status p {
-  margin: 0 0 9px;
+  margin: 0;
   font-family: var(--wr-serif);
-  font-size: 16px;
+  font-size: 15px;
   font-style: italic;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--wr-cream-dim);
 }
 .waiting-progress {
-  height: 2px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  border-radius: 2px;
-  background: rgba(246, 236, 216, 0.14);
-}
-.waiting-progress > span {
-  display: block;
-  height: 100%;
-  transform-origin: left center;
-  background: linear-gradient(90deg, #a1583f, var(--wr-gold-hi));
-  box-shadow: 0 0 12px rgba(230, 189, 132, 0.6);
-  transition: transform 0.6s var(--wr-ease-out);
-}
-.waiting-room[data-ready] .waiting-progress {
-  opacity: 0.35;
+  clip: rect(0 0 0 0);
 }
 
+/* Step inside: a black raku chawan that fills with sencha as the room loads. */
 .waiting-enter {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 0 24px 0 26px;
-  border: 1px solid var(--wr-gold);
-  border-radius: 12px;
-  background: var(--wr-gold);
-  color: #1f160f;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  box-shadow: 0 10px 26px rgba(10, 7, 5, 0.4);
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+  --pool: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 152px;
+  height: 152px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--wr-cream);
+  transition: transform 0.35s var(--wr-ease-out);
 }
-.waiting-enter span {
-  transition: transform 0.2s ease;
+/* Lantern light gathers round the bowl once the tea is poured. */
+.waiting-enter::before {
+  content: '';
+  position: absolute;
+  inset: -26%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(230, 189, 132, 0.3),
+    rgba(230, 189, 132, 0.1) 60%,
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease;
+}
+.waiting-enter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1.5px rgba(230, 189, 132, 0.8),
+    0 0 18px rgba(230, 189, 132, 0.35);
+  opacity: 0;
+  pointer-events: none;
+}
+/* The CSS bowl stands in until the first WebGL frame, or for good without WebGL. */
+.waiting-enter-bowl {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 34% 28%,
+      rgba(255, 226, 180, 0.12),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle closest-side,
+      #070504,
+      #120c09 66%,
+      #0a0705 79%,
+      #2a1d15 81%,
+      #3a2a1f 93%,
+      #b08a55 95.5%,
+      #2a1d15 97.5%,
+      transparent 99.5%
+    );
+  box-shadow:
+    0 16px 34px rgba(8, 5, 3, 0.6),
+    0 3px 6px rgba(8, 5, 3, 0.45);
+}
+.waiting-enter-tea {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 36%, #24390f, #13230a 62%, #0e1a06);
+  box-shadow: 0 0 0 1px rgba(200, 190, 120, 0.4);
+  transform: scale(var(--pool));
+  transition: transform 0.8s var(--wr-ease-out);
+}
+.waiting-enter[data-gl] .waiting-enter-bowl {
+  background: none;
+}
+.waiting-enter[data-gl] .waiting-enter-tea {
+  display: none;
+}
+.waiting-enter-gl {
+  position: absolute;
+  top: -30%;
+  left: -30%;
+  width: 160%;
+  height: 160%;
+  pointer-events: none;
+}
+.waiting-enter-label {
+  position: relative;
+  font: 600 18px/1 var(--wr-serif);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: rgba(246, 236, 216, 0.82);
+  text-shadow:
+    0 1px 2px rgba(4, 6, 3, 0.9),
+    0 0 14px rgba(4, 8, 3, 0.85);
+  transition: color 0.6s ease;
 }
 .waiting-enter:hover:not(:disabled) {
-  background: var(--wr-gold-hi);
-  border-color: var(--wr-gold-hi);
-  transform: translateY(-1px);
-  box-shadow:
-    0 14px 30px rgba(10, 7, 5, 0.5),
-    0 0 0 6px rgba(215, 170, 105, 0.16);
-}
-.waiting-enter:hover:not(:disabled) span {
-  transform: translateX(3px);
+  transform: translateY(-3px);
 }
 .waiting-enter:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(1px) scale(0.97);
+  transition-duration: 0.1s;
 }
 .waiting-enter:focus-visible {
   outline: 3px solid var(--wr-gold-hi);
-  outline-offset: 3px;
+  outline-offset: 5px;
 }
 .waiting-enter:disabled {
+  cursor: default;
   opacity: 1;
-  background: transparent;
-  color: var(--wr-cream-dim);
-  border-color: var(--wr-rule);
-  box-shadow: none;
 }
-.waiting-room[data-ready] .waiting-enter {
-  animation: waiting-ready 1.6s var(--wr-ease-out) both;
+.waiting-room[data-ready] .waiting-enter::before {
+  opacity: 0.75;
+}
+.waiting-room[data-ready] .waiting-enter:hover::before {
+  opacity: 1;
+  transition-duration: 0.4s;
+}
+.waiting-room[data-ready] .waiting-enter::after {
+  animation: waiting-bloom 1.8s var(--wr-ease-out) 0.6s both;
+}
+.waiting-room[data-ready] .waiting-enter-label {
+  color: var(--wr-cream);
 }
 
 /* Stepping in: the view pushes through the open doors, then the room shows. */
@@ -274,14 +337,14 @@
     opacity: 0;
   }
 }
-@keyframes waiting-ready {
-  0% {
-    box-shadow: 0 0 0 0 rgba(230, 189, 132, 0.55);
+@keyframes waiting-bloom {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
   }
-  100% {
-    box-shadow:
-      0 10px 26px rgba(10, 7, 5, 0.4),
-      0 0 0 14px rgba(230, 189, 132, 0);
+  to {
+    opacity: 0;
+    transform: scale(1.5);
   }
 }
 
@@ -303,15 +366,17 @@
     letter-spacing: 1.2px;
   }
   .waiting-entry {
-    gap: 14px;
     margin-bottom: max(14px, env(safe-area-inset-bottom));
-    padding: 8px 8px 8px 16px;
   }
   .waiting-status p {
     font-size: 14px;
   }
   .waiting-enter {
-    padding: 0 18px;
+    width: 124px;
+    height: 124px;
+  }
+  .waiting-enter-label {
+    font-size: 15px;
   }
 }
 
@@ -319,16 +384,14 @@
   .waiting-repo-lead {
     display: none;
   }
-  .waiting-entry {
-    gap: 10px;
-    padding-left: 14px;
-  }
   .waiting-status p {
     font-size: 13px;
   }
   .waiting-enter {
-    gap: 8px;
-    padding: 0 14px;
+    width: 112px;
+    height: 112px;
+  }
+  .waiting-enter-label {
     font-size: 14px;
   }
 }
@@ -348,22 +411,29 @@
   }
   .waiting-entry {
     margin-bottom: max(8px, env(safe-area-inset-bottom));
-    padding-block: 5px;
-  }
-  .waiting-status p {
-    margin-bottom: 6px;
   }
   .waiting-enter {
-    min-height: 44px;
+    width: 84px;
+    height: 84px;
+  }
+  .waiting-enter-label {
+    font-size: 12px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .waiting-enter,
+  .waiting-enter::before,
+  .waiting-enter-tea,
   .waiting-backdrop img,
   .waiting-entry,
-  .waiting-room[data-ready] .waiting-enter {
+  .waiting-room[data-ready] .waiting-enter::after {
     animation: none;
     transition: none;
+  }
+  .waiting-enter:hover:not(:disabled),
+  .waiting-enter:active:not(:disabled) {
+    transform: none;
   }
   .waiting-room.is-leaving {
     animation: waiting-fade 0.2s ease both;
