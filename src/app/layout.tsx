@@ -27,9 +27,9 @@ const cjk = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  title: "Iroh's Tea Shop — A quiet room for a finished thesis",
+  title: "Iroh's Tea Shop — Explore Crypto Theses with Nansen",
   description:
-    'Bring your reasoning. Separate observation from inference in a warm, guided tea room. PASS A uses clearly labeled synthetic demo data.',
+    "A 3D tea shop built on live Nansen data. Check three crypto theses against smart-money activity, see the top Hyperliquid traders, and ask Uncle, a host backed by Nansen's Research Agent.",
 };
 export default function RootLayout({
   children,

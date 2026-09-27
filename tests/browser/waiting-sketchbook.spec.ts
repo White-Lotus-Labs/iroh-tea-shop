@@ -22,23 +22,21 @@ test('sketchbook turns by button, key, drag and index, and links the team', asyn
   const next = page.getByRole('button', { name: 'Next page' });
   await expect(book).toHaveAttribute(
     'aria-label',
-    'The tea shop, spread 1 of 5',
+    'The Tea Shop, spread 1 of 6',
   );
   await expect(
     page.getByRole('button', { name: 'Previous page' }),
   ).toBeDisabled();
 
   await next.click();
-  await expect(book).toHaveAttribute('aria-label', 'The room, spread 2 of 5');
+  await expect(book).toHaveAttribute('aria-label', 'The Room, spread 2 of 6');
 
   await page.keyboard.press('ArrowRight');
-  await expect(book).toHaveAttribute(
-    'aria-label',
-    '0x_iroh · 0x_Takezo, spread 3 of 5',
-  );
-  await expect(
-    book.getByRole('link', { name: '@0x_iroh on X' }),
-  ).toHaveAttribute('href', 'https://x.com/0x_iroh');
+  await expect(book).toHaveAttribute('aria-label', 'The Team, spread 3 of 6');
+  for (const handle of HANDLES)
+    await expect(
+      book.getByRole('link', { name: `@${handle}`, exact: true }),
+    ).toHaveAttribute('href', `https://x.com/${handle}`);
 
   const box = (await book.boundingBox())!;
   const y = box.y + box.height / 2;
@@ -48,27 +46,23 @@ test('sketchbook turns by button, key, drag and index, and links the team', asyn
   await page.mouse.up();
   await expect(book).toHaveAttribute(
     'aria-label',
-    'david_grii · PandaCoderexe, spread 4 of 5',
+    '0x_iroh · 0x_Takezo, spread 4 of 6',
   );
+  await expect(
+    book.getByRole('link', { name: '@0x_iroh on X' }),
+  ).toHaveAttribute('href', 'https://x.com/0x_iroh');
 
   await page
     .getByRole('navigation', { name: 'Sketchbook pages' })
-    .getByRole('button', { name: 'tldde · The team' })
+    .getByRole('button', { name: 'tldde', exact: true })
     .click();
-  await expect(book).toHaveAttribute(
-    'aria-label',
-    'tldde · The team, spread 5 of 5',
-  );
+  await expect(book).toHaveAttribute('aria-label', 'tldde, spread 6 of 6');
   await expect(next).toBeDisabled();
-  for (const handle of HANDLES)
-    await expect(
-      book.getByRole('link', { name: `@${handle}`, exact: true }),
-    ).toHaveAttribute('href', `https://x.com/${handle}`);
 
   await page.keyboard.press('ArrowLeft');
   await expect(book).toHaveAttribute(
     'aria-label',
-    'david_grii · PandaCoderexe, spread 4 of 5',
+    'david_grii · PandaCoderexe, spread 5 of 6',
   );
 });
 
@@ -81,13 +75,13 @@ test('on a phone every page is one tap away, not only a swipe', async ({
   const book = page.locator('.sb-book');
   await expect(book).toHaveAttribute(
     'aria-label',
-    'The tea shop, page 1 of 10',
+    'The Tea Shop, page 1 of 12',
   );
   // The dots jump by spread and skip the title page.
   await page.getByRole('button', { name: 'Next page' }).click();
   await expect(book).toHaveAttribute(
     'aria-label',
-    'The tea shop, page 2 of 10',
+    'The Tea Shop, page 2 of 12',
   );
   await expect(
     book.getByRole('heading', { name: "Iroh's Tea Shop" }),
@@ -95,7 +89,7 @@ test('on a phone every page is one tap away, not only a swipe', async ({
   await page.getByRole('button', { name: 'Previous page' }).click();
   await expect(book).toHaveAttribute(
     'aria-label',
-    'The tea shop, page 1 of 10',
+    'The Tea Shop, page 1 of 12',
   );
 });
 
@@ -114,7 +108,7 @@ test('the sketchbook starts open, riffles forward once, and lands on the first s
   await expect(book).toHaveAttribute('data-open', 'open');
   await expect(page.locator('.sb-book')).toHaveAttribute(
     'aria-label',
-    'The tea shop, spread 1 of 5',
+    'The Tea Shop, spread 1 of 6',
   );
   await expect(page.locator('.sb-lid')).toHaveCount(0);
   await page.evaluate(() => {
@@ -137,7 +131,7 @@ test('the sketchbook starts open, riffles forward once, and lands on the first s
   const spreads = await page.evaluate(
     () => (window as unknown as { __spreads: number[] }).__spreads,
   );
-  expect(spreads).toEqual([2, 3, 4, 5, 1]);
+  expect(spreads).toEqual([2, 3, 4, 5, 6, 1]);
   await context.close();
 });
 
@@ -178,15 +172,15 @@ test('a light machine riffles snapshot strips and skips the page blur', async ({
   await expect(page.locator('.curl .is-plain')).toHaveCount(0);
   const curl = await page.evaluate(() => {
     const strips = document.querySelectorAll('.curl .strip').length;
-    const faces = [...document.querySelectorAll('.curl .face-page.is-shot')].map(
-      (el) => {
-        const style = getComputedStyle(el);
-        return {
-          position: style.backgroundPosition,
-          jpeg: style.backgroundImage.startsWith('url("data:image/jpeg'),
-        };
-      },
-    );
+    const faces = [
+      ...document.querySelectorAll('.curl .face-page.is-shot'),
+    ].map((el) => {
+      const style = getComputedStyle(el);
+      return {
+        position: style.backgroundPosition,
+        jpeg: style.backgroundImage.startsWith('url("data:image/jpeg'),
+      };
+    });
     return { strips, faces };
   });
   expect(curl.strips).toBe(16);
@@ -206,7 +200,7 @@ test('a light machine riffles snapshot strips and skips the page blur', async ({
   const spreads = await page.evaluate(
     () => (window as unknown as { __spreads: number[] }).__spreads,
   );
-  expect(spreads).toEqual([2, 3, 4, 5, 1]);
+  expect(spreads).toEqual([2, 3, 4, 5, 6, 1]);
   await context.close();
 });
 
@@ -220,7 +214,7 @@ test('on a phone held sideways one page keeps a size its text fits', async ({
   await page.getByRole('button', { name: 'Next page' }).click();
   await expect(book).toHaveAttribute(
     'aria-label',
-    'The tea shop, page 2 of 10',
+    'The Tea Shop, page 2 of 12',
   );
   // The title page is the fullest; its last line must stay on the paper.
   const inner = await book.locator('.sb-title').boundingBox();

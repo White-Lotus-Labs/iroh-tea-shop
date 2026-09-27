@@ -177,14 +177,14 @@ export function IrohChat({
     <div className="iroh-chat">
       <header className="iroh-chat-head">
         <div className="iroh-chat-title">
-          <div className="eyebrow">03 / THE HOST · RESEARCH</div>
+          <div className="eyebrow">THE HOST · NANSEN RESEARCH AGENT</div>
           <h1>
             Ask <em>Uncle</em>
           </h1>
           <p>
             {nansen === 'configured'
-              ? 'Powered by Nansen Research Agent · Fast mode'
-              : 'Nansen research is offline · demo voice only'}
+              ? 'Live Nansen research · Fast mode'
+              : 'Nansen research is offline'}
           </p>
         </div>
         <div className="iroh-chat-actions">
@@ -202,9 +202,8 @@ export function IrohChat({
             type="button"
             onClick={() => void newChat()}
             disabled={historyLoading}
-            aria-label={user ? 'Start new chat' : 'New conversation'}
           >
-            {user ? 'New chat' : 'New conversation'}
+            Begin a new conversation
           </button>
         </div>
       </header>
@@ -250,12 +249,12 @@ export function IrohChat({
                 茶
               </span>
               <p className="iroh-greeting-title">
-                Let us look at what the evidence shows.
+                Bring me a token, wallet, or market question.
               </p>
               {nansen === 'configured' && (
                 <p>
-                  Ask a question about on-chain activity. I’ll consult Nansen
-                  Research Agent and bring its answer here.
+                  I’ll consult Nansen’s Research Agent and bring back the
+                  onchain evidence.
                 </p>
               )}
             </div>
@@ -277,7 +276,7 @@ export function IrohChat({
                   <p className="iroh-waiting">
                     {nansen === 'configured'
                       ? 'Waiting for Nansen…'
-                      : 'Nansen research is offline · demo voice only'}
+                      : 'Nansen research is offline'}
                   </p>
                 ) : null}
                 {message.status === 'stopped' && (
@@ -288,7 +287,7 @@ export function IrohChat({
           {chat.isStreaming && (
             <p className="iroh-activity" role="status">
               {nansen === 'unavailable'
-                ? 'Nansen research is offline · demo voice only'
+                ? 'Nansen research is offline'
                 : chat.currentTool
                   ? `Researching with Nansen: ${chat.currentTool}`
                   : 'Uncle is consulting Nansen…'}
@@ -332,7 +331,7 @@ export function IrohChat({
         }}
       >
         <label htmlFor="iroh-question" className="sr-only">
-          Ask Uncle a research question
+          Ask an onchain research question
         </label>
         <textarea
           id="iroh-question"
@@ -350,7 +349,7 @@ export function IrohChat({
               send();
             }
           }}
-          placeholder="Ask what the on-chain evidence shows…"
+          placeholder="What is smart money doing with BTC this week?"
           rows={2}
           disabled={
             chat.isStreaming ||
@@ -360,7 +359,7 @@ export function IrohChat({
         />
         <div className="iroh-compose-bottom">
           <span>
-            Ask briefly for a wise answer · {draft.length}/{MAX_QUESTION_LENGTH}
+            {draft.length}/{MAX_QUESTION_LENGTH} characters
           </span>
           {chat.isStreaming ? (
             <button
@@ -380,9 +379,8 @@ export function IrohChat({
                 historyLoading ||
                 (Boolean(user) && !chat.chatId)
               }
-              aria-label="Send question"
             >
-              Send <span aria-hidden="true">→</span>
+              Ask Uncle <span aria-hidden="true">→</span>
             </button>
           )}
         </div>

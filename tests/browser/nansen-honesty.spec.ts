@@ -7,7 +7,7 @@ async function openShelf(page: Page) {
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
     .click();
-  await page.getByRole('button', { name: 'Approach the Shelf' }).click();
+  await page.getByRole('button', { name: 'See the top traders' }).click();
 }
 
 test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
@@ -51,9 +51,7 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
 
   await openStationPanel(page, 'Host');
   const chat = page.locator('.iroh-chat');
-  await expect(chat).toContainText(
-    'Nansen research is offline · demo voice only',
-  );
+  await expect(chat).toContainText('Nansen research is offline');
   await expect(chat).not.toContainText('Powered by Nansen');
   await expect(chat).not.toContainText('Fast mode');
   await expect(chat).not.toContainText('consult Nansen');
@@ -64,7 +62,7 @@ test('unconfigured Nansen stays honest on status, Host, and Shelf', async ({
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Counter/ })
     .click();
-  await page.getByRole('button', { name: 'Open Counter' }).click({
+  await page.getByRole('button', { name: 'Open the Thesis Desk' }).click({
     timeout: 20000,
   });
   await expect(
@@ -135,16 +133,14 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
 
   await openStationPanel(page, 'Host');
   const chat = page.locator('.iroh-chat');
-  await expect(chat).toContainText(
-    'Powered by Nansen Research Agent · Fast mode',
-  );
-  await expect(chat).toContainText('I’ll consult Nansen Research Agent');
+  await expect(chat).toContainText('Live Nansen research · Fast mode');
+  await expect(chat).toContainText('I’ll consult Nansen’s Research Agent');
 
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Counter/ })
     .click();
-  await page.getByRole('button', { name: 'Open Counter' }).click({
+  await page.getByRole('button', { name: 'Open the Thesis Desk' }).click({
     timeout: 20000,
   });
   await expect(
@@ -155,7 +151,7 @@ test('a configured Nansen status keeps the live Host, status, and Shelf framing'
   const parchment = page.getByTestId('leaderboard-parchment');
   await expect(
     page.getByRole('heading', {
-      name: /Top 10 (?:Hyperliquid|HL|Smart Wallets)/,
+      name: /Top Hyperliquid Traders by 30-Day PnL/,
     }),
   ).toBeVisible();
   await expect(parchment).toContainText('Illustrated ranks');

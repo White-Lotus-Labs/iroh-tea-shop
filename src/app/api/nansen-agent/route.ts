@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     const user = await userFromRequest(database, request);
     if (!user) return jsonError(401, 'Sign in to continue this chat.');
     if (typeof value.chatId !== 'string' || conversationId)
-      return jsonError(400, 'Choose a chat before asking Iroh.');
+      return jsonError(400, 'Choose a chat before asking Uncle.');
     if (!(await getChat(database, user.id, value.chatId)))
       return jsonError(404, 'Chat not found.');
     releaseTurn = claimChatTurn(value.chatId);

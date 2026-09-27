@@ -3,7 +3,7 @@ export interface ShelfIdentity {
   portraitIndex: number;
 }
 
-export const SHELF_CAST_NAME = 'The Ten Spirits of the Tea House';
+export const SHELF_CAST_NAME = 'The Ten Spirits · Live Nansen leaderboard';
 export const SHELF_GUEST_NAME = 'Wandering spirit';
 
 const identities: readonly ShelfIdentity[] = [

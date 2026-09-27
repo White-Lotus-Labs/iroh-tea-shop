@@ -147,7 +147,7 @@ function RoomGeometry({
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
         <Suspense fallback={null}>
-          <TeaHost3D reduced={reduced} activity={irohActivity} />
+          <TeaHost3D reduced={reduced} activity={irohActivity} model={polish} />
         </Suspense>
       </TeaChamber>
     </>

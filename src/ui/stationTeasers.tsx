@@ -2,19 +2,22 @@ import { Fragment, type CSSProperties } from 'react';
 import type { Station } from '../shared/contracts';
 
 export const STATION_TEASERS: Partial<
-  Record<Station, { glyph: string; text: string }>
+  Record<Station, { glyph: string; text: string; cta?: [string, string] }>
 > = {
   Counter: {
     glyph: '签',
-    text: 'Draw a thesis. Smart money signals are inside.',
+    text: 'Choose a thesis. See whether smart money supports it.',
+    cta: ['Open the', 'Thesis Desk'],
   },
   AvatarSeat: {
     glyph: '师',
-    text: 'Sit with Uncle. Ask Nansen’s research agent.',
+    text: 'Bring an onchain question to Nansen’s Research Agent.',
+    cta: ['Ask', 'Uncle'],
   },
   Shelf: {
     glyph: '卷',
-    text: 'Unroll the scroll. The top 10 smart perp traders, 30 days.',
+    text: 'Meet the ten Smart HL Perps Traders leading by 30-day PnL.',
+    cta: ['See the', 'top traders'],
   },
   TeaTable: { glyph: '星', text: 'Wind the orrery.' },
 };
