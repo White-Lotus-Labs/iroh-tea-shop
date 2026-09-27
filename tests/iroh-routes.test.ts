@@ -275,6 +275,36 @@ describe('Iroh chat HTTP routes', () => {
     second.release();
   });
 
+  it('rolls back the question and frees the chat when Nansen rejects it', async () => {
+    const owner = await createAccount(db, 'Owner', 'correct horse');
+    const { createChat, getChat } = await import('../src/iroh/history');
+    const chat = await createChat(db, owner.user.id);
+    const { POST } = await import('../src/app/api/nansen-agent/route');
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+        .mockResolvedValueOnce(
+          new Response('{}', { headers: { 'content-type': 'text/json' } }),
+        ),
+    );
+    const ask = () =>
+      POST(
+        request('/api/nansen-agent', owner.token, {
+          chatId: chat.id,
+          text: 'hello',
+        }),
+      );
+
+    expect((await ask()).status).toBe(503);
+    expect((await ask()).status).toBe(502);
+    const restored = await getChat(db, owner.user.id, chat.id);
+    expect(restored?.messages).toEqual([]);
+    expect(restored?.title).toBe('New chat');
+  });
+
   it('rolls back the user write when Stop lands just before Agent fetch', async () => {
     const owner = await createAccount(db, 'Owner', 'correct horse');
     const { createChat, getChat } = await import('../src/iroh/history');

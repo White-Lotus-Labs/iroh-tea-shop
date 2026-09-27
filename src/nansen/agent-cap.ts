@@ -66,6 +66,13 @@ export function createAgentDailyCap() {
         retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now) / 1000)),
       };
     },
+    /** Give a claim back when Nansen never answered. Never crosses a reset. */
+    refund(clientIp: string, now: number = Date.now()) {
+      if (day !== utcDay(now)) return;
+      const used = usedByClient.get(clientIp) ?? 0;
+      if (used > 1) usedByClient.set(clientIp, used - 1);
+      else usedByClient.delete(clientIp);
+    },
   };
 }
 

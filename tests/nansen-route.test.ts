@@ -123,6 +123,30 @@ describe('Nansen agent route', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('gives the daily cup back when Nansen fails before answering', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
+    const answer = () =>
+      new Response(
+        'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
+      );
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockRejectedValueOnce(new Error('net'))
+      .mockImplementation(async () => answer());
+    vi.stubGlobal('fetch', fetch);
+    const ip = '203.0.113.9';
+
+    expect((await POST(request({ text: 'hi' }, ip))).status).toBe(503);
+    expect((await POST(request({ text: 'hi' }, ip))).status).toBe(502);
+    const answered = await POST(request({ text: 'hi' }, ip));
+    expect(answered.status).toBe(200);
+    await answered.text();
+    expect((await POST(request({ text: 'hi' }, ip))).status).toBe(429);
+  });
+
   it.each([
     [401, 'authentication failed'],
     [402, 'credits'],

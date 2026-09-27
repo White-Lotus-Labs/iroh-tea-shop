@@ -176,11 +176,14 @@ export async function POST(request: Request) {
   }
 
   // Main's daily cup gate stays ahead of the manager and upstream call.
-  const cap = agentDailyCap.claim(clientIpFromRequest(request));
+  const clientIp = clientIpFromRequest(request);
+  const cap = agentDailyCap.claim(clientIp);
   if (!cap.allowed) {
     releaseTurn?.();
     return capError(cap);
   }
+  // Nansen did not answer, so the guest keeps their cup for a retry.
+  const refundCup = () => agentDailyCap.refund(clientIp);
 
   const preparation: {
     value: Awaited<ReturnType<typeof prepareAdmittedResearchRequest>> | null;
@@ -213,6 +216,7 @@ export async function POST(request: Request) {
         : undefined,
     );
   } catch (error) {
+    refundCup();
     try {
       await rollbackPrepared();
     } finally {
@@ -235,6 +239,20 @@ export async function POST(request: Request) {
   const onAbort = () => upstreamController.abort();
   lease.signal.addEventListener('abort', onAbort, { once: true });
   const timer = setTimeout(() => upstreamController.abort(), TIMEOUT_MS);
+  const releaseUpstream = () => {
+    clearTimeout(timer);
+    lease.signal.removeEventListener('abort', onAbort);
+    lease.release();
+  };
+  // Nansen sent no answer: undo the saved question, then free the chat.
+  const rejectUnanswered = async (response: Response) => {
+    upstreamController.abort();
+    releaseUpstream();
+    refundCup();
+    await rollbackPrepared().catch(() => {});
+    releaseTurn?.();
+    return response;
+  };
   const upstreamText = conversationId ? text : withUnclePersona(text);
   let upstream: Response;
   let fetchStarted = false;
@@ -262,11 +280,11 @@ export async function POST(request: Request) {
     } catch {
       rollbackFailed = true;
     } finally {
-      clearTimeout(timer);
-      lease.signal.removeEventListener('abort', onAbort);
-      lease.release();
+      releaseUpstream();
       releaseTurn?.();
     }
+    // A timeout or Stop after the call started may already cost Nansen credits.
+    if (!fetchStarted || !upstreamController.signal.aborted) refundCup();
     if (rollbackFailed)
       return jsonError(500, 'The cancelled question could not be cleaned up.');
     if (lease.signal.aborted) return jsonError(499, 'Question cancelled.');
@@ -278,38 +296,29 @@ export async function POST(request: Request) {
     const creditError =
       (upstream.status === 402 || upstream.status === 403) &&
       (await hasCreditError(upstream));
-    clearTimeout(timer);
-    lease.signal.removeEventListener('abort', onAbort);
-    lease.release();
-    releaseTurn?.();
-    return jsonError(
-      upstream.status,
-      creditError ? upstreamMessage(402) : upstreamMessage(upstream.status),
-      upstream.headers.get('retry-after'),
+    return rejectUnanswered(
+      jsonError(
+        upstream.status,
+        creditError ? upstreamMessage(402) : upstreamMessage(upstream.status),
+        upstream.headers.get('retry-after'),
+      ),
     );
   }
   if (
     !upstream.body ||
     !upstream.headers.get('content-type')?.includes('text/event-stream')
-  ) {
-    clearTimeout(timer);
-    lease.signal.removeEventListener('abort', onAbort);
-    upstreamController.abort();
-    lease.release();
-    releaseTurn?.();
-    return jsonError(502, 'Nansen Research Agent returned an invalid stream.');
-  }
+  )
+    return rejectUnanswered(
+      jsonError(502, 'Nansen Research Agent returned an invalid stream.'),
+    );
 
   let reader: ReadableStreamDefaultReader<Uint8Array>;
   try {
     reader = upstream.body.getReader();
   } catch {
-    clearTimeout(timer);
-    lease.signal.removeEventListener('abort', onAbort);
-    upstreamController.abort();
-    lease.release();
-    releaseTurn?.();
-    return jsonError(502, 'Nansen Research Agent returned an invalid stream.');
+    return rejectUnanswered(
+      jsonError(502, 'Nansen Research Agent returned an invalid stream.'),
+    );
   }
   const bodyStream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -361,9 +370,10 @@ export async function POST(request: Request) {
             }),
           );
       } finally {
-        lease.release();
-        clearTimeout(timer);
-        lease.signal.removeEventListener('abort', onAbort);
+        releaseUpstream();
+        // An error with no text lets the guest retry; Stop and timeout keep the cup.
+        if (!finished && !answer && !upstreamController.signal.aborted)
+          refundCup();
         await reader.cancel().catch(() => {});
         let saveFailed = false;
         if (persisted) {
@@ -415,9 +425,7 @@ export async function POST(request: Request) {
     cancel() {
       upstreamController.abort();
       void reader.cancel().catch(() => {});
-      lease.release();
-      clearTimeout(timer);
-      lease.signal.removeEventListener('abort', onAbort);
+      releaseUpstream();
     },
   });
   return new Response(bodyStream, {

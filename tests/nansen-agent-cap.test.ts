@@ -50,6 +50,19 @@ describe('Nansen Research Agent daily cap', () => {
     ).toBe(false);
   });
 
+  it('refunds a claim within the same UTC day only', () => {
+    const cap = createAgentDailyCap();
+    const now = Date.UTC(2026, 8, 27, 23, 59, 59);
+
+    expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(true);
+    cap.refund('203.0.113.10', now);
+    cap.refund('203.0.113.10', now);
+    expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(true);
+    expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(false);
+    cap.refund('203.0.113.10', now + 2_000);
+    expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(false);
+  });
+
   it('takes the first valid forwarded IP and ignores invalid values', () => {
     expect(
       clientIpFromRequest(
