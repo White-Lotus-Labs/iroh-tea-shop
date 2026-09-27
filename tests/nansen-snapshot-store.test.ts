@@ -223,6 +223,10 @@ describe('saved Nansen readings', () => {
       );
       expect(detail?.perps.status).toBe('ok');
       expect(detail?.stale).toBe(true);
+      // A lasting failure must not freeze the page on one old reading.
+      const much = now + 2 * NANSEN_REFRESH_MS;
+      const third = await refreshSavedNansenData(temp.db, 'key', much);
+      expect(third.saved).toContain(key);
     } finally {
       await temp.close();
     }

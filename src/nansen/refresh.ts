@@ -15,6 +15,7 @@ import {
 } from '../thesis/nansen';
 import type { ThesisId } from '../thesis/types';
 import {
+  NANSEN_REFRESH_MS,
   markNansenSnapshotStale,
   readNansenSnapshot,
   writeNansenSnapshot,
@@ -48,7 +49,13 @@ async function refreshOne(
   const existing = await readNansenSnapshot(database, job.key, now);
   try {
     const fresh = await job.load();
-    if (existing && job.preferExisting) {
+    // Prefer the saved row only while it is recent, so a lasting partial
+    // failure cannot freeze a reading forever.
+    if (
+      existing &&
+      job.preferExisting &&
+      now - Date.parse(existing.fetchedAt) < 2 * NANSEN_REFRESH_MS
+    ) {
       const reason = job.preferExisting(fresh, existing);
       if (reason) {
         await markNansenSnapshotStale(database, job.key, reason, now);
