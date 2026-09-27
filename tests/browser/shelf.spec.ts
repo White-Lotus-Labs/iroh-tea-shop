@@ -4,6 +4,31 @@ import { beginVisit } from './room-helpers';
 
 test.beforeEach(async ({ page }) => registerBrowserAccount(page));
 
+type CameraPose = {
+  position: [number, number, number];
+  target: [number, number, number];
+  moving: boolean;
+};
+const cameraPose = (page: Page) =>
+  page.evaluate(() =>
+    (
+      window as typeof window & {
+        __teaCamera: { pose(): CameraPose };
+      }
+    ).__teaCamera.pose(),
+  );
+const centerPortrait = (page: Page) =>
+  page.evaluate(() => {
+    const [x, y] = (
+      window as typeof window & {
+        __teaCamera: {
+          project(point: [number, number, number]): [number, number, number];
+        };
+      }
+    ).__teaCamera.project([3.21, 1.67, -4.55]);
+    return [x, y] as [number, number];
+  });
+
 const address = (n: number) => `0x${n.toString(16).padStart(40, '0')}`;
 const snapshot = {
   entries: Array.from({ length: 10 }, (_, i) => ({
@@ -36,7 +61,7 @@ async function focusShelf(page: Page) {
   await page.getByRole('button', { name: 'Approach the Shelf' }).click();
 }
 
-test('the Shelf stays in the room until approached, then opens ranked wallets after camera travel', async ({
+test('the Shelf stays in the room until opened, then reveals ranked wallets without moving again', async ({
   page,
 }) => {
   test.setTimeout(90_000);
@@ -71,6 +96,18 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
   const approach = page.getByRole('button', { name: 'Approach the Shelf' });
   await expect(approach).toBeVisible();
+  const approachBox = await approach.boundingBox();
+  const dockBox = await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .boundingBox();
+  expect(
+    Math.abs(
+      approachBox!.x +
+        approachBox!.width / 2 -
+        (dockBox!.x + dockBox!.width / 2),
+    ),
+  ).toBeLessThan(2);
+  expect(approachBox!.y + approachBox!.height).toBeLessThan(dockBox!.y);
   await page.evaluate(() => {
     const shell = document.querySelector('.app-shell')!;
     const transitions: { view: string | null; parchment: boolean }[] = [];
@@ -89,11 +126,14 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
       attributeFilter: ['data-shelf-view'],
     });
   });
+  const beforeOpen = await cameraPose(page);
   await approach.click();
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-shelf-view',
     'open',
   );
+  const afterOpen = await cameraPose(page);
+  expect(afterOpen).toEqual(beforeOpen);
   const transitions = await page.evaluate(
     () =>
       (
@@ -102,7 +142,10 @@ test('the Shelf stays in the room until approached, then opens ranked wallets af
         }
       ).shelfTransitions,
   );
-  expect(transitions).toContainEqual({ view: 'focusing', parchment: false });
+  expect(transitions).not.toContainEqual({
+    view: 'focusing',
+    parchment: false,
+  });
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-camera-at',
     'Shelf',
@@ -171,15 +214,24 @@ test('a hanging spirit paper answers hover and opens the Shelf', async ({
     page.getByRole('button', { name: 'Approach the Shelf' }),
   ).toBeVisible();
   // The rank 1 sheet hangs above the rolled scroll in the middle bay.
-  await page.mouse.move(880, 318);
+  const portrait = await centerPortrait(page);
+  await page.mouse.move(...portrait);
   await expect
     .poll(() => page.evaluate(() => document.body.style.cursor))
     .toBe('pointer');
-  await page.mouse.click(880, 318);
+  const beforeOpen = await cameraPose(page);
+  await page.mouse.click(...portrait);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-shelf-view',
     'open',
   );
+  expect(await cameraPose(page)).toEqual(beforeOpen);
+
+  await page.getByRole('button', { name: 'Close Shelf menu' }).click();
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await page.mouse.click(...portrait);
+  await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  expect(await cameraPose(page)).toEqual(beforeOpen);
 });
 
 test('Shelf presents one leader above a ranked list of nine spirits', async ({
