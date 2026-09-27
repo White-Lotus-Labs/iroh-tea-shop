@@ -1,0 +1,66 @@
+import { describe, expect, it } from 'vitest';
+import { findThesis } from '../src/thesis/deck';
+import { DECK_FIXTURE } from '../src/thesis/fixtures';
+import {
+  buildUncleDraft,
+  convictionSentence,
+  formatRelative,
+  readFollowed,
+  toggleFollowed,
+  xIntentUrl,
+} from '../src/ui/deckModel';
+
+const ai = findThesis('ai')!;
+const aiSummary = DECK_FIXTURE.theses.find((t) => t.id === 'ai')!;
+
+describe('deck model', () => {
+  it('formats relative time', () => {
+    const now = Date.parse('2026-09-27T06:10:00.000Z');
+    expect(formatRelative('2026-09-27T06:09:50.000Z', now)).toBe('just now');
+    expect(formatRelative('2026-09-27T06:00:00.000Z', now)).toBe('10 min ago');
+    expect(formatRelative('2026-09-27T03:10:00.000Z', now)).toBe('3 h ago');
+    expect(formatRelative('2026-09-25T06:10:00.000Z', now)).toBe('2 d ago');
+    expect(formatRelative(null, now)).toBe('time unknown');
+  });
+
+  it('explains conviction and flags missing data', () => {
+    expect(convictionSentence(aiSummary.conviction, 4)).toBe(
+      'Nansen smart money is accumulating 1 of 4 leaves this week (3 with data)',
+    );
+  });
+
+  it('builds an Uncle draft with thesis, leaves, conviction, and extremes', () => {
+    const draft = buildUncleDraft(ai, aiSummary);
+    expect(draft).toContain('AI taking over the world');
+    expect(draft).toContain(ai.body);
+    expect(draft).toContain('NVDA (NVIDIA (stock token))');
+    expect(draft).toContain('Conviction: Weak.');
+    expect(draft).toContain('Strongest signal: VVV +$74.6K');
+    expect(draft).toContain('Weakest signal: NVDA -$129K');
+    expect(draft.trim().endsWith('?')).toBe(true);
+    expect(buildUncleDraft(ai, null)).toContain('Nansen is offline');
+  });
+
+  it('builds an X intent with the deep link and @nansen_ai', () => {
+    const url = new URL(xIntentUrl(ai, aiSummary, 'https://tea.example'));
+    expect(url.origin + url.pathname).toBe('https://x.com/intent/post');
+    expect(url.searchParams.get('url')).toBe('https://tea.example/?thesis=ai');
+    expect(url.searchParams.get('text')).toContain('@nansen_ai');
+    expect(url.searchParams.get('text')).toContain('1 of 4 leaves');
+  });
+
+  it('toggles followed theses and ignores junk', () => {
+    const data = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+    };
+    expect(toggleFollowed(storage, 'ai')).toEqual(['ai']);
+    expect(toggleFollowed(storage, 'bullrun')).toEqual(['ai', 'bullrun']);
+    expect(toggleFollowed(storage, 'ai')).toEqual(['bullrun']);
+    data.set('tea.followedTheses', '["nope", "robinhood"]');
+    expect(readFollowed(storage)).toEqual(['robinhood']);
+    data.set('tea.followedTheses', '{bad');
+    expect(readFollowed(storage)).toEqual([]);
+  });
+});
