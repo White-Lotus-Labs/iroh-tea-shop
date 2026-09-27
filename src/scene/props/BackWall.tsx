@@ -19,7 +19,7 @@ import {
 } from '../Surfaces';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { brushText } from './craft';
+import { brushText, Timber } from './craft';
 import { ShojiWindow } from './Shoji';
 
 const timber = '#3a2419';
@@ -760,46 +760,35 @@ export function BackWall() {
         surface="plaster"
         cast={false}
       />
-      <Solid
-        position={[-1.5475, veranda.head + 0.07, face - 0.06]}
-        size={[4.915, 0.14, 0.22]}
-        color={timber}
+      <Timber
         cast={false}
-      />
-      <Solid
-        position={[0, 3.3, face - 0.035]}
-        size={[8.01, 0.07, 0.07]}
-        color={timber}
-        cast={false}
-      />
-      {[-1.775, 0.785].map((x) => (
-        <Solid
-          key={x}
-          position={[x, 1.86, face - 0.02]}
-          size={[0.25, 3.72, 0.22]}
-          color={timber}
-          cast={false}
-        />
-      ))}
-      <Solid
-        position={[(veranda.x0 + veranda.x1) / 2, 0.02, face - 0.08]}
-        size={[veranda.x1 - veranda.x0, 0.04, 0.2]}
-        color="#352116"
-        cast={false}
-      />
-      <Solid
-        position={[shojiX, shoji.y0 / 2, face - 0.05]}
-        size={[shojiW, shoji.y0, 0.06]}
-        color="#4a2e1d"
-        cast={false}
+        items={[
+          [
+            [-1.5475, veranda.head + 0.07, face - 0.06],
+            [4.915, 0.14, 0.22],
+            timber,
+          ],
+          [[0, 3.3, face - 0.035], [8.01, 0.07, 0.07], timber],
+          [[-1.775, 1.86, face - 0.02], [0.25, 3.72, 0.22], timber],
+          [[0.785, 1.86, face - 0.02], [0.25, 3.72, 0.22], timber],
+          [
+            [(veranda.x0 + veranda.x1) / 2, 0.02, face - 0.08],
+            [veranda.x1 - veranda.x0, 0.04, 0.2],
+            '#352116',
+          ],
+          [
+            [shojiX, shoji.y0 / 2, face - 0.05],
+            [shojiW, shoji.y0, 0.06],
+            '#4a2e1d',
+          ],
+          [
+            [shojiX, shoji.y0 - 0.02, face - 0.06],
+            [shojiW, 0.05, 0.16],
+            '#3f2819',
+          ],
+        ]}
       />
       <Boxes items={koshiBattens} color="#2e1c12" cast={false} />
-      <Solid
-        position={[shojiX, shoji.y0 - 0.02, face - 0.06]}
-        size={[shojiW, 0.05, 0.16]}
-        color="#3f2819"
-        cast={false}
-      />
       <ShojiWindow
         position={[shojiX, (shoji.y0 + shoji.y1) / 2 + 0.005, face - 0.07]}
         width={shojiW}

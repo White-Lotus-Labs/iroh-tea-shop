@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { CatmullRomCurve3, Vector2, Vector3 } from 'three';
 import { Solid } from '../Surfaces';
 import type { Point } from '../stations';
+import { Timber, type TimberBox } from './craft';
 import { ShojiWindow } from './Shoji';
 import { WallTrim } from './WallDetail';
 
@@ -132,38 +133,51 @@ export function RightWall() {
   const casingZ = (jamb + post - 0.085) / 2;
   return (
     <group name="right-wall">
-      <Solid
-        position={[3.91, 1.85, post]}
-        size={[0.17, 3.7, 0.17]}
-        color={timber}
+      <Timber
         cast={false}
-      />
-      <Solid
-        position={[at(0.07), (win.y0 + win.y1) / 2, (jamb + win.z0) / 2]}
-        size={[0.14, win.y1 - win.y0 + 0.1, win.z0 - jamb]}
-        color={timber}
-        cast={false}
+        items={[
+          [[3.91, 1.85, post], [0.17, 3.7, 0.17], timber],
+          [
+            [at(0.07), (win.y0 + win.y1) / 2, (jamb + win.z0) / 2],
+            [0.14, win.y1 - win.y0 + 0.1, win.z0 - jamb],
+            timber,
+          ],
+          ...[0.03, 0.06].map(
+            (depth): TimberBox => [
+              [at(depth), win.y0 + 0.001, casingZ],
+              [0.012, 0.004, casing - 0.02],
+              '#1a100a',
+            ],
+          ),
+          [[at(0.07), win.y1 + 0.045, casingZ], [0.14, 0.09, casing], timber],
+          ...[
+            [from, jamb],
+            [post + 0.085, to],
+          ].map(
+            ([a, b]): TimberBox => [
+              [at(0.045), 2.32, (a + b) / 2],
+              [0.09, 0.12, b - a],
+              timber,
+            ],
+          ),
+          [[at(0.035), 3.3, center], [0.07, 0.07, length], timber],
+          [[at(0.02), 0.47, center], [0.04, 0.94, length], '#4a2e1d'],
+          [[at(0.04), 0.96, center], [0.07, 0.05, length], timber],
+          [[at(0.04), 0.035, center], [0.07, 0.07, length], timber],
+          ...[0.33, 0.64].map(
+            (y): TimberBox => [
+              [at(0.041), y, center],
+              [0.004, 0.006, length],
+              '#1f140d',
+            ],
+          ),
+        ]}
       />
       <Solid
         position={[at(0.1), win.y0 - 0.02, casingZ]}
         size={[0.2, 0.04, casing]}
         color="#4a2e1d"
         clearcoat={0.25}
-        cast={false}
-      />
-      {[0.03, 0.06].map((depth) => (
-        <Solid
-          key={depth}
-          position={[at(depth), win.y0 + 0.001, casingZ]}
-          size={[0.012, 0.004, casing - 0.02]}
-          color="#1a100a"
-          cast={false}
-        />
-      ))}
-      <Solid
-        position={[at(0.07), win.y1 + 0.045, casingZ]}
-        size={[0.14, 0.09, casing]}
-        color={timber}
         cast={false}
       />
       <ShojiWindow
@@ -184,51 +198,6 @@ export function RightWall() {
         posts={[-5.94, -1.53, post, 3.17]}
         window={[jamb, post]}
       />
-      {[
-        [from, jamb],
-        [post + 0.085, to],
-      ].map(([a, b]) => (
-        <Solid
-          key={a}
-          position={[at(0.045), 2.32, (a + b) / 2]}
-          size={[0.09, 0.12, b - a]}
-          color={timber}
-          cast={false}
-        />
-      ))}
-      <Solid
-        position={[at(0.035), 3.3, center]}
-        size={[0.07, 0.07, length]}
-        color={timber}
-        cast={false}
-      />
-      <Solid
-        position={[at(0.02), 0.47, center]}
-        size={[0.04, 0.94, length]}
-        color="#4a2e1d"
-        cast={false}
-      />
-      <Solid
-        position={[at(0.04), 0.96, center]}
-        size={[0.07, 0.05, length]}
-        color={timber}
-        cast={false}
-      />
-      <Solid
-        position={[at(0.04), 0.035, center]}
-        size={[0.07, 0.07, length]}
-        color={timber}
-        cast={false}
-      />
-      {[0.33, 0.64].map((y) => (
-        <Solid
-          key={y}
-          position={[at(0.041), y, center]}
-          size={[0.004, 0.006, length]}
-          color="#1f140d"
-          cast={false}
-        />
-      ))}
     </group>
   );
 }
