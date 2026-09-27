@@ -118,8 +118,10 @@ test('deck shows an honest offline state when Nansen answers 503', async ({
 test('full motion scroll closes with its button and returns focus to the book', async ({
   page,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   await mockNansen(page);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
   await openCounter(page);
   const book = page.getByRole('button', { name: /Open Robinhood Chain/ });
   await book.click();
@@ -134,8 +136,11 @@ test('full motion scroll closes with its button and returns focus to the book', 
   await expect(
     scroll.getByRole('button', { name: 'Following the thesis' }),
   ).toHaveAttribute('aria-pressed', 'true');
+  // The close runs inside a view transition, which waits for a rendered
+  // frame; software WebGL under a full suite can take seconds per frame.
   await scroll.getByRole('button', { name: 'Close scroll' }).click();
-  await expect(scroll).toHaveCount(0);
+  await expect(scroll).toHaveCount(0, { timeout: 20_000 });
   await expect(book).toBeFocused();
   await expect(book).toHaveAccessibleName(/Following\./);
+  expect(errors).toEqual([]);
 });
