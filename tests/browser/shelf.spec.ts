@@ -163,7 +163,13 @@ test('Shelf presents one leader above an exact 3 by 3 scrollable grid', async ({
   await page.goto('/');
   await focusShelf(page);
   await expect(
-    page.getByRole('heading', { name: 'Top 10 Smart Wallets' }),
+    page.getByRole('heading', {
+      name: /Top 10 (?:Hyperliquid|HL) Leaderboard/,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(/Powered by\s+Nansen/).first()).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Explain data freshness' }).first(),
   ).toBeVisible();
   await expect(page.getByTestId('top-wallet')).toContainText('Iroh', {
     timeout: 15_000,
@@ -252,7 +258,9 @@ test('rank ten remains visible at 1280 by 720', async ({ page }) => {
   await expect(page.locator('[data-rank="10"]')).toBeVisible();
   const panel = await page.getByTestId('leaderboard-parchment').boundingBox();
   const heading = await page
-    .getByRole('heading', { name: 'Top 10 Smart Wallets' })
+    .getByRole('heading', {
+      name: /Top 10 (?:Hyperliquid|HL) Leaderboard/,
+    })
     .boundingBox();
   expect(panel!.y).toBeGreaterThanOrEqual(78);
   expect(panel!.y + panel!.height).toBeLessThanOrEqual(720 - 80);
