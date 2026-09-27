@@ -226,9 +226,13 @@ Changes: a second calligraphy scroll, 一期一会 (one time, one meeting), on t
 
 A per-frame WebGL draw-call counter showed about 2,600 calls on the wide views. The scene had 738 meshes, 438 of them shadow casters, and the AO pass redraws the scene for normals. A new `Timber` helper in `craft.tsx` merges static timber boxes into one wood mesh. It now draws the doorway (about 55 boxes), the andon frame, the waiting-room shoji, the room beams and posts, and the right-wall and back-wall timber. Draw calls per frame went from 2,627 to 2,293 on `room-wide`, from 2,854 to 2,412 on `counter`, and from 2,428 to 2,140 on `tea-table`. The shots show no visible change.
 
+## Round 14: box labels
+
+Changes: paper labels with real tea names on the six paulownia boxes on the counter shelves, as one merged mesh with one atlas. A new `counter-shelves` review shot frames the shelves from behind the counter. A full-motion wide shot confirms the incense wisp above the flower stand.
+
 ## Final summary
 
-Final shots: `_scratch/shots/final` (11 shots, headless Metal, 1600×900 at 2x). Build: `npm run typecheck`, `npm test` (93 tests) and `npm run build` pass. There are no console errors on any station.
+Final shots: `_scratch/shots/final` (12 shots, headless Metal, 1600×900 at 2x), captured after round 14. Build: `npm run typecheck`, `npm test` (93 tests) and `npm run build` pass. There are no console errors on any station.
 
 ### Final scores
 
@@ -260,7 +264,7 @@ The machine was shared with other agents' headless browsers during the final run
 | `shelf`         | 59.4 fps      | 66.0 fps    |
 | Mean (9 shots)  | 62.6 fps      | 66.4 fps    |
 
-The two new review shots ran at 59.0 fps (`brazier`) and 56.2 fps (`entrance`). Every station stays at or above the 50 fps floor, even under this load. On an idle machine, round 7 ran at a mean of 86 fps, so the final build has more headroom than these numbers show.
+The table above is the paired run before round 14. The recapture after round 14 (load average 21 to 55) gave a mean of 67.3 fps over 12 shots. The lowest was `counter` at 55.5 fps. The review shots ran at 60.9 fps (`brazier`), 57.1 fps (`entrance`) and 78.9 fps (`counter-shelves`). Every station stays at or above the 50 fps floor, even under this load. On an idle machine, round 7 ran at a mean of 86 fps, so the final build has more headroom than these numbers show.
 
 ### What remains
 
