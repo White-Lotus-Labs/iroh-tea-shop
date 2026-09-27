@@ -13,11 +13,17 @@ type SnapshotMeta = {
   refreshError?: string;
 };
 
+export type SnapshotPreferExisting<V extends object> = (
+  fresh: V,
+  existing: V & SnapshotMeta,
+) => string | null;
+
 /** One server process owns the snapshot and all simultaneous refreshes for this key. */
 export function createSnapshotService<V extends object>(
   load: () => Promise<V>,
   ttlMs: number = SNAPSHOT_TTL_MS,
   now: () => number = Date.now,
+  preferExisting?: SnapshotPreferExisting<V>,
 ) {
   let snapshot: (V & SnapshotMeta) | null = null;
   let inFlight: Promise<V & SnapshotMeta> | null = null;
@@ -38,6 +44,14 @@ export function createSnapshotService<V extends object>(
     inFlight = (async () => {
       try {
         const value = await load();
+        if (snapshot && preferExisting) {
+          const refreshError = preferExisting(value, snapshot);
+          if (refreshError) {
+            lastError = new NansenError(refreshError, 502);
+            retryAt = now() + 60_000;
+            return { ...snapshot, stale: true, refreshError };
+          }
+        }
         const fetched = now();
         snapshot = {
           ...value,
@@ -75,12 +89,13 @@ export function getSnapshotService<V extends object>(
   key: string,
   load: () => Promise<V>,
   ttlMs: number = SNAPSHOT_TTL_MS,
+  preferExisting?: SnapshotPreferExisting<V>,
 ) {
   let service = services.get(key) as
     | ReturnType<typeof createSnapshotService<V>>
     | undefined;
   if (!service) {
-    service = createSnapshotService(load, ttlMs);
+    service = createSnapshotService(load, ttlMs, Date.now, preferExisting);
     services.set(key, service);
   }
   return service;
