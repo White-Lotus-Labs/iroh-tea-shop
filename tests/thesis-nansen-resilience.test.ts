@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { createSnapshotService } from '../src/leaderboard/snapshot';
 import {
   countErroredTickers,
   loadDeckSnapshot,
@@ -86,58 +85,6 @@ describe('preferExistingDeck', () => {
     expect(preferExistingDeck({ theses: fresh }, { theses: existing })).toMatch(
       /more ticker errors/,
     );
-  });
-
-  test('createSnapshotService keeps the better cached deck marked stale', async () => {
-    let now = Date.parse('2026-09-27T12:00:00Z');
-    let wave = 0;
-    const load = vi.fn(async () => {
-      wave += 1;
-      if (wave === 1)
-        return {
-          theses: [
-            {
-              id: 'ai' as const,
-              conviction: {
-                level: 'strong' as const,
-                accumulating: 1,
-                measured: 1,
-                netFlowUsd: 1,
-              },
-              tickers: [ok('VVV')],
-            },
-          ],
-        };
-      return {
-        theses: [
-          {
-            id: 'ai' as const,
-            conviction: {
-              level: 'unknown' as const,
-              accumulating: 0,
-              measured: 0,
-              netFlowUsd: 0,
-            },
-            tickers: [err('VVV')],
-          },
-        ],
-      };
-    });
-    const service = createSnapshotService(
-      load,
-      10 * 60_000,
-      () => now,
-      preferExistingDeck,
-    );
-    const first = await service.get();
-    expect(first.stale).toBe(false);
-    expect(countErroredTickers(first.theses)).toBe(0);
-    now += 10 * 60_000;
-    const kept = await service.get();
-    expect(kept.stale).toBe(true);
-    expect(kept.refreshError).toMatch(/more ticker errors/);
-    expect(kept.fetchedAt).toBe(first.fetchedAt);
-    expect(countErroredTickers(kept.theses)).toBe(0);
   });
 });
 

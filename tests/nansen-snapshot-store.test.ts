@@ -114,9 +114,8 @@ describe('saved Nansen readings', () => {
         '../src/nansen/snapshot-store'
       );
       const { DECK_CACHE_KEY } = await import('../src/thesis/nansen');
-      const { LEADERBOARD_CACHE_KEY } = await import(
-        '../src/leaderboard/snapshot'
-      );
+      const { DEFAULT_LEADERBOARD_CACHE_KEY: LEADERBOARD_CACHE_KEY } =
+        await import('../src/leaderboard/boards');
       const now = Date.parse('2026-09-27T12:00:00Z');
       const report = await refreshSavedNansenData(
         temp.db,
@@ -171,9 +170,8 @@ describe('saved Nansen readings', () => {
       const { readNansenSnapshot } = await import(
         '../src/nansen/snapshot-store'
       );
-      const { LEADERBOARD_CACHE_KEY } = await import(
-        '../src/leaderboard/snapshot'
-      );
+      const { DEFAULT_LEADERBOARD_CACHE_KEY: LEADERBOARD_CACHE_KEY } =
+        await import('../src/leaderboard/boards');
       const now = Date.parse('2026-09-27T12:00:00Z');
       await refreshSavedNansenData(temp.db, 'key', now);
       failBoard = true;

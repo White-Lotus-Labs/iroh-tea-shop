@@ -48,6 +48,9 @@ export class NansenManagerError extends Error {
   }
 }
 
+const waitedTooLong = () =>
+  new NansenManagerError('Nansen request waited too long.');
+
 function abortError() {
   return new DOMException('The request was cancelled.', 'AbortError');
 }
@@ -197,9 +200,7 @@ export class NansenRequestManager {
       job.onAbort = () => {
         job.controller.abort();
         if (job.state === 'queued') {
-          this.removeIroh(job);
-          job.state = 'done';
-          reject(abortError());
+          this.failIroh(job, abortError());
           this.drain();
         } else if (job.state === 'active') this.releaseIroh(job);
       };
@@ -222,17 +223,9 @@ export class NansenRequestManager {
     job.timer = setTimeout(
       () => {
         if (job.state !== 'queued') return;
-        const error = new NansenManagerError(
-          'Nansen request waited too long.',
-          503,
-        );
-        if (job.lane === 'normal') this.finishNormal(job, undefined, error);
-        else {
-          this.removeIroh(job);
-          job.state = 'done';
-          job.signal?.removeEventListener('abort', job.onAbort!);
-          job.reject(error);
-        }
+        if (job.lane === 'normal')
+          this.finishNormal(job, undefined, waitedTooLong());
+        else this.failIroh(job, waitedTooLong());
         this.drain();
       },
       Math.max(0, job.deadline - Date.now()),
@@ -243,6 +236,13 @@ export class NansenRequestManager {
     if (job.timer) clearTimeout(job.timer);
     const index = this.irohQueue.indexOf(job);
     if (index >= 0) this.irohQueue.splice(index, 1);
+  }
+
+  private failIroh(job: IrohJob, error: unknown) {
+    this.removeIroh(job);
+    job.state = 'done';
+    job.signal?.removeEventListener('abort', job.onAbort!);
+    job.reject(error);
   }
 
   private cancelNormal(job: NormalJob<any>) {
@@ -286,13 +286,11 @@ export class NansenRequestManager {
     }
     this.preparingIroh--;
     if (job.controller.signal.aborted || error || Date.now() >= job.deadline) {
-      job.state = 'done';
-      job.signal?.removeEventListener('abort', job.onAbort!);
-      job.reject(
+      this.failIroh(
+        job,
         job.controller.signal.aborted
           ? abortError()
-          : (error ??
-              new NansenManagerError('Nansen request waited too long.')),
+          : (error ?? waitedTooLong()),
       );
     } else {
       job.prepared = true;
@@ -337,18 +335,11 @@ export class NansenRequestManager {
           ? this.irohQueue[0]
           : undefined;
       if (normal && normal.deadline <= Date.now()) {
-        this.finishNormal(
-          normal,
-          undefined,
-          new NansenManagerError('Nansen request waited too long.'),
-        );
+        this.finishNormal(normal, undefined, waitedTooLong());
         continue;
       }
       if (iroh && iroh.deadline <= Date.now()) {
-        this.removeIroh(iroh);
-        iroh.state = 'done';
-        iroh.signal?.removeEventListener('abort', iroh.onAbort!);
-        iroh.reject(new NansenManagerError('Nansen request waited too long.'));
+        this.failIroh(iroh, waitedTooLong());
         continue;
       }
       if (!normal && !iroh) return;
@@ -423,11 +414,7 @@ export class NansenRequestManager {
           job.timer = setTimeout(() => {
             if (job.state !== 'backoff') return;
             if (Date.now() >= job.deadline) {
-              this.finishNormal(
-                job,
-                undefined,
-                new NansenManagerError('Nansen request waited too long.'),
-              );
+              this.finishNormal(job, undefined, waitedTooLong());
               return;
             }
             job.state = 'queued';

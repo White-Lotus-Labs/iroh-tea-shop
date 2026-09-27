@@ -6,7 +6,6 @@ import type {
   Thesis,
   ThesisId,
   ThesisSummary,
-  TickerSignal,
 } from '../thesis/types';
 
 export type DeckState =
@@ -77,22 +76,6 @@ export function convictionSentence(
   const gap =
     conviction.measured < total ? ` (${conviction.measured} with data)` : '';
   return `Smart money is accumulating ${conviction.accumulating} of ${total} ${assets}${gap}`;
-}
-
-export function measuredSignals(tickers: TickerSignal[]) {
-  return tickers.filter(
-    (t): t is TickerSignal & { smartMoneyNetFlowUsd: number } =>
-      t.status === 'ok' && t.smartMoneyNetFlowUsd !== null,
-  );
-}
-
-export function strongestAndWeakest(tickers: TickerSignal[]) {
-  const measured = measuredSignals(tickers);
-  if (!measured.length) return null;
-  const sorted = [...measured].sort(
-    (a, b) => b.smartMoneyNetFlowUsd - a.smartMoneyNetFlowUsd,
-  );
-  return { strongest: sorted[0], weakest: sorted[sorted.length - 1] };
 }
 
 export function buildUncleDraft(
