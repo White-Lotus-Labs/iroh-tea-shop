@@ -358,7 +358,9 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
           {!unconfigured && (
             <>
               <p className="leaderboard-eyebrow">{SHELF_CAST_NAME}</p>
-              <h1>Top 10 Hyperliquid Leaderboard</h1>
+              <h1>
+                Top 10 <em>Hyperliquid</em> Leaderboard
+              </h1>
               <div className="leaderboard-meta">
                 <span>Smart HL Perps Traders · last 30 days</span>
                 <span className="leaderboard-attribution">
