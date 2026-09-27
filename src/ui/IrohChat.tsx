@@ -309,14 +309,20 @@ export function IrohChat({
                   Keep exploring with Nansen ↗
                 </a>
               ) : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    chat.lastQuestion && session.send(chat.lastQuestion)
-                  }
-                >
-                  Retry question
-                </button>
+                nansen === 'configured' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const pending = session.retry();
+                      if (pending)
+                        void pending.then(() =>
+                          refreshHistory().catch(() => {}),
+                        );
+                    }}
+                  >
+                    Try again
+                  </button>
+                )
               )}
             </div>
           )}

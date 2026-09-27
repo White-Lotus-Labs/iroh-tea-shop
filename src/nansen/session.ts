@@ -116,6 +116,21 @@ export class IrohSession {
     );
   }
 
+  /** Resend the last question in place of its failed turn, not below it. */
+  // ponytail: a signed-in chat can keep the first user row in SQLite until
+  // reload; the server rollback owns that half.
+  retry(): Promise<void> | false {
+    const question = this.state.lastQuestion;
+    if (this.active || !question) return false;
+    const messages = [...this.state.messages];
+    const last = messages.at(-1);
+    if (last?.role === 'assistant' && last.status === 'error') messages.pop();
+    const asked = messages.at(-1);
+    if (asked?.role === 'user' && asked.content === question) messages.pop();
+    this.update({ messages });
+    return this.send(question);
+  }
+
   private async run(
     text: string,
     question: string,
