@@ -107,7 +107,6 @@ export default function AuthScreen() {
                 onChange={(event) => setNickname(event.target.value)}
                 minLength={3}
                 maxLength={24}
-                pattern="[A-Za-z0-9_\-]{3,24}"
                 required
               />
               <label htmlFor="auth-password">Password</label>
