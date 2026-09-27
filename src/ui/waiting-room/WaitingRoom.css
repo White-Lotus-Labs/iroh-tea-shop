@@ -91,6 +91,7 @@
 .waiting-brand-text {
   display: grid;
   gap: 3px;
+  white-space: nowrap;
   font-family: var(--wr-serif);
   font-size: 20px;
   line-height: 1.1;
@@ -306,6 +307,24 @@
   }
   .waiting-enter {
     padding: 0 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .waiting-repo-lead {
+    display: none;
+  }
+  .waiting-entry {
+    gap: 10px;
+    padding-left: 14px;
+  }
+  .waiting-status p {
+    font-size: 13px;
+  }
+  .waiting-enter {
+    gap: 8px;
+    padding: 0 14px;
+    font-size: 14px;
   }
 }
 
