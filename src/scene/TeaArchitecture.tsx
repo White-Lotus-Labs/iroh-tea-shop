@@ -10,7 +10,7 @@ import { TeaTable } from './props/TeaTable';
 import { BackWall } from './props/BackWall';
 import { RightWall } from './props/RightWall';
 import { WallShelf, WallTrim } from './props/WallDetail';
-import { block, merge, useBuilt, WoodMaterial } from './props/craft';
+import { block, brushText, merge, useBuilt, WoodMaterial } from './props/craft';
 
 const timber = '#3a2419';
 const plaster = '#8a7862';
@@ -206,16 +206,34 @@ function drawBamboo(ctx: CanvasRenderingContext2D) {
 }
 
 /** A hanging scroll with ink art (an enso by default), brocade border and a wooden roller. */
+/** 一期一会 ("one time, one meeting") in brush script, with a signature and seal. */
+function drawIchigo(ctx: CanvasRenderingContext2D) {
+  const random = createRandom(512);
+  ctx.fillStyle = '#e6d8ba';
+  ctx.fillRect(0, 0, 256, 512);
+  for (let i = 0; i < 2600; i++) {
+    ctx.fillStyle = `rgba(120,90,50,${random() * 0.05})`;
+    ctx.fillRect(random() * 256, random() * 512, 1 + random() * 6, 1);
+  }
+  brushText(ctx, '一期一会', 118, 40, 92);
+  brushText(ctx, '閑人', 214, 360, 20);
+  ctx.fillStyle = '#9e2f1c';
+  ctx.fillRect(203, 410, 22, 22);
+  brushText(ctx, '閑', 214, 412, 18, '230,216,186');
+}
+
 function Scroll({
   position,
   paint = drawEnso,
+  turn = Math.PI / 2,
 }: {
   position: Point;
   paint?: (ctx: CanvasRenderingContext2D) => void;
+  turn?: number;
 }) {
   const art = useCanvasTexture(256, 512, paint);
   return (
-    <group position={position} rotation={[0, Math.PI / 2, 0]}>
+    <group position={position} rotation={[0, turn, 0]}>
       <mesh position={[0, 0, -0.004]} castShadow receiveShadow>
         <boxGeometry args={[0.58, 1.36, 0.006]} />
         <SurfaceMaterial surface="cloth" color="#4a4630" />
@@ -783,6 +801,11 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
       />
       <Scroll position={[-3.99, 1.62, -4.62]} />
       <Scroll position={[-3.99, 1.62, 0.4]} paint={drawBamboo} />
+      <Scroll
+        position={[3.99, 1.62, -2.45]}
+        paint={drawIchigo}
+        turn={-Math.PI / 2}
+      />
       <Andon position={[-3.5, 0, -1.95]} />
       <WallShelf position={[-3.865, 1.42, -2.25]} />
       <RightWall />

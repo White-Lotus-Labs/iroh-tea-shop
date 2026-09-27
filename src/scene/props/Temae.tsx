@@ -56,6 +56,45 @@ const BOWL = [
   [0, 0.014],
 ];
 
+/** Shino glaze: cream with an orange blush, pinholes and iron-brushed grasses; top of canvas is the rim. */
+function drawShino(ctx: CanvasRenderingContext2D) {
+  const random = createRandom(733);
+  const base = ctx.createLinearGradient(0, 0, 0, 256);
+  base.addColorStop(0, '#c98a58');
+  base.addColorStop(0.18, '#e2d2b6');
+  base.addColorStop(0.8, '#e6d8be');
+  base.addColorStop(1, '#b8764a');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < 600; i++) {
+    ctx.fillStyle = `rgba(${random() > 0.5 ? '190,120,70' : '120,90,60'},${random() * 0.35})`;
+    ctx.beginPath();
+    ctx.arc(
+      random() * 512,
+      random() * 256,
+      0.6 + random() * 1.4,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  }
+  for (let g = 0; g < 3; g++) {
+    const x = 60 + g * 170 + random() * 30;
+    for (let blade = 0; blade < 3; blade++)
+      inkStroke(
+        ctx,
+        [
+          [x + blade * 5, 196],
+          [x + blade * 8 + 6, 160],
+          [x + blade * 16 + (random() - 0.5) * 24, 128 + random() * 14],
+        ],
+        2.2,
+        random,
+        '128,72,40',
+      );
+  }
+}
+
 /**
  * Temae utensils beside the brazier: a lidded water jar (mizusashi), a bronze waste
  * bowl (kensui) with a bamboo ladle (hishaku) resting on its lid rest, and a folded fukusa.
@@ -63,6 +102,7 @@ const BOWL = [
 export function TemaeSet() {
   const built = useBuilt(() => {
     const jar = place(lathe(JAR), [2.24, 0, -1.74]),
+      shino = canvasTexture(512, 256, drawShino),
       lacquer = merge([
         paint(
           place(
@@ -108,11 +148,12 @@ export function TemaeSet() {
     ]);
     return {
       jar,
+      shino,
       lacquer,
       bronze,
       bamboo,
       dispose() {
-        [jar, lacquer, bronze, bamboo].forEach((g) => g.dispose());
+        [jar, shino, lacquer, bronze, bamboo].forEach((g) => g.dispose());
       },
     };
   });
@@ -120,7 +161,7 @@ export function TemaeSet() {
     <group name="temae-set">
       <mesh geometry={built.jar} castShadow receiveShadow>
         <meshPhysicalMaterial
-          color="#d8c7a6"
+          map={built.shino}
           roughness={0.42}
           clearcoat={0.6}
           clearcoatRoughness={0.25}
