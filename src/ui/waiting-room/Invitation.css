@@ -232,6 +232,32 @@
     display: none;
   }
 }
+/* Landscape phones (SIDE_QUERY): the controls stand in a column beside the sheet. */
+@media not all and (min-width: 1000px) and (min-aspect-ratio: 1/1) {
+  @media (max-height: 500px) and (min-aspect-ratio: 3/2) {
+    .inv-controls {
+      top: 50%;
+      right: max(16px, env(safe-area-inset-right));
+      bottom: auto;
+      left: auto;
+      gap: 10px;
+      width: 200px;
+      transform: translateY(-50%);
+    }
+    .inv-hint {
+      display: none;
+    }
+    .inv-signers ul {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      gap: 4px;
+    }
+    .inv-signers a {
+      padding: 7px 13px;
+      text-align: center;
+    }
+  }
+}
 /* The five handles still fit two rows on the narrowest phones. */
 @media (max-width: 360px) {
   .inv-signers ul {

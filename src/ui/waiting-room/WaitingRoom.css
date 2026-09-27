@@ -333,6 +333,31 @@
   }
 }
 
+/* Landscape phones: the header and the dock give their height to the stage. */
+@media (max-height: 500px) {
+  .waiting-brand {
+    padding-block: 6px;
+  }
+  .waiting-brand-mark {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+  .waiting-brand-text {
+    font-size: 16px;
+  }
+  .waiting-entry {
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-block: 5px;
+  }
+  .waiting-status p {
+    margin-bottom: 6px;
+  }
+  .waiting-enter {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .waiting-backdrop img,
   .waiting-entry,

@@ -795,7 +795,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 720px) and (min-height: 501px) {
   /* The dots jump by spread, so the arrows move beside them to step by page. */
   .sb {
     grid-template-columns: 1fr max-content 1fr;
@@ -873,6 +873,39 @@
   }
   .sb-hint {
     font-size: 9.5px;
+  }
+}
+
+/* Landscape phones: one page at a size its text fits, arrows beside it; the
+   stage scrolls rather than shrink the page. */
+@media (max-height: 500px) {
+  .sb {
+    grid-template-rows: auto auto auto;
+    align-content: start;
+    padding-top: 6px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .sb::-webkit-scrollbar {
+    display: none;
+  }
+  .sb[data-mode='single'] .sb-3d {
+    width: min(80vw, 340px);
+  }
+  .sb-ribbon {
+    height: 40px;
+  }
+  .sb-index {
+    margin-top: 18px;
+  }
+  .sb-index button {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 12.5px;
+  }
+  .sb-hint {
+    display: none;
   }
 }
 

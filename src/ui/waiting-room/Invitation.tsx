@@ -42,8 +42,11 @@ const CAM_Z = 8.2;
 const WIDE_RESERVE = { top: 96, bottom: 16, fill: 0.9, columns: true };
 // Narrow, the bottom reserve is the measured controls column (see .inv-controls).
 const NARROW_RESERVE = { top: 96, bottom: 190, fill: 0.9, columns: false };
-// Matches the wide rules in Invitation.css.
+// Landscape phones hang the controls beside the sheet, not under it.
+const SIDE_RESERVE = { top: 96, bottom: 16, fill: 0.9, columns: false };
+// Match the wide and side rules in Invitation.css.
 const WIDE_QUERY = '(min-width: 1000px) and (min-aspect-ratio: 1/1)';
+const SIDE_QUERY = '(max-height: 500px) and (min-aspect-ratio: 3/2)';
 const columnsFree = (w: number) => w - 2 * (Math.max(28, w / 2 - 590) + 274);
 // The roster side has the smallest type, so the sheet comes a little closer.
 const LEAN = 1.1;
@@ -564,28 +567,34 @@ function Sheet({
   );
 }
 
+function useMedia(query: string, initial: boolean) {
+  const [on, setOn] = useState(initial);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const apply = () => setOn(media.matches);
+    apply();
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, [query]);
+  return on;
+}
+
 export function Invitation({ reduced }: { reduced: boolean }) {
   const [side, setSide] = useState<Side>('front');
-  const [wide, setWide] = useState(true);
+  const wide = useMedia(WIDE_QUERY, true);
+  const aside = useMedia(SIDE_QUERY, false) && !wide;
   const [foot, setFoot] = useState(NARROW_RESERVE.bottom);
   const flips = useRef(0);
   const focus = useRef<number | null>(null);
   const controls = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const media = window.matchMedia(WIDE_QUERY);
-    const apply = () => setWide(media.matches);
-    apply();
-    media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
-  }, []);
-  useEffect(() => {
     const el = controls.current;
-    if (wide || !el) return;
+    if (wide || aside || !el) return;
     // 10px below the column (its CSS bottom) and 16px of air above it.
     const ro = new ResizeObserver(() => setFoot(el.offsetHeight + 26));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [wide]);
+  }, [wide, aside]);
   return (
     <div className="inv" data-side={side}>
       <Canvas
@@ -601,7 +610,13 @@ export function Invitation({ reduced }: { reduced: boolean }) {
       >
         <Sheet
           reduced={reduced}
-          reserve={wide ? WIDE_RESERVE : { ...NARROW_RESERVE, bottom: foot }}
+          reserve={
+            wide
+              ? WIDE_RESERVE
+              : aside
+                ? SIDE_RESERVE
+                : { ...NARROW_RESERVE, bottom: foot }
+          }
           onSide={setSide}
           flips={flips}
           focus={focus}

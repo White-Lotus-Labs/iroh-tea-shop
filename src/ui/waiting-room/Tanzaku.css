@@ -752,6 +752,39 @@
       min-height: calc(2 * 1.45em);
     }
   }
+  /* Landscape phones: the noren and the branch stand side by side. */
+  @media (max-height: 500px) and (min-aspect-ratio: 3/2) {
+    .tz {
+      --tz-gap: 16px;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
+      gap: var(--tz-gap);
+    }
+    .tz-left {
+      align-self: safe center;
+      width: 100%;
+    }
+    .tz-stage {
+      inset: 0 calc(-1 * var(--tz-pad)) 0 calc(-1 * var(--tz-gap));
+    }
+    .tz-step {
+      min-height: calc(3 * 1.4em);
+    }
+    /* The header right above already names the room; readers keep the title. */
+    .tz-band h1 {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+  @media (max-height: 380px) and (min-aspect-ratio: 3/2) {
+    .tz-tagline {
+      display: none;
+    }
+  }
 }
 @media (max-width: 420px) {
   .tz-card-nav .tz-card-nav-name {
