@@ -26,8 +26,10 @@ import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
 import { DevShotCamera } from './DevShotCamera';
 import { SceneEffects } from './SceneEffects';
+import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
+import type { ThesisId } from '../thesis/types';
 
 const HALO_VERTEX = /* glsl */ `
 varying vec2 vUv;
@@ -218,6 +220,7 @@ function RoomGeometry({
   station,
   menuClosed,
   onMenuOpen,
+  onThesisPick,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -228,6 +231,7 @@ function RoomGeometry({
   station: Station;
   menuClosed: boolean;
   onMenuOpen: () => void;
+  onThesisPick?: (id: ThesisId) => void;
 }) {
   return (
     <>
@@ -265,6 +269,11 @@ function RoomGeometry({
         distance={3.2}
       />
       <WaitingRoom />
+      <ThesisCards
+        halos={station === 'Counter' && menuClosed}
+        reduced={reduced}
+        onPick={onThesisPick}
+      />
       <TeaChamber reduced={reduced}>
         <ContactShadows
           position={[0, 0.016, -2.55]}
@@ -333,6 +342,7 @@ export default function TeaRoom({
   shelfRevealed,
   menuClosed,
   onMenuOpen,
+  onThesisPick,
 }: {
   station: Station;
   reduced: boolean;
@@ -351,6 +361,7 @@ export default function TeaRoom({
   shelfRevealed: boolean;
   menuClosed: boolean;
   onMenuOpen: () => void;
+  onThesisPick?: (id: ThesisId) => void;
 }) {
   const [lost, setLost] = useState(false);
   // Textures load through three's default manager, which useProgress observes.
@@ -411,6 +422,7 @@ export default function TeaRoom({
             station={station}
             menuClosed={menuClosed}
             onMenuOpen={onMenuOpen}
+            onThesisPick={onThesisPick}
           />
         </Surfaces>
         <CameraRig

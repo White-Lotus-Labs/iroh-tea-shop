@@ -52,6 +52,7 @@ export default function TeaRoomShell({
     mood: 'waiting',
   });
   const [initialThesis, setInitialThesis] = useState<ThesisId | null>(null);
+  const [selectedThesis, setSelectedThesis] = useState<ThesisId | null>(null);
   const [uncleDraft, setUncleDraft] = useState<{
     text: string;
     key: number;
@@ -205,6 +206,7 @@ export default function TeaRoomShell({
   }, [panelOpen, station, closePanel]);
   const onOpenThesis = useCallback(
     (id: ThesisId, conviction: ConvictionLevel | null) => {
+      setSelectedThesis(id);
       setPour({
         key: `thesis:${id}:${Date.now()}`,
         mood: convictionToMood(conviction),
@@ -213,8 +215,18 @@ export default function TeaRoomShell({
     [],
   );
   const onCloseThesis = useCallback(() => {
+    setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
+  const pickThesis = useCallback(
+    (id: ThesisId) => {
+      setSelectedThesis(id);
+      if (station === 'Counter') return setPanelOpen(true);
+      navigate('Counter');
+      deepLinkOpenOnce.current = true;
+    },
+    [station, navigate],
+  );
   const onTalkToUncle = useCallback((text: string) => {
     setUncleDraft({ text, key: Date.now() });
     setCameraAt(null);
@@ -366,6 +378,7 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
+            onThesisPick={pickThesis}
           />
 
           {canApproachShelf && (
@@ -473,6 +486,7 @@ export default function TeaRoomShell({
                   nansen={nansen}
                   reduced={reduced}
                   initialThesis={initialThesis}
+                  selectedThesis={selectedThesis}
                   onOpenThesis={onOpenThesis}
                   onCloseThesis={onCloseThesis}
                   onTalkToUncle={onTalkToUncle}
