@@ -44,7 +44,10 @@
 }
 @media (max-width: 760px) {
   .waiting-versions {
-    top: 64px;
+    top: 70px;
+  }
+  .waiting-stage:has(> .waiting-versions) {
+    margin-top: 44px;
   }
   .waiting-versions button span {
     display: none;
