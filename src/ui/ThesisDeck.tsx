@@ -40,6 +40,14 @@ export interface ThesisDeckProps {
 }
 
 const MORPH_NAME = 'thesis-art';
+// Short cover lines keep the title inside the paper band; the full title stays
+// in the accessible name and on the opened scroll.
+const COVER_LINES: Partial<
+  Record<ThesisId, { title: string; subtitle: string }>
+> = {
+  robinhood: { title: 'Robinhood Chain', subtitle: 'Tokenization' },
+};
+
 const OWN_THESIS_DRAFT =
   'Here is my own thesis. Help me test it against smart money data:\n\n';
 
@@ -85,6 +93,7 @@ export function ThesisDeck({
   const [followed, setFollowed] = useState<ThesisId[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const books = useRef<Partial<Record<ThesisId, HTMLButtonElement | null>>>({});
+  const shelf = useRef<HTMLUListElement>(null);
   const covers = useRef<Partial<Record<ThesisId, HTMLElement | null>>>({});
   const openRef = useRef<ThesisId | null>(null);
   openRef.current = openId;
@@ -179,6 +188,13 @@ export function ThesisDeck({
     setFollowed(toggleFollowed(window.localStorage, id));
   }, []);
 
+  // On phones the books sit in a snap carousel; start on the middle one.
+  useEffect(() => {
+    const row = shelf.current;
+    if (row && row.scrollWidth > row.clientWidth)
+      row.scrollLeft = (row.scrollWidth - row.clientWidth) / 2;
+  }, []);
+
   const openThesis = THESES.find((t) => t.id === openId) ?? null;
 
   return (
@@ -188,14 +204,26 @@ export function ThesisDeck({
           Thesis <em>Desk</em>
           <span className="deck-kicker">three scrolls</span>
         </h1>
-        <DeckStatus deck={deck} now={now} />
+        <div className="deck-head-actions">
+          <DeckStatus deck={deck} now={now} />
+          <button
+            type="button"
+            className="primary deck-discuss"
+            onClick={() => onTalkToUncle(OWN_THESIS_DRAFT)}
+          >
+            <span className="deck-discuss-seal" aria-hidden="true">
+              茶
+            </span>
+            Discuss your own thesis with Uncle
+          </button>
+        </div>
       </header>
 
       <div className="deck-stage">
         <p className="deck-word" aria-hidden="true">
           Theses
         </p>
-        <ul className="deck-books" aria-label="Thesis scrolls">
+        <ul ref={shelf} className="deck-books" aria-label="Thesis scrolls">
           {THESES.map((thesis, index) => (
             <li key={thesis.id} className="deck-slot" data-slot={index}>
               <ThesisBook
@@ -217,22 +245,6 @@ export function ThesisDeck({
           ))}
         </ul>
       </div>
-
-      <footer className="deck-foot">
-        <p className="deck-hint">
-          Pick a scroll to read the thesis and the smart money behind it.
-        </p>
-        <button
-          type="button"
-          className="primary deck-discuss"
-          onClick={() => onTalkToUncle(OWN_THESIS_DRAFT)}
-        >
-          <span className="deck-discuss-seal" aria-hidden="true">
-            茶
-          </span>
-          Discuss your own thesis with Uncle
-        </button>
-      </footer>
 
       {openThesis && (
         <ThesisScroll
@@ -337,9 +349,10 @@ function ThesisBook({
     '--book': thesis.colors.primary,
     '--book-accent': thesis.colors.accent,
     '--book-ink': thesis.colors.ink,
-    '--chars': thesis.title.length,
+    '--chars': (COVER_LINES[thesis.id] ?? thesis).title.length,
   } as CSSProperties;
   const level = summary?.conviction.level ?? null;
+  const cover = COVER_LINES[thesis.id] ?? thesis;
 
   return (
     <button
@@ -379,8 +392,8 @@ function ThesisBook({
               />
               <span className="book-copy">
                 <span className="book-kicker">Scroll · {thesis.numeral}</span>
-                <span className="book-name">{thesis.title}</span>
-                <span className="book-sub">{thesis.subtitle}</span>
+                <span className="book-name">{cover.title}</span>
+                <span className="book-sub">{cover.subtitle}</span>
               </span>
               <span className="book-hinge" />
               <span className="book-sheen" />

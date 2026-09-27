@@ -24,25 +24,28 @@
 /* On wide screens the panel has a fixed height; the stage takes what is left
    and sizes the books from its own box. */
 @media (min-width: 761px) {
-  .thesis-deck {
-    grid-template-rows: auto minmax(300px, 1fr) auto;
-    gap: 12px;
-    padding: 2px 8px 12px;
+  /* The Counter scroll opens stage-sized for the deck: below the topbar and
+     clear of the dock, with Lane A's rods, brocade, and unroll untouched. */
+  .app-shell[data-station='Counter'] .reading-panel:has(> .thesis-deck) {
+    --deck-panel-h: min(80dvh, 780px, calc(100dvh - 216px));
+    top: calc(86px + var(--deck-panel-h) / 2);
+    width: min(92vw, 1320px);
+    height: var(--deck-panel-h);
+    padding: 14px clamp(20px, 2.4vw, 36px);
   }
 
+  .thesis-deck {
+    grid-template-rows: auto minmax(320px, 1fr);
+    gap: 12px;
+    padding: 2px 8px 10px;
+  }
+
+  /* Books size from the stage box: height = cover + lift room + plaque. */
   .thesis-deck .deck-stage {
-    --w: min(calc((100cqh - 132px) * 0.75), 24cqw, 240px);
+    --w: min(calc((100cqh - 104px) * 0.64), 23cqw, 320px);
     height: auto;
     min-height: 0;
     container-type: size;
-  }
-}
-
-/* The shared panel keeps its desktop centring transform on phones, which
-   pushes it off-screen. Scoped here until the panel styles reset it. */
-@media (max-width: 760px) {
-  .reading-panel:has(> .thesis-deck) {
-    transform: none !important;
   }
 }
 
@@ -52,7 +55,14 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px 20px;
-  padding-right: 40px;
+  padding-right: 48px;
+}
+
+.deck-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
 }
 
 .deck-kicker {
@@ -176,23 +186,23 @@
 .deck-word {
   position: absolute;
   z-index: 0;
-  top: 0;
+  top: calc(var(--w) * -0.04);
   left: 50%;
   margin: 0;
   color: transparent;
   background: linear-gradient(
     180deg,
-    rgba(222, 190, 126, 0.5) 0%,
-    rgba(184, 145, 63, 0.14) 78%
+    rgba(233, 201, 131, 0.62) 0%,
+    rgba(184, 145, 63, 0.16) 82%
   );
   -webkit-background-clip: text;
   background-clip: text;
   font-family: var(--font-display);
-  font-size: calc(var(--w) * 1.62);
+  font-size: calc(var(--w) * 1.7);
   font-style: italic;
   font-weight: 500;
   line-height: 0.78;
-  letter-spacing: -0.055em;
+  letter-spacing: 0.03em;
   white-space: nowrap;
   transform: translateX(-50%);
   user-select: none;
@@ -206,7 +216,7 @@
   align-items: flex-start;
   justify-content: center;
   margin: 0;
-  padding: 26px 0 0;
+  padding: calc(var(--w) * 0.24) 0 0;
   list-style: none;
 }
 
@@ -216,29 +226,29 @@
   --ry: 0deg;
   --po: 50% 30%;
   position: relative;
-  margin-inline: calc(var(--w) * 0.02);
+  margin-inline: calc(var(--w) * -0.03);
 }
 
 .deck-slot[data-slot='0'] {
   z-index: 1;
-  --y: 12px;
-  --rz: -6deg;
-  --ry: -16deg;
-  --po: 170% 20%;
+  --y: 14px;
+  --rz: -7deg;
+  --ry: -24deg;
+  --po: 160% 20%;
 }
 
 .deck-slot[data-slot='1'] {
   z-index: 3;
-  --rz: 0.8deg;
-  --ry: 11deg;
+  --rz: 1deg;
+  --ry: 16deg;
 }
 
 .deck-slot[data-slot='2'] {
   z-index: 2;
-  --y: 14px;
-  --rz: 6deg;
-  --ry: 20deg;
-  --po: -70% 20%;
+  --y: 16px;
+  --rz: 7deg;
+  --ry: 26deg;
+  --po: -60% 20%;
 }
 
 .deck-slot:has(.deck-book:hover),
@@ -274,7 +284,7 @@
   display: block;
   width: var(--w);
   height: var(--h);
-  perspective: 1100px;
+  perspective: calc(var(--w) * 5);
   perspective-origin: var(--po);
 }
 
@@ -490,7 +500,7 @@
 
 .book-copy {
   position: absolute;
-  top: 7.4%;
+  top: 7%;
   right: 9%;
   left: 9%;
   display: grid;
@@ -533,7 +543,7 @@
 
 .book-sub {
   font-family: var(--font-display);
-  font-size: calc(var(--w) * 0.05);
+  font-size: calc(var(--w) * 0.046);
   font-style: italic;
   font-weight: 600;
   line-height: 1.1;
@@ -610,10 +620,10 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: var(--w);
-  margin-top: 22px;
-  padding-top: 9px;
+  margin-top: 24px;
+  padding-top: 10px;
   border-top: 1px solid rgba(219, 187, 122, 0.3);
   color: #f1e4c8;
   text-align: left;
@@ -623,16 +633,16 @@
 .meter-seal {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
+  width: 46px;
+  height: 46px;
+  border-radius: 7px;
   background: var(--seal);
   box-shadow:
     inset 0 0 0 2px rgba(255, 235, 220, 0.28),
     0 2px 6px rgba(0, 0, 0, 0.3);
   color: #fbeee0;
   font-family: var(--font-cjk);
-  font-size: 20px;
+  font-size: 26px;
   line-height: 1;
   transform: rotate(-4deg);
 }
@@ -676,7 +686,7 @@
 .plaque-level {
   display: block;
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 24px;
   font-style: italic;
   font-weight: 600;
   line-height: 1.05;
@@ -685,8 +695,8 @@
 .plaque-meta,
 .plaque-flow {
   display: block;
-  color: rgba(241, 228, 200, 0.8);
-  font-size: 11px;
+  color: rgba(241, 228, 200, 0.86);
+  font-size: 13px;
   line-height: 1.4;
   white-space: nowrap;
 }
@@ -713,22 +723,6 @@
 
 .plaque-shimmer--short {
   width: 62%;
-}
-
-.deck-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-}
-
-.deck-hint {
-  margin: 0;
-  color: var(--scroll-muted);
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-style: italic;
 }
 
 .deck-discuss {
@@ -767,57 +761,65 @@
   transform: translateY(var(--y)) rotate(var(--rz));
 }
 
+/* Phones: a snap carousel, one book centred with its neighbours peeking. */
 @media (max-width: 760px) {
   .thesis-deck {
-    --w: min(36vw, 156px);
+    --w: min(58vw, 236px);
     gap: 12px;
   }
 
   .deck-head {
-    padding-right: 36px;
+    padding-right: 40px;
   }
 
   .deck-stage {
-    height: calc(var(--h) + 150px);
+    height: calc(var(--h) + 136px);
+  }
+
+  .deck-word {
+    font-size: calc(var(--w) * 1.05);
   }
 
   .deck-books {
-    padding-top: 34px;
+    justify-content: flex-start;
+    height: 100%;
+    padding: 30px calc(50% - var(--w) / 2) 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
   }
 
-  .deck-slot {
-    margin-inline: calc(var(--w) * -0.2);
+  .deck-books::-webkit-scrollbar {
+    display: none;
   }
 
-  .book-plaque {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 5px;
-    width: calc(var(--w) * 0.66);
-    margin-top: 22px;
-    text-align: center;
+  .deck-books .deck-slot[data-slot] {
+    --y: 0px;
+    --rz: 0deg;
+    --ry: 12deg;
+    --po: 50% 30%;
+    flex: none;
+    margin-inline: 12px;
+    scroll-snap-align: center;
   }
 
   .plaque-seal {
-    width: 30px;
-    height: 30px;
-    font-size: 17px;
+    width: 38px;
+    height: 38px;
+    font-size: 21px;
   }
 
   .plaque-level {
-    font-size: 16px;
+    font-size: 20px;
   }
 
   .plaque-meta,
   .plaque-flow {
-    font-size: 9.5px;
-    white-space: normal;
+    font-size: 12px;
   }
 
-  .deck-hint {
-    display: none;
-  }
-
+  .deck-head-actions,
   .deck-discuss {
     width: 100%;
   }

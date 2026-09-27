@@ -5,6 +5,7 @@ import {
   buildUncleDraft,
   convictionSentence,
   formatRelative,
+  isDust,
   readFollowed,
   toggleFollowed,
   xIntentUrl,
@@ -47,6 +48,14 @@ describe('deck model', () => {
     expect(url.searchParams.get('url')).toBe('https://tea.example/?thesis=ai');
     expect(url.searchParams.get('text')).toContain('@nansen_ai');
     expect(url.searchParams.get('text')).toContain('1 of 4 leaves');
+  });
+
+  it('treats small or unknown amounts as dust', () => {
+    expect(isDust(0)).toBe(true);
+    expect(isDust(4)).toBe(true);
+    expect(isDust(null)).toBe(true);
+    expect(isDust(10)).toBe(false);
+    expect(isDust(-64_000)).toBe(false);
   });
 
   it('toggles followed theses and ignores junk', () => {

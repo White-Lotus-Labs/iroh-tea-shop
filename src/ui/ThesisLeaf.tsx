@@ -8,7 +8,7 @@ import type {
   TickerDetail,
   TickerSignal,
 } from '../thesis/types';
-import { formatRelative } from './deckModel';
+import { formatRelative, isDust } from './deckModel';
 
 // ponytail: per-page-session cache; a reload refetches. The route has its own
 // server TTL, so this only saves repeat round trips while the scroll is open.
@@ -152,8 +152,11 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
           section={detail.movements}
           wide
         >
-          {({ buyers, sellers, recent }) =>
-            !buyers.length && !sellers.length && !recent.length ? (
+          {(moves) => {
+            const buyers = moves.buyers.filter((b) => !isDust(b.boughtUsd));
+            const sellers = moves.sellers.filter((m) => !isDust(m.soldUsd));
+            const recent = moves.recent.filter((t) => !isDust(t.valueUsd));
+            return !buyers.length && !sellers.length && !recent.length ? (
               <p className="leaf-quiet">
                 Smart money is quiet on this leaf this week.
               </p>
@@ -221,8 +224,8 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
                   </>
                 )}
               </>
-            )
-          }
+            );
+          }}
         </DetailSection>
 
         <DetailSection title="Holders" section={detail.holders}>
@@ -298,6 +301,7 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
 
         <DetailSection title="Perps positioning" section={detail.perps}>
           {({ smartLongUsd, smartShortUsd, recent }) => {
+            const trades = recent.filter((t) => !isDust(t.valueUsd));
             const long = Math.max(0, smartLongUsd ?? 0);
             const short = Math.max(0, smartShortUsd ?? 0);
             const longPct =
@@ -323,11 +327,11 @@ function Detail({ detail, now }: { detail: TickerDetail; now: number }) {
                     Short {formatMoney(smartShortUsd)}
                   </span>
                 </p>
-                {recent.length > 0 && (
+                {trades.length > 0 && (
                   <>
                     <p className="leaf-sub">Recent perp trades</p>
                     <ul className="leaf-list leaf-trades">
-                      {recent.map((t, i) => (
+                      {trades.map((t, i) => (
                         <li key={`${t.trader}-${i}`}>
                           <span
                             className="leaf-action"
