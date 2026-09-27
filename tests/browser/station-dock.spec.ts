@@ -9,7 +9,7 @@ test('station dock magnifies under the pointer and keeps navigation', async ({
   test.setTimeout(120000);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.getByRole('button', { name: 'Step inside' }).click();
   const nav = page.getByRole('navigation', { name: 'Tea room stations' });
   const host = nav.getByRole('button', { name: /Host/ });
   // The unroll clip-path blocks pointer hits until it ends.

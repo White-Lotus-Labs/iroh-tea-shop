@@ -27,10 +27,10 @@ import { SmartWalletShelf } from './SmartWalletShelf';
 import { EvidenceDrawer } from './EvidenceDrawer';
 import { IrohSession } from '../nansen/session';
 import { IrohChat } from './IrohChat';
-import { SceneLoader } from './SceneLoader';
 import { StationDock } from './StationDock';
+import { WaitingRoom } from './waiting-room/WaitingRoom';
 
-// SceneLoader covers the stage while the scene chunk downloads.
+// The waiting room covers the stage while the scene chunk downloads.
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
   ssr: false,
   loading: () => <div className="scene-fallback" />,
@@ -69,8 +69,6 @@ export default function TeaRoomShell({
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [assetProgress, setAssetProgress] = useState(0);
   const [sceneReady, setSceneReady] = useState(false);
-  const [revealed, setRevealed] = useState(false);
-  const onReveal = useCallback(() => setRevealed(true), []);
   const panel = useRef<HTMLElement>(null);
   const reduced =
     motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
@@ -215,13 +213,14 @@ export default function TeaRoomShell({
       data-iroh-activity={irohActivity}
       data-camera-at={cameraAt ?? undefined}
       data-shelf-view={shelfView}
-      aria-busy={!revealed}
+      aria-busy={!sceneReady}
     >
-      <SceneLoader
+      <WaitingRoom
+        open={isEntrance}
         ready={sceneReady}
         progress={loaderProgress}
         reduced={reduced}
-        onReveal={onReveal}
+        onEnter={() => navigate('Counter')}
       />
       <header className="topbar">
         <a href="#main-panel" className="brand">
@@ -312,36 +311,7 @@ export default function TeaRoomShell({
           )}
         </section>
 
-        {isEntrance ? (
-          <div className="entrance-hero">
-            <div className="entrance-hero-content">
-              <span className="entrance-hero-mark" aria-hidden="true">
-                ◒
-              </span>
-              <div className="eyebrow">WELCOME / TAKE YOUR TIME</div>
-              <h1>
-                A quiet room.
-                <br />
-                <em>A clearer thought.</em>
-              </h1>
-              <span className="entrance-hero-rule" aria-hidden="true" />
-              <p className="intro">
-                Bring the reasoning you have already written. Notice what it
-                holds, and what it asks you to assume.
-              </p>
-              <button
-                type="button"
-                className="primary entrance-hero-cta"
-                onClick={() => navigate('Counter')}
-              >
-                <span>Begin</span>
-                <span className="entrance-hero-cta-arrow" aria-hidden="true">
-                  →
-                </span>
-              </button>
-            </div>
-          </div>
-        ) : (
+        {!isEntrance && (
           <section
             key={station}
             className={`reading-panel${station === 'TeaTable' && (busy || !readingReady) ? ' is-steeping' : ''}${panelOpen ? '' : ' is-closed'}`}
