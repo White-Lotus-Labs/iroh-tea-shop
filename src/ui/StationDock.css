@@ -182,7 +182,6 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
   color: var(--dock-ink-soft);
-  opacity: 0.8;
 }
 
 .station-dock__steam {
