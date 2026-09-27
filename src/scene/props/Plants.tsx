@@ -6,7 +6,6 @@ import {
   CircleGeometry,
   Color,
   DoubleSide,
-  Euler,
   ExtrudeGeometry,
   IcosahedronGeometry,
   InstancedMesh,
@@ -478,36 +477,50 @@ function leafGeometry() {
   return geometry;
 }
 
-const Z = new Vector3(0, 0, 1);
+const UP = new Vector3(0, 1, 0);
 /**
  * Leaves on stalks along `stem`, as one vertex-coloured geometry: each stalk starts on
  * the stem and each blade's base overlaps its stalk, so no leaf floats beside the branch.
- * `turn` swings a leaf about the stem's heading; `rise` lifts it above horizontal.
+ * `face` points at the room. `turn` swings a leaf off the stem's heading as seen from the
+ * room, `rise` tips it toward the room, and each blade turns its face,
+ * not its edge, to the room and the light above.
  */
 export function stemLeaves(
   stem: Curve<Vector3>,
   leaves: { t: number; turn: number; rise?: number }[],
-  { length = 0.06, width = 0.028, stalk = 0.012, color = '#1f3322' } = {},
+  {
+    length = 0.085,
+    width = 0.04,
+    stalk = 0.012,
+    color = '#1f3322',
+    face = [0, 0, 1] as Point,
+  } = {},
 ) {
   const blade = leafGeometry()
     .scale(length / 0.14, 0.35, width / 0.019)
     .rotateY(-Math.PI / 2)
     .translate(0, 0, stalk - 0.002);
-  const rotation = new Quaternion(),
-    euler = new Euler(0, 0, 0, 'YXZ');
+  const room = new Vector3(...face).normalize();
+  const lit = room.clone().addScaledVector(UP, 0.5);
+  const basis = new Matrix4(),
+    rotation = new Quaternion();
   const parts = leaves.flatMap(({ t, turn, rise = 0.25 }) => {
-    const at = stem.getPointAt(t),
-      tangent = stem.getTangentAt(t);
-    rotation.setFromEuler(
-      euler.set(
-        -rise,
-        Math.atan2(tangent.x, tangent.z) + turn,
-        0.3 * Math.sign(turn),
-      ),
-    );
-    const tip = at
+    const at = stem.getPointAt(t);
+    const heading = stem
+      .getTangentAt(t)
+      .projectOnPlane(room)
+      .normalize()
+      .applyAxisAngle(room, turn)
+      .addScaledVector(room, Math.sin(rise))
+      .normalize();
+    const normal = lit
       .clone()
-      .addScaledVector(Z.clone().applyQuaternion(rotation), stalk);
+      .addScaledVector(heading, -lit.dot(heading))
+      .normalize()
+      .applyAxisAngle(heading, 0.3 * Math.sign(turn));
+    basis.makeBasis(normal.clone().cross(heading), normal, heading);
+    rotation.setFromRotationMatrix(basis);
+    const tip = at.clone().addScaledVector(heading, stalk);
     return [
       paint(cord(at.toArray(), tip.toArray(), 0.0016), '#3b3a1e'),
       paint(

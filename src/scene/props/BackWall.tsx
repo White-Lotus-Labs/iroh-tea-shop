@@ -431,21 +431,30 @@ const twigCurve = new CatmullRomCurve3(
     [0.1, 0.7, 0.05],
   ].map(([x, y, z]) => new Vector3(x, y, z)),
 );
+const camellia = { length: 0.1, width: 0.048 };
 /** Chabana: a glazed vase on a thin board holding a single camellia branch. */
 export function Chabana({ position }: { position: Point }) {
   const leaves = useBuilt(() =>
     merge([
-      stemLeaves(branchCurve, [
-        { t: 0.42, turn: 0.9 },
-        { t: 0.55, turn: -0.8 },
-        { t: 0.68, turn: 1.1 },
-        { t: 0.82, turn: -1 },
-        { t: 0.93, turn: 0.6 },
-      ]),
-      stemLeaves(twigCurve, [
-        { t: 0.7, turn: -0.9 },
-        { t: 0.92, turn: 0.8 },
-      ]),
+      stemLeaves(
+        branchCurve,
+        [
+          { t: 0.42, turn: 0.9 },
+          { t: 0.55, turn: -0.8 },
+          { t: 0.68, turn: 1.1 },
+          { t: 0.82, turn: -1 },
+          { t: 0.93, turn: 0.6 },
+        ],
+        camellia,
+      ),
+      stemLeaves(
+        twigCurve,
+        [
+          { t: 0.7, turn: -0.9 },
+          { t: 0.92, turn: 0.8 },
+        ],
+        camellia,
+      ),
     ]),
   );
   const bloom = branchCurve.getPointAt(1);
@@ -479,10 +488,9 @@ export function Chabana({ position }: { position: Point }) {
           <meshStandardMaterial color="#3b2a1c" roughness={0.85} />
         </mesh>
         <mesh geometry={leaves} castShadow>
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             vertexColors
-            roughness={0.35}
-            clearcoat={0.6}
+            roughness={0.7}
             side={DoubleSide}
           />
         </mesh>

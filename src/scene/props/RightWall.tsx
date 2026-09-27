@@ -44,7 +44,7 @@ function Kakehanaire({ position }: { position: Point }) {
         { t: 0.7, turn: 1.3, rise: 0.4 },
         { t: 0.84, turn: -1.2, rise: 0.2 },
       ],
-      { length: 0.07, width: 0.03, color: '#1f3a1c' },
+      { length: 0.08, width: 0.036, color: '#1f3a1c', face: [-1, 0, 0] },
     ),
   );
   const bloom: Point = [-0.145, 0.435, 0.03];
