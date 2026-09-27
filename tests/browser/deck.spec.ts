@@ -35,7 +35,7 @@ test.beforeEach(async ({ page }) => {
   await registerBrowserAccount(page);
 });
 
-test('Counter deck opens a thesis scroll, expands a leaf, and hands off to Uncle', async ({
+test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to Uncle', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -116,7 +116,59 @@ test('deck shows an honest offline state when Nansen answers 503', async ({
   ).toContainText('Conviction offline');
 });
 
-test('full motion scroll closes with its button and returns focus to the book', async ({
+test('a counter card opens the one panel on its thesis, and another thesis rearranges it', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await mockNansen(page);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await beginVisit(page);
+  await expect(page.getByRole('button', { name: 'Open Counter' })).toBeVisible({
+    timeout: 45000,
+  });
+
+  // The ember on the 3D card is the keyboard and pointer target for the pick.
+  const card = page.getByRole('button', { name: 'Read Crypto Bullrun' });
+  await expect(card).toBeVisible();
+  await card.click({ force: true });
+
+  const panel = page.locator('.reading-panel');
+  const main = page.locator('main');
+  await expect(
+    page.getByRole('dialog', { name: 'Crypto Bullrun' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Open Crypto Bullrun/ }),
+  ).toHaveAttribute('aria-current', 'true');
+  await expect(main).toHaveAttribute('data-mood', 'supported');
+  await expect(page.getByRole('button', { name: /^Read / })).toHaveCount(0);
+
+  await panel.evaluate((el) => {
+    el.dataset.probe = 'one-window';
+  });
+  await page
+    .getByRole('button', { name: /Open AI taking over the world/ })
+    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(
+    page.getByRole('dialog', { name: 'AI taking over the world' }),
+  ).toBeVisible();
+  await expect(panel).toHaveCount(1);
+  await expect(panel).toHaveAttribute('data-probe', 'one-window');
+  await expect(main).toHaveAttribute('data-mood', 'challenged');
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.deck-book')).toHaveCount(3);
+  await expect(panel).toHaveAttribute('data-probe', 'one-window');
+  await expect(main).toHaveAttribute('data-mood', 'waiting');
+  expect(errors).toEqual([]);
+});
+
+test('full motion reading switches theses in place and returns focus to the book', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -124,24 +176,35 @@ test('full motion scroll closes with its button and returns focus to the book', 
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await openCounter(page);
-  const book = page.getByRole('button', { name: /Open Robinhood Chain/ });
-  await book.click();
+  const robinhood = page.getByRole('button', { name: /Open Robinhood Chain/ });
+  await robinhood.click();
   const scroll = page.getByRole('dialog', {
     name: 'Robinhood Chain tokenization',
   });
   await expect(scroll).toBeVisible();
   await expect(
-    scroll.getByRole('button', { name: 'Close scroll' }),
+    scroll.getByRole('heading', { name: 'Robinhood Chain tokenization' }),
   ).toBeFocused();
   await scroll.getByRole('button', { name: 'Follow the thesis' }).click();
   await expect(
     scroll.getByRole('button', { name: 'Following the thesis' }),
   ).toHaveAttribute('aria-pressed', 'true');
-  // The close runs inside a view transition, which waits for a rendered
+
+  // Each switch runs inside a view transition, which waits for a rendered
   // frame; software WebGL under a full suite can take seconds per frame.
-  await scroll.getByRole('button', { name: 'Close scroll' }).click();
-  await expect(scroll).toHaveCount(0, { timeout: 20_000 });
-  await expect(book).toBeFocused();
-  await expect(book).toHaveAccessibleName(/Following\./);
+  const ai = page.getByRole('button', {
+    name: /Open AI taking over the world/,
+  });
+  await ai.click();
+  await expect(
+    page.getByRole('dialog', { name: 'AI taking over the world' }),
+  ).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(ai).toBeFocused();
+
+  await page.getByRole('button', { name: 'All scrolls' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 20_000 });
+  await expect(ai).toBeFocused();
+  await expect(robinhood).toHaveAccessibleName(/Following\./);
   expect(errors).toEqual([]);
 });

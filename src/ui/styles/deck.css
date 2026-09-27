@@ -1,9 +1,9 @@
-/* Thesis Desk: three bound scrolls on a lacquer stage, and the opened scroll.
+/* Thesis Desk: three bound scrolls on a lacquer stage. Reading a thesis
+   shrinks them into a tab strip inside the same panel.
    Colours, fonts, and motion come from tokens.css. */
 /* Lane P: books use theses/*-600w.webp; opened scroll keeps the 900w thesis.image. */
 
-.thesis-deck,
-.scroll-layer {
+.thesis-deck {
   --leaf-up: #1f6a47;
 }
 
@@ -332,10 +332,6 @@
 .deck-book:focus-visible .book-contact {
   opacity: 0.5;
   transform: translateY(14px) scale(0.84);
-}
-
-.deck-book[data-open='true'] .book-frame {
-  visibility: hidden;
 }
 
 .book-shadow,
@@ -745,9 +741,7 @@
   font-size: 15px;
 }
 
-.thesis-deck[data-reduced='true'] *,
-.scroll-layer[data-reduced='true'],
-.scroll-layer[data-reduced='true'] * {
+.thesis-deck[data-reduced='true'] * {
   animation: none !important;
   transition: none !important;
 }
@@ -826,225 +820,161 @@
   }
 }
 
-/* ---------- Opened scroll ---------- */
+/* ---------- Reading layout: tabs above one thesis ---------- */
 
-.scroll-layer {
-  position: fixed;
-  z-index: 12;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 88px clamp(12px, 4vw, 64px) 110px;
-  pointer-events: none;
+@media (min-width: 761px) {
+  /* The thesis scrolls under a fixed tab strip. */
+  .thesis-reading {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: rgba(122, 46, 36, 0.5) transparent;
+    scrollbar-width: thin;
+  }
 }
 
-.scroll-veil {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at 50% 45%,
-    rgba(28, 18, 10, 0.16),
-    rgba(18, 10, 5, 0.46)
-  );
-  backdrop-filter: blur(4px) saturate(0.92);
-  pointer-events: auto;
-  animation: deck-fade 360ms ease both;
+.thesis-deck[data-layout='reading'] {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
-/* The ring renders at viewport size and is scaled up in CSS so it haloes the
-   scroll edges without a larger canvas. */
-.scroll-glow {
-  position: absolute;
-  inset: 0;
-  opacity: 0.5;
-  mix-blend-mode: screen;
-  transform: scale(2.15);
-  pointer-events: none;
-  animation: deck-fade 1200ms ease both;
+.thesis-deck[data-layout='reading'] .deck-stage {
+  --w: 36px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: auto;
+  padding: 10px 14px;
+  border-radius: 12px;
+  container-type: normal;
 }
 
-.scroll-glow-tint {
-  position: absolute;
-  inset: 0;
-  background: hsl(var(--hue) 70% 55%);
-  mix-blend-mode: color;
+.thesis-deck[data-layout='reading'] .deck-stage::before,
+.thesis-deck[data-layout='reading'] .deck-word,
+.thesis-deck[data-layout='reading'] .book-contact,
+.thesis-deck[data-layout='reading'] .book-copy,
+.thesis-deck[data-layout='reading'] .book-stamp,
+.thesis-deck[data-layout='reading'] .book-spine > *,
+.thesis-deck[data-layout='reading'] .book-plaque {
+  display: none;
 }
 
-.thesis-scroll {
-  --rod-h: 15px;
-  --roller-h: 26px;
+.deck-back {
   position: relative;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(1060px, 100%);
-  height: 100%;
-  max-height: 900px;
-  container-type: size;
-  pointer-events: auto;
+  z-index: 1;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid rgba(233, 201, 131, 0.4);
+  border-radius: 999px;
+  background: rgba(20, 12, 7, 0.35);
+  color: #f1e4c8;
+  font: 600 13px/1 var(--font-body);
+  letter-spacing: 0.04em;
 }
 
-.scroll-rod {
-  position: relative;
-  z-index: 3;
-  height: var(--rod-h);
-  margin-inline: -24px;
-  border-radius: 5px;
-  background:
-    linear-gradient(90deg, #6a4819, #e6c57c 32%, #8e6526 64%, #d6b267) left
-      center / 14px 100% no-repeat,
-    linear-gradient(90deg, #d6b267, #8e6526 36%, #e6c57c 68%, #6a4819) right
-      center / 14px 100% no-repeat,
-    linear-gradient(
-      180deg,
-      #8d5f3e 0%,
-      #5b3923 32%,
-      var(--rod) 56%,
-      #1f1209 82%,
-      #4b2f1e 100%
-    );
-  filter: drop-shadow(0 5px 5px rgba(14, 8, 4, 0.5));
+.deck-back:hover {
+  border-color: rgba(233, 201, 131, 0.75);
+  background: rgba(20, 12, 7, 0.55);
 }
 
-.scroll-rod--bottom {
-  height: var(--roller-h);
-  margin-inline: -30px;
-  border-radius: 7px / 50%;
-  background:
-    linear-gradient(
-        90deg,
-        #5a3b14,
-        #f1d38e 34%,
-        #a47a30 62%,
-        #e7c47a 84%,
-        #6a4819
-      )
-      left center / 18px 100% no-repeat,
-    linear-gradient(
-        90deg,
-        #6a4819,
-        #e7c47a 16%,
-        #a47a30 38%,
-        #f1d38e 66%,
-        #5a3b14
-      )
-      right center / 18px 100% no-repeat,
-    linear-gradient(
-        180deg,
-        #936343 0%,
-        #5f3c24 26%,
-        var(--rod) 50%,
-        #1c1008 78%,
-        #4a2e1d 100%
-      )
-      center / calc(100% - 34px) 70% no-repeat;
-}
-
-.scroll-rod--top {
-  animation: deck-fade 240ms ease both;
-}
-
-.scroll-rod--top i {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  width: 90px;
-  height: 18px;
-  border: 1.5px solid rgba(184, 145, 63, 0.7);
-  border-bottom: 0;
-  border-radius: 45px 45px 0 0;
-  transform: translateX(-50%);
-}
-
-.scroll-rod--bottom {
-  animation: scroll-rod-drop var(--dur-unroll) var(--ease-unroll) both;
-}
-
-.scroll-sheet {
-  position: relative;
-  min-height: 0;
-  padding: 24px 11px 28px;
-  background:
-    repeating-linear-gradient(
-      45deg,
-      rgba(233, 201, 131, 0.14) 0 1px,
-      transparent 1px 7px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      rgba(233, 201, 131, 0.14) 0 1px,
-      transparent 1px 7px
-    ),
-    linear-gradient(
-      90deg,
-      #4a1a14,
-      var(--brocade) 16%,
-      #7c3327 50%,
-      var(--brocade) 84%,
-      #4a1a14
-    );
-  box-shadow:
-    0 0 0 1px rgba(20, 10, 5, 0.55),
-    0 34px 70px -18px rgba(14, 8, 4, 0.78),
-    0 14px 26px rgba(14, 8, 4, 0.3);
-  animation: scroll-unroll var(--dur-unroll) var(--ease-unroll) both;
-}
-
-.scroll-close {
-  position: absolute;
-  z-index: 4;
-  top: 36px;
-  right: 32px;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  min-height: 42px;
+.thesis-deck[data-layout='reading'] .deck-books {
+  flex: 1;
+  gap: 6px;
+  justify-content: flex-start;
+  min-width: 0;
+  height: auto;
   padding: 0;
-  border: 1px solid rgba(74, 47, 29, 0.32);
-  border-radius: 50%;
-  background: rgba(255, 250, 238, 0.9);
-  color: var(--scroll-ink);
-  font-size: 25px;
+  overflow-x: auto;
+  scroll-snap-type: none;
+  scrollbar-width: none;
+}
+
+.thesis-deck[data-layout='reading'] .deck-books .deck-slot[data-slot] {
+  --y: 0px;
+  --rz: 0deg;
+  --ry: 18deg;
+  --po: 50% 30%;
+  flex: none;
+  margin: 0;
+}
+
+.thesis-deck[data-layout='reading'] .deck-book {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: auto;
+  padding: 6px 16px 6px 10px;
+  border-radius: 10px;
+  color: rgba(241, 228, 200, 0.72);
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.thesis-deck[data-layout='reading'] .deck-book:hover {
+  background: rgba(255, 240, 210, 0.08);
+  color: #f1e4c8;
+}
+
+.thesis-deck[data-layout='reading'] .deck-book[aria-current='true'] {
+  background: rgba(255, 240, 210, 0.13);
+  box-shadow: inset 0 -2px var(--gold-bright);
+  color: #fbf1da;
+}
+
+.thesis-deck[data-layout='reading'] .deck-book:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.thesis-deck[data-layout='reading'] .deck-book:hover .book-pose,
+.thesis-deck[data-layout='reading'] .deck-book:focus-visible .book-pose,
+.thesis-deck[data-layout='reading'] .deck-book[aria-current='true'] .book-pose {
+  transform: translateY(-3px) rotateY(0deg);
+}
+
+.thesis-deck[data-layout='reading'] .book-shadow {
+  filter: blur(6px);
+  transform: translate3d(4px, 6px, -20px);
+}
+
+.book-tab {
+  display: none;
+}
+
+.thesis-deck[data-layout='reading'] .book-tab {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+
+.book-tab-numeral {
+  color: var(--gold-bright);
+  font: 700 10px/1 var(--font-body);
+  letter-spacing: 0.22em;
+}
+
+.book-tab-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
 }
 
-.scroll-close:hover {
-  background: #fffaf0;
-  border-color: rgba(74, 47, 29, 0.6);
+.thesis-reading {
+  padding: 22px 4px 8px;
 }
 
-.scroll-paper {
-  position: relative;
-  height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: clamp(24px, 3vw, 40px) clamp(20px, 3.6vw, 52px);
-  box-shadow:
-    inset 0 0 0 1px rgba(184, 145, 63, 0.9),
-    inset 0 0 0 3px rgba(250, 243, 225, 0.85),
-    inset 0 0 0 4px rgba(184, 145, 63, 0.4),
-    inset 0 0 38px rgba(112, 72, 30, 0.2);
-  background:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .32 0 0 0 0 .18 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='.2'/%3E%3C/svg%3E"),
-    radial-gradient(
-      130% 95% at 50% 32%,
-      transparent 52%,
-      rgba(122, 78, 34, 0.17)
-    ),
-    linear-gradient(
-      178deg,
-      #faf3e1,
-      var(--scroll-paper) 38%,
-      var(--scroll-paper-deep)
-    );
-  color: var(--scroll-ink);
-  scrollbar-color: rgba(122, 46, 36, 0.5) transparent;
-  scrollbar-width: thin;
+.thesis-reading .scroll-title:focus {
+  outline: none;
 }
 
 .scroll-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 30%) minmax(0, 1fr);
+  grid-template-columns: minmax(170px, 24%) minmax(0, 1fr);
   align-items: start;
   gap: 18px clamp(24px, 3.4vw, 52px);
 }
@@ -1054,13 +984,8 @@
   margin: 0;
 }
 
-.scroll-leaves,
-.scroll-actions,
-.scroll-toast {
-  grid-column: 1 / -1;
-}
-
 .scroll-leaves {
+  grid-column: 1 / -1;
   margin-top: 4px;
 }
 
@@ -1109,39 +1034,37 @@
 }
 
 .scroll-kicker {
-  margin: 6px 0 12px;
+  margin: 2px 0 10px;
   color: var(--seal);
   font: 700 11px/1 var(--font-body);
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
-.scroll-title {
+/* Beats the panel's generic h2 rule in globals.css. */
+.app-shell .reading-panel .thesis-reading h2.scroll-title {
   margin: 0 0 8px;
   color: var(--scroll-ink);
-  font-family: var(--font-display);
-  font-size: clamp(36px, 4.2vw, 58px);
-  font-weight: 600;
-  line-height: 0.98;
+  font: 600 clamp(30px, 2.8vw, 44px) / 0.98 var(--font-display);
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
 .scroll-sub {
-  margin: 0 0 18px;
+  margin: 0 0 12px;
   color: var(--book-ink);
   font-family: var(--font-display);
-  font-size: clamp(19px, 1.7vw, 23px);
+  font-size: clamp(19px, 1.5vw, 22px);
   font-style: italic;
 }
 
 .scroll-body {
-  max-width: 60ch;
-  margin: 0 0 24px;
+  max-width: 62ch;
+  margin: 0 0 16px;
   color: var(--scroll-ink);
   font-family: var(--font-display);
-  font-size: clamp(18px, 1.4vw, 21px);
-  line-height: 1.5;
+  font-size: clamp(17px, 1.25vw, 20px);
+  line-height: 1.45;
 }
 
 .scroll-meter {
@@ -1149,8 +1072,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: 18px;
-  margin-bottom: 12px;
-  padding: 16px 18px;
+  padding: 14px 18px;
   border: 1px solid var(--scroll-line);
   border-radius: 10px;
   background: linear-gradient(
@@ -1286,7 +1208,6 @@
   line-height: 1.45;
 }
 
-.scroll-live,
 .leaf-live {
   display: flex;
   flex-wrap: wrap;
@@ -1616,7 +1537,7 @@
   padding: 6px 0;
 }
 
-.scroll-layer .plaque-shimmer {
+.thesis-reading .plaque-shimmer {
   background-image: linear-gradient(
     90deg,
     rgba(74, 47, 29, 0.08),
@@ -1640,8 +1561,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding-top: 20px;
-  border-top: 1px solid var(--scroll-line);
+  padding-top: 16px;
 }
 
 .scroll-action {
@@ -1703,44 +1623,20 @@
   font-size: 12.5px;
 }
 
-/* Staggered ink: each block settles onto the paper after the unroll starts. */
-.thesis-scroll .ink {
+/* Staggered ink: each block settles onto the paper as the books reach their tabs. */
+.thesis-reading .ink {
   animation: scroll-ink var(--dur-ink) ease both;
-  animation-delay: calc(240ms + var(--i, 0) * 70ms);
+  animation-delay: calc(200ms + var(--i, 0) * 70ms);
 }
 
-/* The cover art morphs into the scroll art through a view transition. */
-::view-transition-group(thesis-art) {
-  animation-duration: var(--dur-unroll);
+/* Each book flies to its tab (and back) as its own view-transition group. */
+html.thesis-vt::view-transition-group(*) {
+  animation-duration: 620ms;
   animation-timing-function: var(--ease-unroll);
 }
 
-::view-transition-old(thesis-art),
-::view-transition-new(thesis-art) {
-  height: 100%;
-  object-fit: cover;
-}
-
 html.thesis-vt::view-transition-group(root) {
-  animation-duration: 360ms;
-}
-
-@keyframes scroll-unroll {
-  from {
-    clip-path: inset(0 0 100% 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes scroll-rod-drop {
-  from {
-    transform: translateY(calc(-100cqh + var(--rod-h) + var(--roller-h)));
-  }
-  to {
-    transform: none;
-  }
+  animation-duration: 320ms;
 }
 
 @keyframes scroll-ink {
@@ -1794,30 +1690,34 @@ html.thesis-vt::view-transition-group(root) {
 }
 
 @media (max-width: 760px) {
-  .scroll-layer {
-    padding: 74px 10px 100px;
+  .thesis-deck[data-layout='reading'] .deck-stage {
+    gap: 8px;
+    padding: 8px;
   }
 
-  .thesis-scroll {
-    --rod-h: 12px;
-    --roller-h: 20px;
+  .deck-back {
+    justify-content: center;
+    width: 44px;
+    padding: 0;
   }
 
-  .scroll-rod {
-    margin-inline: -6px;
+  /* Arrow only on phones; the words stay for screen readers. */
+  .deck-back-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
-  .scroll-rod--top i {
+  /* Phones keep the tab strip to the mini books; the title sits right below. */
+  .thesis-deck[data-layout='reading'] .deck-book {
+    padding: 4px 10px;
+  }
+
+  .thesis-deck[data-layout='reading'] .book-tab {
     display: none;
-  }
-
-  .scroll-sheet {
-    padding: 12px 8px;
-  }
-
-  .scroll-close {
-    top: 20px;
-    right: 18px;
   }
 
   .scroll-grid {
@@ -1854,37 +1754,107 @@ html.thesis-vt::view-transition-group(root) {
   }
 }
 
-/* Seal straddling the right seam, as on the shared panel. */
-.scroll-sheet::after {
-  content: attr(data-seal);
-  position: absolute;
-  z-index: 5;
-  top: 24%;
-  right: -4px;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 3px 5px 4px 3px;
-  background: radial-gradient(
-    circle at 32% 26%,
-    #c7402f,
-    var(--seal) 58%,
-    #7c1911
-  );
-  box-shadow:
-    inset 0 0 0 2px rgba(251, 239, 220, 0.86),
-    inset 0 0 0 3.5px var(--seal),
-    0 1px 2px rgba(60, 10, 5, 0.35);
-  color: #fbefdc;
-  font: 600 19px / 1 var(--font-cjk);
-  opacity: 0.93;
-  transform: rotate(-4deg);
+.thesis-reading button:focus-visible,
+.thesis-reading a:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 3px;
+}
+
+/* ---------- Ember halo on the 3D thesis cards ---------- */
+
+.thesis-card-halo-wrap {
   pointer-events: none;
 }
 
-.scroll-layer button:focus-visible,
-.scroll-layer a:focus-visible {
-  outline: 2px solid var(--seal);
-  outline-offset: 3px;
+/* A 36px hit area around an 18px ember. */
+.thesis-card-halo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  pointer-events: auto;
+}
+
+.thesis-card-halo::before,
+.thesis-card-halo::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.thesis-card-halo::before {
+  background: radial-gradient(
+    circle at 44% 40%,
+    #fff3cf 0 16%,
+    #f6b45a 40%,
+    #c8501f 68%,
+    rgba(200, 80, 31, 0) 72%
+  );
+  box-shadow: 0 0 10px 2px rgba(246, 180, 90, 0.55);
+}
+
+.thesis-card-halo::after {
+  border: 1.5px solid rgba(246, 180, 90, 0.7);
+  animation: ember-pulse 2.4s ease-out infinite;
+}
+
+.thesis-card-halo:hover::before,
+.thesis-card-halo:focus-visible::before {
+  box-shadow: 0 0 14px 4px rgba(246, 180, 90, 0.75);
+}
+
+.thesis-card-halo:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 0;
+}
+
+.thesis-card-halo[data-reduced='true']::after {
+  animation: none;
+  opacity: 0.6;
+}
+
+.thesis-card-halo-label {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  padding: 5px 10px 6px;
+  border: 1px solid rgba(233, 201, 131, 0.55);
+  border-radius: 2px;
+  background: rgba(33, 22, 13, 0.9);
+  color: #f6e8c8;
+  font: 600 12px/1.2 var(--font-body);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  pointer-events: none;
+}
+
+.thesis-card-halo:hover .thesis-card-halo-label,
+.thesis-card-halo:focus-visible .thesis-card-halo-label {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@keyframes ember-pulse {
+  from {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2);
+  }
 }

@@ -88,42 +88,6 @@ function buildScale([x, y, z]: Point) {
   };
 }
 
-/** A brass hand bell with a turned wooden handle, lying on its side. */
-function buildBell([x, y, z]: Point) {
-  const bell = lathe(
-    [
-      [0, 0.07],
-      [0.012, 0.068],
-      [0.022, 0.05],
-      [0.03, 0.018],
-      [0.036, 0.004],
-      [0.038, 0],
-      [0.034, 0.002],
-      [0.028, 0.02],
-      [0.018, 0.052],
-      [0, 0.062],
-    ],
-    [0, 0, 0],
-  );
-  const handle = lathe(
-    [
-      [0, 0],
-      [0.009, 0],
-      [0.011, 0.02],
-      [0.008, 0.06],
-      [0.01, 0.075],
-      [0, 0.08],
-    ],
-    [0, 0.068, 0],
-  );
-  const turn: Point = [0, 0.4, Math.PI / 2 - 0.1],
-    at: Point = [x, y + 0.037, z];
-  return {
-    bell: paint(place(bell, at, turn), brass),
-    handle: paint(place(handle, at, turn), '#3a1e12'),
-  };
-}
-
 /** Round tea cakes pressed from leaf, wrapped in printed paper; the print is 普洱 (pu-erh). */
 function drawWrapper(ctx: CanvasRenderingContext2D) {
   const random = createRandom(88);
@@ -150,11 +114,10 @@ const CAKES: [Point, number][] = [
   [[-2.2, 1.33, 5.65], 2],
 ];
 
-/** Counter-top life: a balance scale, a hand bell and stacks of wrapped tea cakes. */
+/** Counter-top life: a balance scale and stacks of wrapped tea cakes. */
 export function CounterDetail({ top }: { top: number }) {
   const built = useBuilt(() => {
     const scale = buildScale([-0.64, top, 5.78]),
-      bell = buildBell([-0.78, top, 6.42]),
       cakes = merge(
         CAKES.flatMap(([[x, y, z], count]) =>
           Array.from({ length: count }, (_, i) =>
@@ -166,8 +129,8 @@ export function CounterDetail({ top }: { top: number }) {
           ),
         ),
       ),
-      metal = merge([scale.metal, bell.bell]),
-      wood = merge([scale.wood, bell.handle]),
+      metal = scale.metal,
+      wood = scale.wood,
       wrapper = canvasTexture(256, 256, drawWrapper);
     return {
       metal,
