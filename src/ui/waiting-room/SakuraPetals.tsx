@@ -239,7 +239,7 @@ export function PetalCanvas({
   return (
     <Canvas
       className={className}
-      dpr={[1, 1.5]}
+      dpr={[1, 1]}
       frameloop={reduced ? 'demand' : 'always'}
       gl={{ antialias: true, alpha: true }}
       camera={{ position: [0, 1, 14], fov: 45, near: 0.1, far: 60 }}

@@ -5,7 +5,7 @@ export type Member = {
   portrait: string;
 };
 
-const art = (name: string) => `/images/waiting-room/${name}.jpg`;
+const art = (name: string) => `/images/waiting-room/${name}.webp`;
 
 export const TEAM: Member[] = [
   {

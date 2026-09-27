@@ -20,6 +20,7 @@ import { convictionToMood } from './convictionMood';
 import { InkLine, STATION_TEASERS } from './stationTeasers';
 import { WaitingRoom } from './waiting-room/WaitingRoom';
 import { WaitingVersions } from './waiting-room/Versions';
+import { MusicToggle } from './MusicToggle';
 
 // Scene / deck / chat stay out of the first paint; idle preloads warm them.
 const loadTeaRoom = () => import('../scene/TeaRoom');
@@ -352,6 +353,7 @@ export default function TeaRoomShell({
         </a>
 
         <div className="topbar-right">
+          <MusicToggle floating={isEntrance} />
           <div className="status-indicator">
             <button className="status-icon" aria-label="Data source status">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -432,6 +434,7 @@ export default function TeaRoomShell({
             onMenuOpen={openPanel}
             onThesisPick={pickThesis}
             onNavigate={navigate}
+            polish={revealed}
           />
 
           {!isEntrance && sceneAvailable && (

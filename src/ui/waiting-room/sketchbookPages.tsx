@@ -13,24 +13,70 @@ const Folio = ({ n }: { n: number }) => (
   </span>
 );
 
+function sketchSources(src: string) {
+  if (src.endsWith('sketch-shop-front.webp')) {
+    return {
+      src,
+      srcSet:
+        '/images/waiting-room/sketch-shop-front-640w.webp 640w, /images/waiting-room/sketch-shop-front.webp 960w',
+      sizes: '(max-width: 720px) 320px, 40vw',
+    };
+  }
+  if (src.includes('/waiting-room/team-')) {
+    return {
+      src,
+      srcSet: `${src.replace('.webp', '-480w.webp')} 480w, ${src} 768w`,
+      sizes: '(max-width: 720px) 240px, 280px',
+    };
+  }
+  return { src, srcSet: undefined, sizes: undefined };
+}
+
+/** The same candidate `srcset` would pick, so a riffle warm-up is not a second download. */
+export function sketchPreloadUrl(src: string) {
+  if (typeof window === 'undefined') return src;
+  const small = window.matchMedia('(max-width: 720px)').matches;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const team = src.includes('/waiting-room/team-');
+  const css = team
+    ? small
+      ? 240
+      : 280
+    : small
+      ? 320
+      : window.innerWidth * 0.4;
+  const need = css * dpr;
+  if (src.endsWith('sketch-shop-front.webp'))
+    return need <= 640 ? src.replace('.webp', '-640w.webp') : src;
+  if (team) return need <= 480 ? src.replace('.webp', '-480w.webp') : src;
+  return src;
+}
+
 function Sketch({
   src,
   alt,
   live,
   className = '',
+  priority = false,
 }: {
   src: string;
   alt: string;
   live: boolean;
   className?: string;
+  priority?: boolean;
 }) {
+  const image = sketchSources(src);
   return (
     <img
       className={`sb-sketch ${className}`}
-      src={src}
+      src={image.src}
+      srcSet={image.srcSet}
+      sizes={image.sizes}
       alt={live ? alt : ''}
       draggable={false}
       decoding="async"
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
     />
   );
 }
@@ -139,8 +185,8 @@ function memberPage(member: Member, n: number, folio: number): SketchPage {
   };
 }
 
-const SHOP_SKETCH = '/images/waiting-room/sketch-shop-front.jpg';
-const ROOM_SKETCH = '/images/waiting-room/sketch-tea-room.jpg';
+const SHOP_SKETCH = '/images/waiting-room/sketch-shop-front.webp';
+const ROOM_SKETCH = '/images/waiting-room/sketch-tea-room.webp';
 
 /** Every picture in the book, so a fast riffle never shows a blank page. */
 export const SKETCH_IMAGES = [
@@ -158,6 +204,7 @@ export const SKETCH_PAGES: SketchPage[] = [
           src={SHOP_SKETCH}
           alt="Ink and watercolour sketch of the tea shop front at dusk, doors open under a cherry tree."
           live={live}
+          priority={live}
         />
         <p className="sb-caption-hand">
           The shop at dusk. The doors stay open.

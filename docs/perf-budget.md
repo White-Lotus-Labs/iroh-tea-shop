@@ -48,3 +48,50 @@ Measured against `http://127.0.0.1:3118` after merging lanes P/U/C/W/S (producti
 | font | 122.6 KB |
 | other | 0.0 KB |
 | **total** | **5947.9 KB** |
+
+## Before page-speed PR (this host)
+
+Measured 2026-09-27T12:30:02Z on production `next start` at `737a450`, headless Google Chrome, Linux (no Metal GPU). Byte totals are the sum of response `Content-Length` (uncompressed, and a repeat response is counted again). “Entrance visible” is `aria-busy` clearing. The desktop entrance time did not record on that run; the polish-pass figure above (2363 ms, Metal) is the earlier desktop ready time. Mobile used a 390×844 viewport at 2x, CDP Fast 4G (~1.6 Mbps, 150 ms RTT) and 4× CPU.
+
+| Metric | Desktop | Mobile Fast 4G | Budget |
+| --- | ---: | ---: | ---: |
+| Entrance visible | — (see 2363 ms above) | 15044 ms | ≤ 5 s |
+| Step inside enabled | yes | yes | |
+| Transfer after settle | 5726.5 KB | 3659.0 KB | ≤ 2.5 MB |
+| JS | 1723.6 KB | 1723.6 KB | ≤ 450 KB gzip |
+| Images | 3658.7 KB | 1591.2 KB | ≤ 1.2 MB |
+| CSS | 203.5 KB | 203.5 KB | |
+| Fonts | 122.6 KB | 122.6 KB | ≤ 150 KB |
+
+## After page-speed PR
+
+Measured 2026-09-27T12:41:32Z the same way, after WebP waiting-room art, deferring AO / bloom / environment and shelf posters until after Step inside, and a lower mobile quality rung. Raw totals use the same Content-Length sum. Wire totals are Resource Timing `transferSize` (gzip and cache hits).
+
+| Metric | Desktop | Mobile Fast 4G | Budget | Status |
+| --- | ---: | ---: | ---: | --- |
+| Entrance visible | 9453 ms | 10274 ms | ≤ 5 s | miss on this host |
+| Step inside enabled | yes | yes | | |
+| Raw transfer | 3500.7 KB | 2626.2 KB | ≤ 2.5 MB | desktop miss, mobile close |
+| Wire transfer | 1791.2 KB | 1271.3 KB | ≤ 2.5 MB | pass |
+| JS raw | 1636.7 KB | 1644.8 KB | ≤ 450 KB gzip | raw miss |
+| JS gzip (largest chunks) | ~423 KB | ~423 KB | ≤ 450 KB gzip | pass for those chunks |
+| Images raw | 1517.9 KB | 608.4 KB | ≤ 1.2 MB | desktop miss, mobile pass |
+| CSS | 204.9 KB | 231.8 KB | | |
+| Fonts | 122.6 KB | 122.6 KB | ≤ 150 KB | pass |
+
+| Type | Desktop raw | Mobile raw |
+| --- | ---: | ---: |
+| document | 18.6 KB | 18.6 KB |
+| js | 1636.7 KB | 1644.8 KB |
+| css | 204.9 KB | 231.8 KB |
+| image | 1517.9 KB | 608.4 KB |
+| font | 122.6 KB | 122.6 KB |
+| **total** | **3500.7 KB** | **2626.2 KB** |
+
+### What still misses the budget
+
+- three.js is still about 846 KB raw (~226 KB gzip) and loads before Step inside, because the room has to be ready. That is most of the JS.
+- Desktop raw transfer stays over 2.5 MB. The wire number is under 2.5 MB.
+- Desktop images stay over 1.2 MB: diorama, back wall, thesis covers on the counter, and the sketchbook riffle. Mobile images pass.
+- Entrance time on this headless Linux host is about 9.5 s unthrottled and 10.3 s on Fast 4G (down from 15.0 s). The 2.4 s figure was a Metal GPU. Step inside still waits for the 3D room.
+- AO, bloom, and the environment chunk stay off the entrance download. They load after Step inside. Shelf poster textures do too.

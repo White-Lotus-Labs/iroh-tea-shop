@@ -21,8 +21,8 @@ import {
 // integrating a bend angle across its width, and normals are rebuilt from the
 // analytic tangents. Retuned for a hanging sheet: the top edge is held by its
 // rod, the free bottom edge carries the curl, and the amplitude is ~1/3.
-const SW = 0.36;
-const SH = 0.48;
+const SW = 0.5;
+const SH = 0.72;
 const SWAY_PERIOD = 6.2;
 const TIME_SCALE = 1.2;
 const REDUCED_TIME = 2.4;
@@ -36,9 +36,9 @@ const ART = [
 
 // Podium order, left to right from the room: rank 2, rank 1, rank 3.
 const SHEETS = [
-  { art: 1, z: -0.43, drop: 0.09, scale: 1, phase: 2.1 },
-  { art: 0, z: 0, drop: 0.14, scale: 1.12, phase: 0 },
-  { art: 2, z: 0.43, drop: 0.09, scale: 1, phase: 4.2 },
+  { art: 1, z: -0.62, drop: 0.08, scale: 1, phase: 2.1 },
+  { art: 0, z: 0, drop: 0.11, scale: 1.08, phase: 0 },
+  { art: 2, z: 0.62, drop: 0.08, scale: 1, phase: 4.2 },
 ] as const;
 
 const WAVE = /* glsl */ `
@@ -137,8 +137,16 @@ function stringGeometry() {
   return geometry;
 }
 
-/** Ranks 1-3 hang as paper talismans in the Shelf's open middle bay. */
-export function HangingPaper({ reduced }: { reduced: boolean }) {
+/** Ranks 1-3 hang as poster papers in the Shelf's open middle bay. */
+export function HangingPaper({
+  reduced,
+  emphasized,
+  onSelect,
+}: {
+  reduced: boolean;
+  emphasized: boolean;
+  onSelect: () => void;
+}) {
   const textures = useTexture(ART);
   const gl = useThree((state) => state.gl);
   const pivots = useRef<(Group | null)[]>([]);
@@ -271,7 +279,11 @@ export function HangingPaper({ reduced }: { reduced: boolean }) {
   };
 
   return (
-    <group name="hanging-paper" position={[-0.4, 2.39, 0]}>
+    <group
+      name="hanging-paper"
+      position={[-0.42, 2.15, 0]}
+      scale={emphasized ? 1.06 : 1}
+    >
       {SHEETS.map((s, index) => (
         <group
           key={s.art}
@@ -302,6 +314,10 @@ export function HangingPaper({ reduced }: { reduced: boolean }) {
               material={materials[index]}
               position={[0, -s.drop - 0.004 - SH / 2, 0]}
               castShadow
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect();
+              }}
               onPointerOver={(event) => {
                 event.stopPropagation();
                 hoverTarget.current[index] = 1;
