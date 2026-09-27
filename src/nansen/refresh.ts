@@ -6,14 +6,18 @@ import { THESES } from '../thesis/deck';
 import {
   DECK_CACHE_KEY,
   SUMMARY_CONCURRENCY,
+  deckFailed,
   detailCacheKey,
+  detailFailed,
   loadDeckSnapshot,
   loadTickerDetail,
   mapPool,
   preferExistingDeck,
+  preferExistingDetail,
 } from '../thesis/nansen';
 import type { ThesisId } from '../thesis/types';
 import {
+  NANSEN_REFRESH_MS,
   markNansenSnapshotStale,
   readNansenSnapshot,
   writeNansenSnapshot,
@@ -29,7 +33,10 @@ export type RefreshReport = {
 type Job = {
   key: string;
   load: () => Promise<object>;
-  preferExisting?: typeof preferExistingDeck;
+  /** Returns a reason to keep the saved row instead of the fresh load. */
+  preferExisting?: (fresh: any, existing: any) => string | null;
+  /** True when the fresh load holds no usable data at all. */
+  failed?: (fresh: any) => boolean;
 };
 
 function errorMessage(error: unknown): string {
@@ -46,15 +53,17 @@ async function refreshOne(
   const existing = await readNansenSnapshot(database, job.key, now);
   try {
     const fresh = await job.load();
-    if (existing && job.preferExisting) {
-      const reason = job.preferExisting(
-        fresh as unknown as Parameters<typeof preferExistingDeck>[0],
-        existing as unknown as Parameters<typeof preferExistingDeck>[1],
-      );
-      if (reason) {
-        await markNansenSnapshotStale(database, job.key, reason, now);
-        return 'kept';
-      }
+    const reason = existing && job.preferExisting?.(fresh, existing);
+    // Keep the saved row while it is recent, or when the fresh load got nothing
+    // at all, so a lasting partial failure cannot freeze a reading forever.
+    if (
+      existing &&
+      reason &&
+      (now - Date.parse(existing.fetchedAt) < 2 * NANSEN_REFRESH_MS ||
+        job.failed?.(fresh))
+    ) {
+      await markNansenSnapshotStale(database, job.key, reason, now);
+      return 'kept';
     }
     await writeNansenSnapshot(database, job.key, fresh, now);
     return 'saved';
@@ -77,6 +86,7 @@ function jobsFor(
     key: DECK_CACHE_KEY,
     load: () => loadDeckSnapshot(apiKey),
     preferExisting: preferExistingDeck,
+    failed: deckFailed,
   };
   const leaderboards: Job[] = leaderboardRefreshTargets().map((target) => ({
     key: target.key,
@@ -103,6 +113,8 @@ function jobsFor(
         if (!detail) throw new NansenError('Unknown thesis or symbol.', 404);
         return detail;
       },
+      preferExisting: preferExistingDetail,
+      failed: detailFailed,
     })),
   );
   return { first: [deck, ...leaderboards], details };

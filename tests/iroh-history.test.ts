@@ -155,6 +155,21 @@ describe('persistent Iroh chats', () => {
     expect(request.text.length).toBeLessThanOrEqual(6000);
   });
 
+  it('moves a chat to the top when a later turn is saved without a finish', async () => {
+    const { user } = await createAccount(db, 'Mark', 'correct horse');
+    const a = await createChat(db, user.id);
+    await appendUserMessage(db, user.id, a.id, 'q1');
+    const b = await createChat(db, user.id);
+    await appendUserMessage(db, user.id, b.id, 'q1');
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await appendUserMessage(db, user.id, a.id, 'q2');
+    await appendAssistantMessage(db, user.id, a.id, 'partial', 'stopped');
+    expect((await listChats(db, user.id)).map((chat) => chat.id)).toEqual([
+      a.id,
+      b.id,
+    ]);
+  });
+
   it('rolls back an admitted user write and title if Stop precedes upstream start', async () => {
     const { user } = await createAccount(db, 'Mark', 'correct horse');
     const chat = await createChat(db, user.id);
