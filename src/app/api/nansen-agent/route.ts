@@ -274,17 +274,18 @@ export async function POST(request: Request) {
       cache: 'no-store',
     });
   } catch {
+    // A timeout or Stop after the call started may already cost Nansen credits.
+    const unanswered = !fetchStarted || !upstreamController.signal.aborted;
     let rollbackFailed = false;
     try {
-      if (!fetchStarted) await rollbackPrepared();
+      if (unanswered) await rollbackPrepared();
     } catch {
       rollbackFailed = true;
     } finally {
       releaseUpstream();
       releaseTurn?.();
     }
-    // A timeout or Stop after the call started may already cost Nansen credits.
-    if (!fetchStarted || !upstreamController.signal.aborted) refundCup();
+    if (unanswered) refundCup();
     if (rollbackFailed)
       return jsonError(500, 'The cancelled question could not be cleaned up.');
     if (lease.signal.aborted) return jsonError(499, 'Question cancelled.');
@@ -371,9 +372,11 @@ export async function POST(request: Request) {
           );
       } finally {
         releaseUpstream();
-        // An error with no text lets the guest retry; Stop and timeout keep the cup.
-        if (!finished && !answer && !upstreamController.signal.aborted)
+        // An error with no text lets the user retry; Stop and timeout keep the cup.
+        if (!finished && !answer && !upstreamController.signal.aborted) {
           refundCup();
+          await rollbackPrepared().catch(() => {});
+        }
         await reader.cancel().catch(() => {});
         let saveFailed = false;
         if (persisted) {
