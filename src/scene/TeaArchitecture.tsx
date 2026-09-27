@@ -25,6 +25,13 @@ import {
   useBuilt,
   WoodMaterial,
 } from './props/craft';
+import {
+  SCROLL,
+  SCROLL_HANGER,
+  SCROLL_HOOK_Y,
+  SCROLL_ROD,
+  SCROLL_WEIGHT,
+} from './props/hanging';
 
 const timber = '#3a2419';
 const plaster = '#8a7862';
@@ -223,9 +230,7 @@ function drawIchigo(ctx: CanvasRenderingContext2D) {
   brushText(ctx, '閑', 214, 412, 18, '230,216,186');
 }
 
-// Sized to hang below the nageshi (2.26 m) and clear the wainscot rail (0.985 m).
-const SCROLL = { width: 0.5, height: 1.12, drop: 0.11 };
-/** A scroll hung by its cord from a screw eye whose ring bottom is at `hook`. */
+/** A scroll hung by one vertical cord from a screw eye whose ring bottom is at `hook`. */
 function Scroll({
   hook,
   paint = drawEnso,
@@ -250,23 +255,26 @@ function Scroll({
         <meshStandardMaterial map={art} roughness={0.92} />
       </mesh>
       <mesh
-        position={[0, rod - height - 0.008, 0.012]}
+        position={[0, rod - height - SCROLL_WEIGHT.gap, 0.012]}
         rotation={[0, 0, Math.PI / 2]}
         castShadow
       >
-        <cylinderGeometry args={[0.018, 0.018, width + 0.08, 16]} />
+        <cylinderGeometry
+          args={[SCROLL_WEIGHT.radius, SCROLL_WEIGHT.radius, width + 0.08, 16]}
+        />
         <meshStandardMaterial color="#1e140d" roughness={0.4} />
       </mesh>
-      <mesh position={[0, rod, 0.004]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.009, 0.009, width + 0.02, 10]} />
+      <mesh position={[0, rod, SCROLL_ROD.z]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry
+          args={[SCROLL_ROD.radius, SCROLL_ROD.radius, width + 0.02, 10]}
+        />
         <meshStandardMaterial color="#2b1d12" roughness={0.6} />
       </mesh>
       <Hanger
-        hook={[0, 0, 0.006]}
-        ends={[
-          [-0.17, rod + 0.006, 0.006],
-          [0.17, rod + 0.006, 0.006],
-        ]}
+        hook={SCROLL_HANGER.hook}
+        into={SCROLL_HANGER.into}
+        ring={SCROLL_HANGER.ring}
+        ends={[SCROLL_HANGER.end]}
       />
     </group>
   );
@@ -737,7 +745,7 @@ export function WaitingDetail() {
     <>
       <Counter />
       <WaitingDressing />
-      <Scroll hook={[-3.99, 2.255, 9.05]} paint={drawBamboo} />
+      <Scroll hook={[-3.99, SCROLL_HOOK_Y, 9.05]} paint={drawBamboo} />
     </>
   );
 }
@@ -802,10 +810,10 @@ export function TeaChamber({ children }: { children: React.ReactNode }) {
 export function ChamberDetail({ reduced }: { reduced: boolean }) {
   return (
     <>
-      <Scroll hook={[-3.99, 2.255, -4.62]} />
-      <Scroll hook={[-3.99, 2.255, 0.4]} paint={drawBamboo} />
+      <Scroll hook={[-3.99, SCROLL_HOOK_Y, -4.62]} />
+      <Scroll hook={[-3.99, SCROLL_HOOK_Y, 0.4]} paint={drawBamboo} />
       <Scroll
-        hook={[3.99, 2.255, -2.45]}
+        hook={[3.99, SCROLL_HOOK_Y, -2.45]}
         paint={drawIchigo}
         turn={-Math.PI / 2}
       />
