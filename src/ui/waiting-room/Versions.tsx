@@ -2,11 +2,13 @@
 import { useEffect, useState } from 'react';
 import { Invitation } from './Invitation';
 import { Sketchbook } from './Sketchbook';
+import { Tanzaku } from './Tanzaku';
 import './Versions.css';
 
 const VERSIONS = [
   { id: 'sketchbook', letter: 'A', name: 'Sketchbook' },
   { id: 'invitation', letter: 'B', name: 'Invitation' },
+  { id: 'tanzaku', letter: 'C', name: 'Tanzaku' },
 ] as const;
 type Id = (typeof VERSIONS)[number]['id'];
 
@@ -41,8 +43,10 @@ export function WaitingVersions({ reduced }: { reduced: boolean }) {
       </nav>
       {id === 'sketchbook' ? (
         <Sketchbook reduced={reduced} />
-      ) : (
+      ) : id === 'invitation' ? (
         <Invitation reduced={reduced} />
+      ) : (
+        <Tanzaku reduced={reduced} />
       )}
     </>
   );
