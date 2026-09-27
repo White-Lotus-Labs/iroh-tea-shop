@@ -271,7 +271,8 @@ export function ThesisDeck({
         </p>
         {reading && (
           <button type="button" className="deck-back" onClick={close}>
-            <span aria-hidden="true">←</span> All scrolls
+            <span aria-hidden="true">←</span>
+            <span className="deck-back-label">All scrolls</span>
           </button>
         )}
         <ul ref={shelf} className="deck-books" aria-label="Thesis scrolls">

@@ -1695,7 +1695,19 @@ html.thesis-vt::view-transition-group(root) {
   }
 
   .deck-back {
-    padding: 0 12px;
+    justify-content: center;
+    width: 44px;
+    padding: 0;
+  }
+
+  /* Arrow only on phones; the words stay for screen readers. */
+  .deck-back-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   /* Phones keep the tab strip to the mini books; the title sits right below. */
