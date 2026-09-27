@@ -1,11 +1,7 @@
 import { NansenError } from '../nansen/client';
 import { managedNansenPost } from '../nansen/managed-client';
 import { NansenManagerError } from '../nansen/request-manager';
-import {
-  boardQuery,
-  type LeaderboardBoard,
-  type LeaderboardMetric,
-} from './boards';
+import { boardQuery, type HlBoard, type LeaderboardMetric } from './boards';
 import {
   normalizeLeaderboard,
   type SmartWalletLeaderboardEntry,
@@ -13,11 +9,30 @@ import {
 
 export class LeaderboardError extends NansenError {}
 
+/** Any failed leaderboard call becomes a LeaderboardError with a safe message. */
+export function toLeaderboardError(error: unknown): LeaderboardError {
+  if (error instanceof NansenManagerError)
+    return new LeaderboardError(error.message, error.status);
+  if (error instanceof NansenError) {
+    return new LeaderboardError(
+      error.status === 502
+        ? 'Smart Wallet leaderboard is temporarily unavailable.'
+        : error.message,
+      error.status,
+      error.retryAfterMs,
+    );
+  }
+  return new LeaderboardError(
+    'Smart Wallet leaderboard is temporarily unavailable.',
+    502,
+  );
+}
+
 export async function fetchNansenLeaderboard(
   key: string,
   now: number,
   fetcher: typeof fetch = fetch,
-  board: LeaderboardBoard = 'perps',
+  board: HlBoard = 'perps',
   metric: LeaderboardMetric = 'wins',
 ): Promise<SmartWalletLeaderboardEntry[]> {
   if (!key.trim())
@@ -42,20 +57,6 @@ export async function fetchNansenLeaderboard(
     );
     return normalizeLeaderboard(payload);
   } catch (error) {
-    if (error instanceof NansenManagerError)
-      throw new LeaderboardError(error.message, error.status);
-    if (error instanceof NansenError) {
-      throw new LeaderboardError(
-        error.status === 502
-          ? 'Smart Wallet leaderboard is temporarily unavailable.'
-          : error.message,
-        error.status,
-        error.retryAfterMs,
-      );
-    }
-    throw new LeaderboardError(
-      'Smart Wallet leaderboard is temporarily unavailable.',
-      502,
-    );
+    throw toLeaderboardError(error);
   }
 }

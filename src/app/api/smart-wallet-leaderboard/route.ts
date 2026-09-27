@@ -11,12 +11,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request?: Request) {
   const params = request ? new URL(request.url).searchParams : null;
+  const board = parseBoard(params?.get('board') ?? null);
   return jsonSavedReading(
     db,
-    boardCacheKey(
-      parseBoard(params?.get('board') ?? null),
-      parseMetric(params?.get('metric') ?? null),
-    ),
+    boardCacheKey(board, parseMetric(params?.get('metric') ?? null, board)),
     'Nansen API is not configured.',
   );
 }

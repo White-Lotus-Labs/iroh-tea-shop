@@ -4,15 +4,18 @@ import {
   BOARD_BLURB,
   BOARD_INTRO,
   BOARD_LABELS,
+  BOARD_METRICS,
+  BOARD_SOURCE,
   LEADERBOARD_BOARDS,
-  LEADERBOARD_METRICS,
   METRIC_LABELS,
   type LeaderboardBoard,
   type LeaderboardMetric,
 } from '../leaderboard/boards';
 import {
+  chainLabel,
   formatMoney,
   formatRoi,
+  formatWinRate,
   shortenAddress,
   type SmartWalletLeaderboardEntry,
   type SmartWalletLeaderboardSnapshot,
@@ -58,8 +61,14 @@ function isSnapshot(value: unknown): value is SmartWalletLeaderboardSnapshot {
   );
 }
 
-function nansenProfilerUrl(address: string) {
-  return `https://app.nansen.ai/profiler?address=${encodeURIComponent(address)}&chain=hyperliquid`;
+/** Meme rows carry chains: EVM addresses open every chain, the rest open Solana. */
+function nansenProfilerUrl({ address, chains }: SmartWalletLeaderboardEntry) {
+  const chain = chains
+    ? address.startsWith('0x')
+      ? 'all'
+      : 'solana'
+    : 'hyperliquid';
+  return `https://app.nansen.ai/profiler?address=${encodeURIComponent(address)}&chain=${chain}`;
 }
 
 function tone(value: number | null) {
@@ -93,12 +102,13 @@ function RoiChip({ roi }: { roi: number | null }) {
 }
 
 function WalletActions({
-  address,
+  entry,
   labelled = false,
 }: {
-  address: string;
+  entry: SmartWalletLeaderboardEntry;
   labelled?: boolean;
 }) {
+  const { address } = entry;
   const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
   useEffect(() => {
     if (copy === 'idle') return;
@@ -127,7 +137,7 @@ function WalletActions({
       </button>
       <a
         className={`wallet-action${labelled ? ' wallet-action-text' : ''}`}
-        href={nansenProfilerUrl(address)}
+        href={nansenProfilerUrl(entry)}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Research this wallet in Nansen (new tab)"
@@ -163,6 +173,7 @@ const SpiritCard = forwardRef<
   const name = shelfIdentityForRank(entry.rank)?.name ?? SHELF_GUEST_NAME;
   const label = shelfLabel(entry.displayName, entry.address);
   const positions = entry.positions ?? [];
+  const topTokens = entry.topTokens ?? [];
   const hasTrading = [
     entry.realizedPnl,
     entry.unrealizedPnl,
@@ -187,6 +198,24 @@ const SpiritCard = forwardRef<
         <p className="wallet-hero-eyebrow">{eyebrow(entry.rank, metric)}</p>
         <h2>{name}</h2>
         {label && <p className="wallet-label">{label}</p>}
+        {entry.chains && (
+          <p className="wallet-chains">
+            {entry.chains.map((chain) => (
+              <span key={chain} className="wallet-chain">
+                {chainLabel(chain)}
+              </span>
+            ))}
+            {entry.entity && (
+              <span
+                className="wallet-chain"
+                title="A Nansen entity that trades on Solana and EVM"
+              >
+                Entity
+                <span className="sr-only"> that trades on Solana and EVM</span>
+              </span>
+            )}
+          </p>
+        )}
         <dl className="wallet-hero-metrics">
           <div>
             <dt>30-day PnL</dt>
@@ -200,10 +229,17 @@ const SpiritCard = forwardRef<
               <RoiChip roi={entry.roi} />
             </dd>
           </div>
-          <div>
-            <dt>Account value</dt>
-            <dd>{formatMoney(entry.accountValue)}</dd>
-          </div>
+          {entry.chains ? (
+            <div>
+              <dt>Win rate</dt>
+              <dd>{formatWinRate(entry.winRate)}</dd>
+            </div>
+          ) : (
+            <div>
+              <dt>Account value</dt>
+              <dd>{formatMoney(entry.accountValue)}</dd>
+            </div>
+          )}
         </dl>
         {hasTrading && (
           <dl className="wallet-hero-trading">
@@ -221,10 +257,17 @@ const SpiritCard = forwardRef<
                 {formatMoney(entry.unrealizedPnl ?? null, true)}
               </dd>
             </div>
-            <div>
-              <dt>30-day volume</dt>
-              <dd>{formatMoney(entry.volume ?? null)}</dd>
-            </div>
+            {entry.tokens != null ? (
+              <div>
+                <dt>Tokens traded</dt>
+                <dd>{formatCount(entry.tokens)}</dd>
+              </div>
+            ) : (
+              <div>
+                <dt>30-day volume</dt>
+                <dd>{formatMoney(entry.volume ?? null)}</dd>
+              </div>
+            )}
             <div>
               <dt>Trades</dt>
               <dd>{formatCount(entry.trades)}</dd>
@@ -255,9 +298,73 @@ const SpiritCard = forwardRef<
             </ul>
           </div>
         )}
+        {topTokens.length > 0 && (
+          <div className="wallet-positions">
+            <p className="wallet-positions-head">Top tokens traded</p>
+            <ul>
+              {topTokens.map((token) => (
+                <li key={`${token.symbol}:${token.chain}`}>
+                  <strong>{token.symbol}</strong>
+                  <span className="wallet-position-value">
+                    {chainLabel(token.chain)}
+                  </span>
+                  <span
+                    className={`wallet-position-pnl wallet-tone-${tone(token.pnl)}`}
+                  >
+                    <span className="sr-only">Realized PnL </span>
+                    {formatMoney(token.pnl, true)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {entry.entityTotal && (
+          <div className="wallet-positions">
+            <p className="wallet-positions-head">
+              {entry.entity} · all wallets and chains
+            </p>
+            <dl className="wallet-hero-trading">
+              <div>
+                <dt>Realized</dt>
+                <dd
+                  className={`wallet-tone-${tone(entry.entityTotal.realizedPnl)}`}
+                >
+                  {formatMoney(entry.entityTotal.realizedPnl, true)}
+                </dd>
+              </div>
+              <div>
+                <dt>Tokens traded</dt>
+                <dd>{formatCount(entry.entityTotal.tokens)}</dd>
+              </div>
+              <div>
+                <dt>Trades</dt>
+                <dd>{formatCount(entry.entityTotal.trades)}</dd>
+              </div>
+            </dl>
+            {entry.entityTotal.topTokens.length > 0 && (
+              <ul>
+                {entry.entityTotal.topTokens.map((token) => (
+                  <li key={`${token.symbol}:${token.chain}`}>
+                    <strong>{token.symbol}</strong>
+                    <span className="wallet-position-value">
+                      {chainLabel(token.chain)}
+                    </span>
+                    <span
+                      className={`wallet-position-pnl wallet-tone-${tone(token.pnl)}`}
+                    >
+                      <span className="sr-only">Realized PnL </span>
+                      {formatMoney(token.pnl, true)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         <div className="wallet-hero-address">
           <code title={entry.address}>{shortenAddress(entry.address)}</code>
-          <WalletActions address={entry.address} labelled />
+          <WalletActions entry={entry} labelled />
         </div>
       </div>
     </article>
@@ -315,12 +422,19 @@ function WalletRow({
           </span>
         </span>
         <RoiChip roi={entry.roi} />
-        <span className="wallet-value">
-          <span className="sr-only">Account value </span>
-          {formatMoney(entry.accountValue)}
-        </span>
+        {entry.chains ? (
+          <span className="wallet-value">
+            <span className="sr-only">Win rate </span>
+            {formatWinRate(entry.winRate)}
+          </span>
+        ) : (
+          <span className="wallet-value">
+            <span className="sr-only">Account value </span>
+            {formatMoney(entry.accountValue)}
+          </span>
+        )}
       </button>
-      <WalletActions address={entry.address} />
+      <WalletActions entry={entry} />
     </li>
   );
 }
@@ -354,11 +468,12 @@ function FreshnessPopover({
         </button>
       </div>
       <p>
-        Rankings use Nansen&apos;s 30-day Hyperliquid leaderboard (
-        {BOARD_BLURB[board]}). Illustrated names are visual aliases—not claims
-        about wallet owners.
+        {board === 'meme'
+          ? "Rankings use Nansen's 30-day Smart Money PnL leaderboard, sorted by realized PnL and filtered here to wallets that trade mostly memecoins. Every row ranks on its own wallet's numbers; an entity card also shows that entity's total across its Solana and EVM wallets."
+          : `Rankings use Nansen's 30-day ${BOARD_SOURCE[board]} leaderboard (${BOARD_BLURB[board]}).`}{' '}
+        Illustrated names are visual aliases—not claims about wallet owners.
       </p>
-      <p>The shop saves this ranking and refreshes it about once an hour.</p>
+      <p>The shop saves this ranking and refreshes it about every 4 hours.</p>
       <p className="leaderboard-freshness-age">
         {snapshot ? `Snapshot updated ${updated}.` : 'Loading…'}
       </p>
@@ -506,7 +621,10 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                 className={
                   board === id ? 'leaderboard-tab is-active' : 'leaderboard-tab'
                 }
-                onClick={() => setBoard(id)}
+                onClick={() => {
+                  setBoard(id);
+                  if (!BOARD_METRICS[id].includes(metric)) setMetric('wins');
+                }}
               >
                 {BOARD_LABELS[id]}
               </button>
@@ -521,7 +639,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
               }
               aria-label="Rank by"
             >
-              {LEADERBOARD_METRICS.map((id) => (
+              {BOARD_METRICS[board].map((id) => (
                 <option key={id} value={id}>
                   {METRIC_LABELS[id]}
                 </option>
@@ -537,7 +655,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             <>
               <p className="leaderboard-eyebrow">{SHELF_CAST_NAME}</p>
               <h1>
-                Top Hyperliquid Traders by{' '}
+                Top {board === 'meme' ? 'Meme' : BOARD_SOURCE[board]} Traders by{' '}
                 <em>
                   {metric === 'wins' ? '30-Day PnL' : METRIC_LABELS[metric]}
                 </em>
@@ -586,7 +704,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
               <span>Spirit</span>
               <span>30-day PnL</span>
               <span>ROI</span>
-              <span>Account value</span>
+              <span>{board === 'meme' ? 'Win rate' : 'Account value'}</span>
             </div>
             <ol
               className="wallet-list"
@@ -615,8 +733,14 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
             </ol>
             {snapshot!.entries.length < 10 && (
               <p className="leaderboard-note">
-                Nansen returned {snapshot!.entries.length} ranked wallets for
-                this period.
+                {board === 'meme'
+                  ? `Only ${snapshot!.entries.length} of Nansen's top Smart Money earners trade mostly memecoins this period.`
+                  : `Nansen returned ${snapshot!.entries.length} ranked wallets for this period.`}
+              </p>
+            )}
+            {board === 'meme' && metric === 'roi' && (
+              <p className="leaderboard-note">
+                ROI ranks only the top 100 Smart Money earners by realized PnL.
               </p>
             )}
           </div>
@@ -640,7 +764,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
           </div>
         ) : (
           <p className="leaderboard-message">
-            No Hyperliquid traders were returned for this period.
+            No {BOARD_SOURCE[board]} traders were returned for this period.
           </p>
         )}
         {!unconfigured && (

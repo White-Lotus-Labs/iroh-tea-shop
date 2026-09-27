@@ -591,19 +591,16 @@ const damp = (from: number, to: number, rate: number, dt: number) =>
  * The sculpted, rigged Iroh. He breathes, blinks, follows the visitor or his
  * cup with head and eyes, and plays short actions picked by activity: sips,
  * pours with a tea stream, nods, and a head shake on errors. Reduced motion
- * holds the rest pose. He stays hidden until his shaders are compiled, then
- * calls `onReady`.
+ * holds the rest pose. He stays hidden until his shaders are compiled.
  */
 export function IrohModel({
   reduced,
   activity,
-  onReady,
   lit = false,
   onActivate,
 }: {
   reduced: boolean;
   activity: IrohActivity;
-  onReady: () => void;
   /** The Host seal is hovered. The pointer on the mesh is tracked here too. */
   lit?: boolean;
   /** Same action as the Host seal: travel there, or open the panel. */
@@ -710,12 +707,9 @@ export function IrohModel({
       live = false;
     };
   }, [gl, scene, camera, room]);
-  const announce = useRef(onReady);
-  announce.current = onReady;
   useEffect(() => {
     if (!ready) return;
-    announce.current();
-    // Lets shots and browser tests wait for the model instead of the diorama.
+    // Lets shots and browser tests wait for the model.
     gl.domElement.dataset.irohHost = 'model';
     return () => void delete gl.domElement.dataset.irohHost;
   }, [gl, ready]);

@@ -484,7 +484,7 @@ export function TeaPourButton({
         <span className="waiting-enter-tea" />
       </span>
       <canvas ref={canvas} className="waiting-enter-gl" aria-hidden="true" />
-      <span className="waiting-enter-label">Enter the tea room</span>
+      <span className="waiting-enter-label">Enter Teashop</span>
     </button>
   );
 }

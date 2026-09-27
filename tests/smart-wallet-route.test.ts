@@ -123,3 +123,47 @@ test('GET reads the board and sort named in the query', async () => {
   };
   expect(body.entries[0]?.displayName).toBe('Whale Trader');
 });
+
+test('GET falls back to a sort the meme board has', async () => {
+  const { writeNansenSnapshot } = await import('../src/nansen/snapshot-store');
+  const { boardCacheKey } = await import('../src/leaderboard/boards');
+  const saved = (displayName: string) => ({
+    entries: [
+      {
+        rank: 1,
+        address: `0x${'3'.repeat(40)}`,
+        displayName,
+        pnl: 10,
+        roi: 2,
+        accountValue: null,
+        chains: ['robinhood'],
+      },
+    ],
+  });
+  const at = Date.parse('2026-09-27T12:00:00Z');
+  await writeNansenSnapshot(
+    temp.db,
+    boardCacheKey('meme', 'wins'),
+    saved('Meme Wins'),
+    at,
+  );
+  await writeNansenSnapshot(
+    temp.db,
+    boardCacheKey('meme', 'roi'),
+    saved('Meme Roi'),
+    at,
+  );
+  const { GET } = await import('../src/app/api/smart-wallet-leaderboard/route');
+  const read = async (query: string) => {
+    const response = await GET(
+      new Request(`http://127.0.0.1/api/smart-wallet-leaderboard?${query}`),
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      entries: { displayName: string }[];
+    };
+    return body.entries[0]?.displayName;
+  };
+  expect(await read('board=meme&metric=account')).toBe('Meme Wins');
+  expect(await read('board=meme&metric=roi')).toBe('Meme Roi');
+});

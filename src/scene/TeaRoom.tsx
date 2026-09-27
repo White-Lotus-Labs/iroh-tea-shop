@@ -70,7 +70,6 @@ function RoomGeometry({
 }) {
   const [hostHalo, setHostHalo] = useState(false);
   const [orreryHot, setOrreryHot] = useState(false);
-  const [shelfHot, setShelfHot] = useState(false);
   const posters = station !== 'Entrance';
   // The shell's shelf callback changes on every station move. Read it through
   // a ref so the memo below (and its ContactShadows) survives the move.
@@ -101,7 +100,6 @@ function RoomGeometry({
           revealed={shelfRevealed}
           reduced={reduced}
           posters={posters}
-          onHover={setShelfHot}
         />
       </>
     ),
@@ -162,24 +160,21 @@ function RoomGeometry({
           onShelfSelect={onShelfSelect}
           onHostHover={setHostHalo}
           orreryHot={orreryHot}
-          shelfHot={shelfHot}
         />
         {finish}
       </Staged>
       <TeaChamber>
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
-        <Suspense fallback={null}>
-          <TeaHost3D
-            reduced={reduced}
-            activity={irohActivity}
-            model={hostModel}
-            lit={hostHalo}
-            onActivate={() =>
-              station === 'AvatarSeat' ? onMenuOpen() : onNavigate('AvatarSeat')
-            }
-          />
-        </Suspense>
+        <TeaHost3D
+          reduced={reduced}
+          activity={irohActivity}
+          model={hostModel}
+          lit={hostHalo}
+          onActivate={() =>
+            station === 'AvatarSeat' ? onMenuOpen() : onNavigate('AvatarSeat')
+          }
+        />
       </TeaChamber>
     </>
   );

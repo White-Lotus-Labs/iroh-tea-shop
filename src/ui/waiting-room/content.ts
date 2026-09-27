@@ -73,5 +73,5 @@ export const PROJECT = {
     },
   ],
   honesty:
-    'The team wrote the three theses. Conviction, asset evidence, and the trader list are Nansen readings saved in the shop and refreshed about once an hour. Uncle still asks Nansen when you talk to him.',
+    'The team wrote the three theses. Conviction, asset evidence, and the trader list are Nansen readings saved in the shop and refreshed hourly, or every 4 hours for the slow ones. Uncle still asks Nansen when you talk to him.',
 };

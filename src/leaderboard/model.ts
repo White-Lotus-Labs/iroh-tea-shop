@@ -20,6 +20,25 @@ export interface SmartWalletLeaderboardEntry {
   volume?: number | null;
   trades?: number | null;
   positions?: WalletPosition[];
+  /** Meme board only. Nansen chain ids ('solana', 'robinhood', 'bsc', ...). Absent means Hyperliquid. */
+  chains?: string[];
+  /** 0..1 from the leaderboard. */
+  winRate?: number | null;
+  tokens?: number | null;
+  /** At most 3, largest PnL first. */
+  topTokens?: { symbol: string; chain: string; pnl: number | null }[];
+  /** Nansen entity name when this wallet's entity also trades on the other chain group. */
+  entity?: string;
+  /**
+   * That entity's 30-day total across all its wallets and chains (profiler
+   * pnl-summary). Shown in the card; ranking uses the wallet's own numbers.
+   */
+  entityTotal?: {
+    realizedPnl: number;
+    trades: number | null;
+    tokens: number | null;
+    topTokens: { symbol: string; chain: string; pnl: number | null }[];
+  };
 }
 
 export type SmartWalletLeaderboardSnapshot = {
@@ -32,7 +51,7 @@ export function shortenAddress(address: string): string {
     : address;
 }
 
-function numberOrNull(value: unknown): number | null {
+export function numberOrNull(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
@@ -137,4 +156,19 @@ export function formatRoi(value: number | null): string {
   if (value === null) return '—';
   const percent = value * 100;
   return `${percent > 0 ? '+' : ''}${percent.toFixed(1)}%`;
+}
+
+export function formatWinRate(value: number | null | undefined): string {
+  return value == null ? '—' : `${Math.round(value * 100)}%`;
+}
+
+const CHAIN_LABELS: Record<string, string> = {
+  bsc: 'BNB',
+  evm: 'EVM',
+  hyperevm: 'HyperEVM',
+  iotaevm: 'IOTA EVM',
+};
+
+export function chainLabel(chain: string): string {
+  return CHAIN_LABELS[chain] ?? chain.charAt(0).toUpperCase() + chain.slice(1);
 }

@@ -399,7 +399,8 @@ function WarmOutline({
 
 const HALO_STATIONS = ['Counter', 'AvatarSeat', 'TeaTable', 'Shelf'] as const;
 type HaloStation = (typeof HALO_STATIONS)[number];
-const OUTLINES: Record<HaloStation, OutlineTarget> = {
+/** Props outlined while their seal is hovered. The host lights itself; the shelf stays plain. */
+const OUTLINES: Partial<Record<HaloStation, OutlineTarget>> = {
   Counter: {
     name: 'waiting-counter-room',
     within: [
@@ -407,9 +408,7 @@ const OUTLINES: Record<HaloStation, OutlineTarget> = {
       [-0.4, 1.95, 6.8],
     ],
   },
-  AvatarSeat: { name: 'tea-host-3d' },
   TeaTable: { name: 'mechanical-planetary-system' },
-  Shelf: { name: 'hanging-paper' },
 };
 
 /** One ember per place worth opening. Another station's ember flies there; the current one opens it. */
@@ -422,7 +421,6 @@ export function StationHalos({
   onShelfSelect,
   onHostHover,
   orreryHot = false,
-  shelfHot = false,
 }: {
   station: Station;
   menuClosed: boolean;
@@ -433,19 +431,11 @@ export function StationHalos({
   onHostHover?: (on: boolean) => void;
   /** The pointer is on the machine, not only its seal. */
   orreryHot?: boolean;
-  /** The pointer is on the shelf, not only its seal or a poster. */
-  shelfHot?: boolean;
 }) {
   const [hovered, setHovered] = useState<HaloStation | null>(null);
   if (station === 'Entrance') return null;
-  const fromSeal = hovered && hovered !== 'AvatarSeat' ? hovered : null;
-  const rim = fromSeal
-    ? OUTLINES[fromSeal]
-    : orreryHot
-      ? OUTLINES.TeaTable
-      : shelfHot
-        ? { name: 'right-wall-tea-shelf' }
-        : null;
+  const rim =
+    (hovered && OUTLINES[hovered]) || (orreryHot ? OUTLINES.TeaTable : null);
   return (
     <>
       {HALO_STATIONS.map((id) => {
@@ -485,7 +475,7 @@ export function StationHalos({
         <WarmOutline
           key={rim.name}
           name={rim.name}
-          within={'within' in rim ? rim.within : undefined}
+          within={rim.within}
           reduced={reduced}
         />
       )}

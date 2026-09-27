@@ -2,9 +2,9 @@
 
 A small 3D tea shop where you can check three crypto ideas against what smart money is actually doing.
 
-You walk in through a sketchbook, then move around the room. The counter holds three thesis books. Uncle, the host, will talk with you. The shelf shows the ten strongest Hyperliquid perp traders from the last 30 days, drawn as spirits. A brass orrery sits in the corner and does not show market data.
+You walk in through a sketchbook, then move around the room. The counter holds three thesis books. Uncle, the host, will talk with you. The shelf shows the ten strongest traders from the last 30 days, drawn as spirits. Three boards rank Hyperliquid perp traders. The fourth ranks Smart Money meme traders on Solana and EVM chains. A brass orrery sits in the corner and does not show market data.
 
-The shop is a Next.js app. Market numbers come from [Nansen](https://nansen.ai). Most of those numbers are saved in a SQLite database on the server and refreshed about once an hour, so opening a page does not call Nansen. Talking to Uncle does. Each message is a live question.
+The shop is a Next.js app. Market numbers come from [Nansen](https://nansen.ai). Most of those numbers are saved in a SQLite database on the server and refreshed on a schedule (hourly for fast readings, every 4 hours for slow ones), so opening a page does not call Nansen. Talking to Uncle does. Each message is a live question.
 
 Live demo: <https://iroh-tea-shop.up.railway.app>
 
@@ -44,25 +44,31 @@ Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101
 
 Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env`. The default is 1.
 
-When the server starts, it fills the database in the background, then does it again about every hour. The first minute after boot, the thesis desk and the shelf can say the readings are still being saved. That is the fill running. It is not a visitor waiting on a live call.
+When the server starts, it fills the database in the background, then checks again every hour. Rows that are not due yet are skipped, so a restart does not ask Nansen again for readings it just saved. The first minute after boot, the thesis desk and the shelf can say the readings are still being saved. That is the fill running. It is not a visitor waiting on a live call.
 
 ## What is saved, and what is live
 
 Two different things happen with Nansen.
 
-**Saved readings.** The thesis seals, the asset pages, and the shelf ranking are written into SQLite. Visitors read that copy. The server asks Nansen when it boots, and then about once an hour, and replaces the rows. If an hourly update fails, the previous row stays and the screen can mark it stale.
+**Saved readings.** The thesis seals, the asset pages, and the shelf ranking are written into SQLite. Visitors read that copy. The server asks Nansen when it boots, then on two schedules:
+
+- **Every hour**: the thesis seals, and on each asset page the buyers, sellers, recent trades, and perp book. These move fast and are what visitors look at first.
+- **Every 4 hours**: holders and token info on the asset pages, and every Shelf board. Holders and supply barely move in an hour, and the boards rank 30-day windows.
+
+If an update fails, the previous row stays and the screen can mark it stale. A row is marked stale 15 minutes after its next update was due.
 
 **Uncle.** Chat is not a saved dataset. When you send a message, the server calls Nansen's Research Agent right then (`agent/fast`). The reply is streamed back. Signed-in chats are stored so you can reopen them. The Nansen request itself is still live, and it is not part of the hourly save.
 
-A full background save makes **94 Nansen requests**:
+A full background save (on boot, and every 4 hours) makes **up to 103 Nansen requests**:
 
-| What it fills      | Requests | Where they go                                                                                                                                                                     |
-| ------------------ | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                           |
-| Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book (2 requests). |
-| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Whales) and five sorts. Account holdings reuses the account-value row.                                                                |
+| What it fills      | Requests | Where they go                                                                                                                                                                        |
+| ------------------ | -------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                              |
+| Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info (every 4 hours) for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book. |
+| Shelf              |       15 | Every 4 hours. Three boards (Perps Traders, Smart Wallets, Whales) and five sorts. Account holdings reuses the account-value row.                                                    |
+| Meme Traders       |  up to 9 | Every 4 hours. 1 Smart Money PnL leaderboard (18 chains) + up to 8 entity lookups. An entity lookup finds one person's total across Solana and EVM. Both sorts rank the same rows.   |
 
-12 + 67 + 15 = 94. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
+12 + 67 + 15 + 9 = 103. The hourly runs in between skip the 4-hour tier and make **57 Nansen requests** (12 seals + 45 asset-page requests). Meme Traders asks for one entity lookup per named person in its top 20, so a save with fewer than 8 of them makes fewer requests. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
 
 Stock tokens (NVIDIA, Micron, SanDisk) still request token info, but the page hides "supply not yet circulating" for them. A stock's share count is not the story. Bitcoin, Ether, and Hyperliquid also look at the spot token on their detail page, on top of the perp signal used for the seal.
 
@@ -72,10 +78,10 @@ Conviction, in plain words: a thesis looks at its four assets. An asset "counts"
 
 ## A walk through the room
 
-1. **Waiting room.** A sketchbook. Enter the tea room when you want the stations.
+1. **Waiting room.** A sketchbook. Press **Enter Teashop** when you want the stations.
 2. **Counter.** Three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. Each book has a conviction seal from the saved readings. Open a book, then open an asset, to see buyers and sellers, holders, supply that is not circulating yet, and perp positioning. You can ask Uncle about it, share it on X, or follow it in this browser.
 3. **Host.** Talk to Uncle. Guests keep the conversation until they leave the page. Signed-in people get a list of old chats.
-4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. Rank 1 is open by default. Click another rank to open it in place with realized and unrealized PnL, 30-day volume, trade count, and its largest open positions. Each rank links to that wallet in Nansen's profiler.
+4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. Rank 1 is open by default. Click another rank to open it in place with realized and unrealized PnL, 30-day volume, trade count, and its largest open positions. Each rank links to that wallet in Nansen's profiler. The Meme Traders board ranks Smart Money wallets whose biggest wins are mostly memecoins, sorted by realized PnL or by average trade ROI. Its cards show win rate, chains, tokens traded, and top tokens. A row marked Entity is one person's total across Solana and EVM wallets.
 5. **Observatorium.** Wind the orrery. No market data.
 
 Sign-in is optional. It is a nickname and a password, stored in the same SQLite file as chats and saved readings. Guests can use the room without an account.
@@ -112,7 +118,7 @@ Unit tests mock Nansen. They do not spend credits. Browser tests mock the app's 
 
 ## Limits worth knowing
 
-- One Node process, one SQLite file. If you run several copies of the server, each copy has its own database and each copy refreshes Nansen about once an hour. The intended deploy is a single web process with `DATABASE_URL` pointed at a volume.
+- One Node process, one SQLite file. If you run several copies of the server, each copy has its own database and each copy runs its own refresh schedule. The intended deploy is a single web process with `DATABASE_URL` pointed at a volume.
 - Uncle's daily cap lives in that process. It trusts the proxy's forwarding headers, resets at midnight UTC, and also resets if the process restarts.
 - The host's 3D model is still a work in progress. The writing says Uncle. The mesh still looks like the earlier grandfather.
 - The app is deployed on Railway at the link above. Railway runs `prisma migrate deploy` before the server starts, so the snapshot table exists before the first fill.
