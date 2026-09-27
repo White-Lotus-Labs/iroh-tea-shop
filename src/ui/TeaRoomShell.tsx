@@ -14,20 +14,43 @@ import {
   type NansenAvailability,
 } from '../nansen/availability';
 import { IrohSession } from '../nansen/session';
-import { IrohChat } from './IrohChat';
 import { StationDock } from './StationDock';
-import { ThesisDeck } from './ThesisDeck';
 import type { ConvictionLevel, ThesisId } from '../thesis/types';
 import { convictionToMood } from './convictionMood';
 import { InkLine, STATION_TEASERS } from './stationTeasers';
 import { WaitingRoom } from './waiting-room/WaitingRoom';
 import { WaitingVersions } from './waiting-room/Versions';
 
-// The waiting room covers the stage while the scene chunk downloads.
-const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
+// Scene / deck / chat stay out of the first paint; idle preloads warm them.
+const loadTeaRoom = () => import('../scene/TeaRoom');
+const loadThesisDeck = () =>
+  import('./ThesisDeck').then((m) => ({ default: m.ThesisDeck }));
+const loadIrohChat = () =>
+  import('./IrohChat').then((m) => ({ default: m.IrohChat }));
+
+const TeaRoom = dynamic(loadTeaRoom, {
   ssr: false,
   loading: () => <div className="scene-fallback" />,
 });
+const ThesisDeck = dynamic(loadThesisDeck, {
+  loading: () => null,
+});
+const IrohChat = dynamic(loadIrohChat, {
+  loading: () => null,
+});
+
+function idlePreload(load: () => Promise<unknown>) {
+  if (typeof window.requestIdleCallback === 'function') {
+    const handle = window.requestIdleCallback(() => {
+      void load();
+    });
+    return () => window.cancelIdleCallback(handle);
+  }
+  const timer = window.setTimeout(() => {
+    void load();
+  }, 200);
+  return () => window.clearTimeout(timer);
+}
 
 const THESIS_IDS: ThesisId[] = ['robinhood', 'bullrun', 'ai'];
 
@@ -65,6 +88,13 @@ export default function TeaRoomShell({
   const [sceneReady, setSceneReady] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const onReveal = useCallback(() => setRevealed(true), []);
+  // Warm the 3D room while the waiting room covers the stage.
+  useEffect(() => idlePreload(loadTeaRoom), []);
+  // Warm Counter / Host panels once the room is ready to enter.
+  useEffect(() => {
+    if (!sceneReady) return;
+    return idlePreload(() => Promise.all([loadThesisDeck(), loadIrohChat()]));
+  }, [sceneReady]);
   useEffect(() => {
     if (!revealed) return;
     const prefetch = () => {
