@@ -10,6 +10,7 @@ let directory: string;
 let db: PrismaClient;
 
 beforeEach(() => {
+  process.env.NANSEN_AGENT_DAILY_LIMIT = '1000';
   directory = mkdtempSync(join(tmpdir(), 'tea-iroh-routes-'));
   const path = join(directory, 'test.db');
   const sqlite = new DatabaseSync(path);
@@ -28,6 +29,7 @@ afterEach(async () => {
   vi.doUnmock('../src/auth/db');
   vi.unstubAllGlobals();
   delete process.env.NANSEN_API_KEY;
+  delete process.env.NANSEN_AGENT_DAILY_LIMIT;
   await db.$disconnect();
   rmSync(directory, { recursive: true, force: true });
 });

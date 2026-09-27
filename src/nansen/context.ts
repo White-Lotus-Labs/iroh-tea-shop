@@ -1,10 +1,10 @@
+import { MAX_RESEARCH_TEXT_LENGTH } from './limits';
+
 type ExchangeMessage = {
   role: string;
   content: string;
   status: string;
 };
-
-const MAX_TEXT = 6000;
 
 export function contextualQuestion(
   question: string,
@@ -12,7 +12,7 @@ export function contextualQuestion(
 ) {
   const intro = 'Previous conversation for context:\n';
   const ending = `\nCurrent user question: ${question}\nAnswer the current question using the prior conversation to resolve references. Retrieve new data where needed.`;
-  let remaining = MAX_TEXT - intro.length - ending.length;
+  let remaining = MAX_RESEARCH_TEXT_LENGTH - intro.length - ending.length;
   if (remaining < 100) return question;
   const exchanges: string[] = [];
   for (let i = messages.length - 1; i > 0 && exchanges.length < 4; i--) {

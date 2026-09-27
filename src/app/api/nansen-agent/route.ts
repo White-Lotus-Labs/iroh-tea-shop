@@ -9,20 +9,53 @@ import {
   prepareResearchRequest,
 } from '../../../iroh/history';
 import { SESSION_COOKIE } from '../../../auth/cookie';
+import {
+  agentDailyCap,
+  clientIpFromRequest,
+  type AgentCapClaim,
+} from '../../../nansen/agent-cap';
+import {
+  MAX_QUESTION_LENGTH,
+  MAX_RESEARCH_TEXT_LENGTH,
+  QUESTION_TOO_LONG_MESSAGE,
+} from '../../../nansen/limits';
 import { withUnclePersona } from '../../../nansen/uncle';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ENDPOINT = 'https://api.nansen.ai/api/v1/agent/fast';
-const MAX_TEXT = 6000;
 const TIMEOUT_MS = 90_000;
 
-function jsonError(status: number, error: string, retryAfter?: string | null) {
+function jsonError(
+  status: number,
+  error: string,
+  retryAfter?: string | null,
+  code?: string,
+) {
   const headers = new Headers({ 'cache-control': 'no-store' });
   if (retryAfter && /^(\d{1,6}|[A-Za-z]{3}, .+ GMT)$/.test(retryAfter))
     headers.set('retry-after', retryAfter);
-  return Response.json({ error }, { status, headers });
+  return Response.json(
+    { error, ...(code ? { code } : {}) },
+    { status, headers },
+  );
+}
+
+function capError(claim: AgentCapClaim) {
+  const response = jsonError(
+    429,
+    'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
+    String(claim.retryAfterSeconds),
+    'nansen_agent_daily_limit',
+  );
+  response.headers.set('x-ratelimit-limit', String(claim.limit));
+  response.headers.set('x-ratelimit-remaining', String(claim.remaining));
+  response.headers.set(
+    'x-ratelimit-reset',
+    String(Math.ceil(claim.resetAt / 1000)),
+  );
+  return response;
 }
 
 function upstreamMessage(status: number) {
@@ -70,12 +103,11 @@ function streamError(event: AgentEvent): AgentEvent {
 
 export async function POST(request: Request) {
   if (Number(request.headers.get('content-length')) > 16_000)
-    return jsonError(413, 'Your question is too long.');
+    return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
   let body: unknown;
   try {
     const raw = await request.text();
-    if (raw.length > 16_000)
-      return jsonError(413, 'Your question is too long.');
+    if (raw.length > 16_000) return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
     body = JSON.parse(raw);
   } catch {
     return jsonError(400, 'Invalid question.');
@@ -85,11 +117,13 @@ export async function POST(request: Request) {
   const value = body as Record<string, unknown>;
   if (
     Object.keys(value).some(
-      (key) => !['text', 'conversation_id', 'chatId'].includes(key),
+      (key) => !['text', 'question', 'conversation_id', 'chatId'].includes(key),
     ) ||
     typeof value.text !== 'string' ||
     !value.text.trim() ||
-    value.text.trim().length > MAX_TEXT ||
+    value.text.trim().length > MAX_RESEARCH_TEXT_LENGTH ||
+    (value.question !== undefined &&
+      (typeof value.question !== 'string' || !value.question.trim())) ||
     (value.conversation_id !== undefined &&
       !validConversationId(value.conversation_id)) ||
     (value.chatId !== undefined &&
@@ -99,35 +133,52 @@ export async function POST(request: Request) {
   )
     return jsonError(400, 'Invalid question or conversation.');
 
+  const question = (value.question ?? value.text) as string;
+  if (question.trim().length > MAX_QUESTION_LENGTH)
+    return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
+
   const key = process.env.NANSEN_API_KEY?.trim();
   if (!key) return jsonError(503, 'Nansen Research Agent is not configured.');
 
   let text = value.text.trim();
   let conversationId = value.conversation_id as string | undefined;
   let persisted: { userId: string; chatId: string } | null = null;
+  let authenticated:
+    | { db: Awaited<typeof import('../../../auth/db')>['db']; userId: string }
+    | undefined;
   const hasSessionCookie = request.headers
     .get('cookie')
     ?.split(';')
     .some((part) => part.trim().startsWith(`${SESSION_COOKIE}=`));
   if (value.chatId !== undefined || hasSessionCookie) {
-    const [{ db }, { userFromRequest }] = await Promise.all([
+    const [{ db }, { userFromRequest }, { getChat }] = await Promise.all([
       import('../../../auth/db'),
       import('../../../iroh/request-user'),
+      import('../../../iroh/history'),
     ]);
     const user = await userFromRequest(db, request);
     if (!user) return jsonError(401, 'Sign in to continue this chat.');
     if (typeof value.chatId !== 'string' || conversationId)
       return jsonError(400, 'Choose a chat before asking Iroh.');
+    if (!(await getChat(db, user.id, value.chatId)))
+      return jsonError(404, 'Chat not found.');
+    authenticated = { db, userId: user.id };
+  }
+
+  const cap = agentDailyCap.claim(clientIpFromRequest(request));
+  if (!cap.allowed) return capError(cap);
+
+  if (authenticated && typeof value.chatId === 'string') {
     try {
       const prepared = await prepareResearchRequest(
-        db,
-        user.id,
+        authenticated.db,
+        authenticated.userId,
         value.chatId,
-        text,
+        question.trim(),
       );
       text = prepared.text;
       conversationId = prepared.conversationId ?? undefined;
-      persisted = { userId: user.id, chatId: value.chatId };
+      persisted = { userId: authenticated.userId, chatId: value.chatId };
     } catch (error) {
       if (error instanceof ChatNotFoundError)
         return jsonError(404, 'Chat not found.');
@@ -293,6 +344,9 @@ export async function POST(request: Request) {
       'cache-control': 'no-store, no-transform',
       connection: 'keep-alive',
       'x-accel-buffering': 'no',
+      'x-ratelimit-limit': String(cap.limit),
+      'x-ratelimit-remaining': String(cap.remaining),
+      'x-ratelimit-reset': String(Math.ceil(cap.resetAt / 1000)),
     },
   });
 }

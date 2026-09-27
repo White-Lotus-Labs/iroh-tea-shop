@@ -11,9 +11,14 @@ describe('Uncle persona prefix', () => {
 });
 
 describe('Uncle persona on the agent route', () => {
+  beforeEach(() => {
+    process.env.NANSEN_AGENT_DAILY_LIMIT = '1000';
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     delete process.env.NANSEN_API_KEY;
+    delete process.env.NANSEN_AGENT_DAILY_LIMIT;
   });
 
   test('prefixes only the first upstream turn without a conversation id', async () => {

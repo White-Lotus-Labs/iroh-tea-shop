@@ -57,8 +57,7 @@ const COVER_LINES: Partial<
   robinhood: { title: 'Robinhood Chain', subtitle: 'Tokenization' },
 };
 
-const OWN_THESIS_DRAFT =
-  'Here is my own thesis. Help me test it against smart money data:\n\n';
+const OWN_THESIS_DRAFT = 'Uncle, test my thesis: ';
 
 // The ?thesis= deep link opens its thesis once per page load, not on every
 // panel reopen.

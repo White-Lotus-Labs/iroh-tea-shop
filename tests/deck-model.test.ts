@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { findThesis } from '../src/thesis/deck';
+import { MAX_QUESTION_LENGTH } from '../src/nansen/limits';
+import { findThesis, THESES } from '../src/thesis/deck';
 import { DECK_FIXTURE } from '../src/thesis/fixtures';
 import {
   buildUncleDraft,
@@ -30,16 +31,25 @@ describe('deck model', () => {
     );
   });
 
-  it('builds an Uncle draft with thesis, leaves, conviction, and extremes', () => {
+  it('builds concise Uncle drafts within the chat limit', () => {
     const draft = buildUncleDraft(ai, aiSummary);
-    expect(draft).toContain('AI taking over the world');
-    expect(draft).toContain(ai.body);
-    expect(draft).toContain('NVDA (NVIDIA (stock token))');
-    expect(draft).toContain('Conviction: Weak.');
-    expect(draft).toContain('Strongest signal: VVV +$74.6K');
-    expect(draft).toContain('Weakest signal: NVDA -$129K');
-    expect(draft.trim().endsWith('?')).toBe(true);
-    expect(buildUncleDraft(ai, null)).toContain('Nansen is offline');
+    expect(draft).toBe(
+      'Uncle, Nansen rates “AI taking over the world” weak. What could disprove it?',
+    );
+    expect(buildUncleDraft(ai, null)).toBe(
+      'Uncle, test “AI taking over the world” with Nansen. What could disprove it?',
+    );
+    for (const thesis of THESES) {
+      const summary = DECK_FIXTURE.theses.find(
+        (item) => item.id === thesis.id,
+      )!;
+      expect(buildUncleDraft(thesis, summary).length).toBeLessThanOrEqual(
+        MAX_QUESTION_LENGTH,
+      );
+      expect(buildUncleDraft(thesis, null).length).toBeLessThanOrEqual(
+        MAX_QUESTION_LENGTH,
+      );
+    }
   });
 
   it('builds an X intent with the deep link and @nansen_ai', () => {

@@ -1,16 +1,24 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from '../src/app/api/nansen-agent/route';
 
-const request = (body: unknown) =>
+const request = (body: unknown, clientIp?: string) =>
   new Request('http://localhost/api/nansen-agent', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(clientIp ? { 'x-forwarded-for': clientIp } : {}),
+    },
     body: JSON.stringify(body),
   });
+
+beforeEach(() => {
+  process.env.NANSEN_AGENT_DAILY_LIMIT = '1000';
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.NANSEN_API_KEY;
+  delete process.env.NANSEN_AGENT_DAILY_LIMIT;
 });
 
 describe('Nansen agent route', () => {
@@ -78,6 +86,41 @@ describe('Nansen agent route', () => {
     ).toEqual({ text: 'follow up', conversation_id: 'conv_1' });
   });
 
+  it('caps daily Research Agent calls before contacting Nansen', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    const first = await POST(request({ text: 'first' }, '203.0.113.10'));
+    expect(first.status).toBe(200);
+    expect(first.headers.get('x-ratelimit-remaining')).toBe('0');
+    await first.text();
+
+    const capped = await POST(request({ text: 'second' }, '203.0.113.10'));
+    expect(capped.status).toBe(429);
+    expect(await capped.json()).toEqual({
+      error:
+        'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
+      code: 'nansen_agent_daily_limit',
+    });
+    expect(capped.headers.get('retry-after')).toMatch(/^\d+$/);
+    expect(capped.headers.get('x-ratelimit-limit')).toBe('1');
+    expect(capped.headers.get('x-ratelimit-remaining')).toBe('0');
+    const otherIp = await POST(
+      request({ text: 'other visitor' }, '203.0.113.11'),
+    );
+    expect(otherIp.status).toBe(200);
+    await otherIp.text();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     [401, 'authentication failed'],
     [402, 'credits'],
@@ -102,18 +145,31 @@ describe('Nansen agent route', () => {
     expect(response.headers.get('retry-after')).toBe('12');
   });
 
-  it('rejects empty, overlong, and malformed requests before fetch', async () => {
+  it('rejects empty and malformed requests before fetch', async () => {
     process.env.NANSEN_API_KEY = 'test-only-secret';
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     for (const body of [
       { text: '' },
-      { text: 'x'.repeat(6001) },
       { text: 'hi', conversation_id: { id: 1 } },
       { text: 'hi', url: 'https://evil.example' },
     ]) {
       expect((await POST(request(body))).status).toBe(400);
     }
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('asks for a shorter question before contacting Nansen', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+
+    const response = await POST(request({ text: 'x'.repeat(101) }));
+
+    expect(response.status).toBe(413);
+    expect(await response.text()).toContain(
+      'Ask briefly for a wise answer — 100 characters at most.',
+    );
     expect(fetch).not.toHaveBeenCalled();
   });
 

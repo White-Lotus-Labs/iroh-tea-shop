@@ -251,6 +251,39 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
   ).toBe(true);
 });
 
+test('Iroh links daily-capped visitors to more Nansen access', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.route('**/api/nansen-agent', (route) =>
+    route.fulfill({
+      status: 429,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error:
+          'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
+        code: 'nansen_agent_daily_limit',
+      }),
+    }),
+  );
+  await page.goto('/');
+  await openStationPanel(page, 'Host');
+  await page
+    .getByRole('textbox', { name: 'Ask Uncle a research question' })
+    .fill('One more question');
+  await page.getByRole('button', { name: 'Send question' }).click();
+
+  await expect(page.locator('.iroh-error')).toContainText(
+    'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
+  );
+  const cta = page.getByRole('link', { name: /Keep exploring with Nansen/ });
+  await expect(cta).toHaveAttribute('href', 'https://nsn.ai/iroh0x');
+  await expect(cta).toHaveAttribute('target', '_blank');
+  await expect(
+    page.getByRole('button', { name: 'Retry question' }),
+  ).toHaveCount(0);
+});
+
 test('Iroh keeps a completed answer when Nansen returns no conversation ID', async ({
   page,
 }) => {

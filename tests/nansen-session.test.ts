@@ -15,6 +15,37 @@ function sse(parts: string[]) {
 }
 
 describe('Iroh client session', () => {
+  it('does not send questions longer than 100 characters', () => {
+    const fetcher = vi.fn();
+    const session = new IrohSession(fetcher);
+
+    expect(session.send('x'.repeat(101))).toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('exposes the daily cap code for the access CTA', async () => {
+    const session = new IrohSession(
+      vi.fn().mockResolvedValue(
+        Response.json(
+          {
+            error:
+              'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
+            code: 'nansen_agent_daily_limit',
+          },
+          { status: 429 },
+        ),
+      ),
+    );
+
+    await session.send('One more question');
+
+    expect(session.getSnapshot()).toMatchObject({
+      error:
+        'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
+      errorCode: 'nansen_agent_daily_limit',
+    });
+  });
+
   it('waits for the server stream to close before treating an answer as saved', async () => {
     let close!: () => void;
     const fetcher = vi.fn().mockResolvedValue(
@@ -310,12 +341,14 @@ describe('Iroh client session', () => {
       );
     const session = new IrohSession(fetcher);
     await session.send('Tell me about ETH.');
-    await session.send(`Compare this: ${'B'.repeat(3800)}`);
+    const followUp = `Compare this: ${'B'.repeat(80)}`;
+    await session.send(followUp);
     const body = JSON.parse(
       (fetcher.mock.calls[1][1] as RequestInit).body as string,
     );
     expect(body.text.length).toBeLessThanOrEqual(6000);
     expect(body.text).toContain('Tell me about ETH.');
     expect(body.text).toContain('Compare this:');
+    expect(body.question).toBe(followUp);
   });
 });
