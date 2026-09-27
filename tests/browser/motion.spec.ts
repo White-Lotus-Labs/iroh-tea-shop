@@ -65,7 +65,7 @@ test('OS reduced motion sets data-motion reduce; full motion restores panel anim
     .getByRole('button', { name: /Host/ })
     .click();
   await page.getByRole('button', { name: 'Open Host' }).click({ timeout: 20000 });
-  await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
   expect(
     await page
       .locator('.reading-panel')

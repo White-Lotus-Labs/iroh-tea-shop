@@ -3,12 +3,19 @@ import {
   Suspense,
   type ReactNode,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Billboard, ContactShadows, useProgress } from '@react-three/drei';
-import type { Group } from 'three';
+import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
+import {
+  Billboard,
+  ContactShadows,
+  Html,
+  useProgress,
+} from '@react-three/drei';
+import { AdditiveBlending, Color, ShaderMaterial, Vector3 } from 'three';
+import { InkLine, STATION_TEASERS } from '../ui/stationTeasers';
 import { CameraRig } from './CameraRig';
 import { TeaRitual, LanternLight } from './TeaRitual';
 import { MechanicalPlanetarySystem } from './MechanicalPlanetarySystem';
@@ -20,6 +27,43 @@ import { Surfaces } from './Surfaces';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 
+const HALO_VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+// A golden ring of incense smoke: a noisy ring, soft glow, drifting wisps, and an inviting ripple.
+const HALO_FRAGMENT = /* glsl */ `
+uniform float uTime;
+uniform float uOpacity;
+uniform float uRipple;
+uniform vec3 uColor;
+varying vec2 vUv;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+void main() {
+  vec2 p = vUv - 0.5;
+  float r = length(p) * 2.0;
+  float a = atan(p.y, p.x) / 6.2831853 + 0.5;
+  float n = noise(vec2(a * 9.0 + uTime * 0.35, uTime * 0.22));
+  float n2 = noise(vec2(a * 17.0 - uTime * 0.6, r * 5.0 - uTime * 0.5));
+  float ringR = 0.42 + (n - 0.5) * 0.07;
+  float ring = exp(-pow((r - ringR) / (0.03 + n2 * 0.035), 2.0));
+  float halo = exp(-pow((r - ringR) / 0.17, 2.0)) * 0.32;
+  float core = exp(-r * r * 9.0) * 0.22;
+  float wisps = smoothstep(0.58, 0.95, n2) * exp(-pow((r - ringR - 0.14) / 0.12, 2.0)) * 0.55;
+  float t = fract(uTime * 0.42);
+  float ripple = exp(-pow((r - (0.42 + t * 0.5)) / 0.025, 2.0)) * (1.0 - t) * 0.6 * uRipple;
+  float alpha = (ring + halo + core + wisps + ripple) * smoothstep(1.0, 0.8, r) * uOpacity;
+  gl_FragColor = vec4(uColor * (0.6 + ring * 0.5), clamp(alpha * 0.85, 0.0, 1.0));
+}`;
+
 function StationMenuHalo({
   station,
   reduced,
@@ -29,54 +73,98 @@ function StationMenuHalo({
   reduced: boolean;
   onOpen: () => void;
 }) {
-  const halo = useRef<Group>(null);
   const anchor = STATIONS.find((place) => place.id === station)!;
-  useFrame(({ clock }) => {
-    if (!halo.current) return;
-    const pulse = reduced ? 1 : 1 + Math.sin(clock.elapsedTime * 2.4) * 0.09;
-    halo.current.scale.setScalar(pulse);
+  const teaser = STATION_TEASERS[station];
+  // The Observatorium has no panel: its halo only points at the orrery's own click-to-wind.
+  const clickable = station !== 'TeaTable';
+  const material = useMemo(
+    () =>
+      new ShaderMaterial({
+        vertexShader: HALO_VERTEX,
+        fragmentShader: HALO_FRAGMENT,
+        uniforms: {
+          uTime: { value: 0 },
+          uOpacity: { value: 0 },
+          uRipple: { value: reduced ? 0 : 1 },
+          uColor: { value: new Color('#f3c579') },
+        },
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        blending: AdditiveBlending,
+      }),
+    [reduced],
+  );
+  useEffect(() => () => material.dispose(), [material]);
+  // Show the label only once the camera rests at this station, never mid-travel.
+  const [settledAt, setSettledAt] = useState<Station | null>(null);
+  const [shownFor, setShownFor] = useState(station);
+  if (shownFor !== station) {
+    setShownFor(station);
+    setSettledAt(null);
+  }
+  const motion = useRef({
+    last: new Vector3(),
+    still: 0,
+    station,
+    settled: false,
   });
+  const settled = settledAt === station;
+  useFrame(({ camera, clock }, delta) => {
+    const m = motion.current;
+    const dt = Math.max(delta, 1e-3);
+    const speed = camera.position.distanceTo(m.last) / dt;
+    m.last.copy(camera.position);
+    if (m.station !== station) {
+      m.station = station;
+      m.still = 0;
+      m.settled = false;
+    }
+    // Hysteresis: small orbit drags keep the label; real travel hides it.
+    if (m.settled && speed > 0.8) {
+      m.settled = false;
+      m.still = 0;
+      setSettledAt(null);
+    } else if (!m.settled) {
+      m.still = speed < 0.08 ? m.still + dt : 0;
+      if (m.still > 0.3) {
+        m.settled = true;
+        setSettledAt(station);
+      }
+    }
+    const u = material.uniforms;
+    if (!reduced) u.uTime.value = clock.elapsedTime;
+    const goal = m.settled ? 1 : 0;
+    u.uOpacity.value = reduced
+      ? goal
+      : u.uOpacity.value + (goal - u.uOpacity.value) * Math.min(1, dt * 5);
+  });
+  const handlers = clickable
+    ? {
+        onClick: (event: ThreeEvent<MouseEvent>) => {
+          event.stopPropagation();
+          onOpen();
+        },
+        onPointerOver: (event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        },
+        onPointerOut: () => {
+          document.body.style.cursor = '';
+        },
+      }
+    : {};
   return (
     <group position={anchor.hotspot} name={`${station}-menu-halo`}>
       <pointLight
         color="#f3c579"
-        intensity={reduced ? 0.55 : 0.9}
+        intensity={settled ? (reduced ? 0.55 : 0.9) : 0}
         distance={2.5}
       />
       <Billboard follow>
-        <group
-          ref={halo}
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-          onPointerOver={(event) => {
-            event.stopPropagation();
-            document.body.style.cursor = 'pointer';
-          }}
-          onPointerOut={() => {
-            document.body.style.cursor = '';
-          }}
-        >
-          <mesh>
-            <ringGeometry args={[0.11, 0.15, 32]} />
-            <meshBasicMaterial
-              color="#f3c579"
-              transparent
-              opacity={0.9}
-              depthTest={false}
-              depthWrite={false}
-            />
-          </mesh>
-          <mesh scale={1.48}>
-            <ringGeometry args={[0.11, 0.12, 32]} />
-            <meshBasicMaterial
-              color="#fff0ca"
-              transparent
-              opacity={0.7}
-              depthTest={false}
-              depthWrite={false}
-            />
+        <group {...handlers}>
+          <mesh material={material} renderOrder={10}>
+            <planeGeometry args={[0.72, 0.72]} />
           </mesh>
           <mesh>
             <circleGeometry args={[0.24, 32]} />
@@ -89,6 +177,30 @@ function StationMenuHalo({
           </mesh>
         </group>
       </Billboard>
+      {settled && teaser && (
+        <Html
+          position={[0, 0.3, 0]}
+          center
+          zIndexRange={[6, 0]}
+          wrapperClass="halo-label-wrap"
+          pointerEvents={clickable ? 'auto' : 'none'}
+        >
+          <div
+            className="halo-label"
+            aria-hidden="true"
+            tabIndex={-1}
+            data-clickable={clickable}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (clickable) onOpen();
+            }}
+          >
+            <span className="halo-label-seal">{teaser.glyph}</span>
+            <InkLine text={teaser.text} className="halo-label-text" />
+          </div>
+        </Html>
+      )}
     </group>
   );
 }

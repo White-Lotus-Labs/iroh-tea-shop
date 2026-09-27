@@ -117,7 +117,7 @@ test('Host restores previous chats after reload and switches between them', asyn
   await openStationPanel(page, 'Host');
   await expect(page.getByText('ETH has inflows.')).toBeVisible();
   await page
-    .getByRole('textbox', { name: 'Ask Iroh a research question' })
+    .getByRole('textbox', { name: 'Ask Uncle a research question' })
     .fill('How about seven days?');
   await page.getByRole('button', { name: 'Send question' }).click();
   await expect(page.getByText('Seven-day ETH answer')).toBeVisible();
@@ -145,7 +145,7 @@ test('Host immediately shows Iroh chat in the Host panel, keeps history across s
   });
   await page.goto('/');
   await openStationPanel(page, 'Host');
-  await expect(page.getByRole('heading', { name: 'Ask Iroh' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ask Uncle' })).toBeVisible();
   await expect(page.getByText(/One breath before you go/)).toHaveCount(0);
   await expect(page.locator('.status-line')).toBeHidden();
   await expect(page.locator('main')).toHaveAttribute(
@@ -158,7 +158,7 @@ test('Host immediately shows Iroh chat in the Host panel, keeps history across s
     (page.viewportSize()?.width ?? 1280) * 0.4,
   );
   const input = page.getByRole('textbox', {
-    name: 'Ask Iroh a research question',
+    name: 'Ask Uncle a research question',
   });
   await input.fill('What is ETH doing?');
   await input.press('Shift+Enter');
@@ -186,7 +186,7 @@ test('Host immediately shows Iroh chat in the Host panel, keeps history across s
   expect(bodies[2]).toMatchObject({ text: 'Fresh question' });
   expect(bodies[2].chatId).not.toBe(bodies[0].chatId);
   await expect(
-    page.getByRole('button', { name: 'Close Iroh chat' }),
+    page.getByRole('button', { name: 'Close Uncle chat' }),
   ).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -209,7 +209,7 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
   await page.goto('/');
   await openStationPanel(page, 'Host');
   const input = page.getByRole('textbox', {
-    name: 'Ask Iroh a research question',
+    name: 'Ask Uncle a research question',
   });
   await input.fill('Is anyone buying ETH?');
   await page.getByRole('button', { name: 'Send question' }).click();
@@ -263,7 +263,7 @@ test('Iroh keeps a completed answer when Nansen returns no conversation ID', asy
   await page.goto('/');
   await openStationPanel(page, 'Host');
   await page
-    .getByRole('textbox', { name: 'Ask Iroh a research question' })
+    .getByRole('textbox', { name: 'Ask Uncle a research question' })
     .fill('What is ETH doing?');
   await page.getByRole('button', { name: 'Send question' }).click();
   await expect(page.getByText('Complete answer')).toBeVisible();
@@ -294,7 +294,7 @@ test('Iroh keeps follow-ups in the same saved chat without a conversation ID', a
   await page.goto('/');
   await openStationPanel(page, 'Host');
   const input = page.getByRole('textbox', {
-    name: 'Ask Iroh a research question',
+    name: 'Ask Uncle a research question',
   });
   await input.fill(
     'What is smart money doing with ETH on Ethereum over the last 24 hours?',

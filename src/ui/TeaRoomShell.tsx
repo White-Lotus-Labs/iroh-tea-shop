@@ -1,5 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
+import { flushSync } from 'react-dom';
 import {
   useCallback,
   useEffect,
@@ -24,6 +25,7 @@ import { StationDock } from './StationDock';
 import { ThesisDeck } from './ThesisDeck';
 import type { ConvictionLevel, ThesisId } from '../thesis/types';
 import { convictionToMood } from './convictionMood';
+import { InkLine, STATION_TEASERS } from './stationTeasers';
 
 // SceneLoader covers the stage while the scene chunk downloads.
 const TeaRoom = dynamic(() => import('../scene/TeaRoom'), {
@@ -142,9 +144,17 @@ export default function TeaRoomShell({
     queueMicrotask(() => panel.current?.focus());
   }, [station]);
   const closePanel = useCallback(() => {
-    setPanelOpen(false);
-    queueMicrotask(() => openHint.current?.focus());
-  }, []);
+    const finish = () => {
+      flushSync(() => setPanelOpen(false));
+      openHint.current?.focus();
+    };
+    const paper = panel.current;
+    if (reduced || !paper || paper.classList.contains('is-rolling-up'))
+      return finish();
+    // Let the scroll roll up to its top rod before it unmounts.
+    paper.classList.add('is-rolling-up');
+    window.setTimeout(finish, 380);
+  }, [reduced]);
   const onCameraArrive = useCallback((at: Station) => {
     setCameraAt(at);
   }, []);
@@ -226,6 +236,7 @@ export default function TeaRoomShell({
         : null;
   const showOpenHint =
     Boolean(panelStation) && !panelOpen && !isEntrance && cameraSettled;
+  const teaser = STATION_TEASERS[station];
   const showPanel =
     !isEntrance &&
     panelOpen &&
@@ -346,15 +357,28 @@ export default function TeaRoomShell({
             </button>
           )}
 
-          {showOpenHint && panelStation && (
+          {showOpenHint && panelStation && teaser && (
             <button
               ref={openHint}
+              key={panelStation}
               type="button"
               className="panel-open-hint"
               aria-label={`Open ${panelStation}`}
+              aria-describedby="panel-open-teaser"
               onClick={openPanel}
             >
-              Open {panelStation}
+              <span className="panel-open-hint-seal" aria-hidden="true">
+                {teaser.glyph}
+              </span>
+              <span className="panel-open-hint-body" aria-hidden="true">
+                <span className="panel-open-hint-title">
+                  Open <em>{panelStation}</em>
+                </span>
+                <InkLine text={teaser.text} className="panel-open-hint-teaser" />
+              </span>
+              <span id="panel-open-teaser" className="sr-only">
+                {teaser.text}
+              </span>
             </button>
           )}
         </section>
@@ -407,6 +431,11 @@ export default function TeaRoomShell({
                 <span aria-hidden="true">×</span>
                 <span className="sr-only">Close menu</span>
               </button>
+              <span
+                className="scroll-ornament"
+                aria-hidden="true"
+                data-seal={teaser?.glyph ?? '茶'}
+              />
               {station === 'Counter' && (
                 <ThesisDeck
                   nansen={nansen}
