@@ -31,7 +31,7 @@ const SHAFTS: Shaft[] = [
     up: [0, 2.5, 0],
     direction: [0.45, -0.55, 1],
     length: 5.2,
-    gain: 0.5,
+    gain: 0.65,
   },
   {
     origin: [-1.55, 1.05, -6.22],

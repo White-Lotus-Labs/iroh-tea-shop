@@ -134,6 +134,23 @@ Changes: calmer walnut figure on the table, with finer rings, less warp, and mor
 | Mood/color grade             | 8     | No change.                                                                                       |
 | Prop and architecture detail | 7     | No change.                                                                                       |
 
+## Round 7: veranda beam, tea color
+
+Shots: `_scratch/shots/round-7`. Frame rate: mean 87 fps, min 71 fps (`tea-set`). The p95 spikes from round 6 did not come back (worst p95 18.8 ms).
+
+Changes: the veranda shaft gain goes from 0.5 to 0.65, so the beam now reads in the wide view and on the tea-table view. The tea goes from red-brown `#5a2a0c` to amber `#7e4d17`, so it reads as hojicha, not wine, under the warm grade.
+
+| Part                         | Score | Reason                                                                                |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------- |
+| Lighting and shadows         | 8     | No change.                                                                            |
+| Environment/atmosphere       | 8     | Beam, motes and warm haze now show in four views: wide, tea table, host and orrery.   |
+| Walls/architecture           | 7     | No change; the side walls are plain by design, but they keep this part below 8.       |
+| Floor and table              | 8     | No change.                                                                            |
+| Tea set and steam            | 8     | Sculpted pot, footed cups and amber tea with wisps; it reads as a crafted still life. |
+| Orrery                       | 8     | No change.                                                                            |
+| Mood/color grade             | 8     | No change.                                                                            |
+| Prop and architecture detail | 7     | No change.                                                                            |
+
 ## Proposed
 
 Items that need an off-limits file, a dependency, or a big architecture change.

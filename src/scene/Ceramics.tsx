@@ -368,7 +368,7 @@ export function Cup({
       <mesh>
         <latheGeometry args={[TEA, 56]} />
         <meshPhysicalMaterial
-          color="#5a2a0c"
+          color="#7e4d17"
           roughness={0.05}
           clearcoat={1}
           clearcoatRoughness={0.02}
