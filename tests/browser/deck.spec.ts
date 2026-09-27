@@ -43,6 +43,8 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   await mockNansen(page);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // A saved chat makes the Host restore it; the hand-off prefill must survive.
+  await page.request.post('/api/iroh/chats');
   await openCounter(page);
 
   const books = page.locator('.deck-book');
@@ -93,6 +95,8 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   const composer = page.getByRole('textbox', {
     name: 'Ask an onchain research question',
   });
+  // Enabled means the saved-chat restore ran, so the prefill survived it.
+  await expect(composer).toBeEnabled();
   await expect(composer).toHaveValue(
     'Uncle, conviction on “AI Taking Over the World” is weak. What could disprove it?',
   );
@@ -108,8 +112,11 @@ test('deck shows an honest offline state when Nansen answers 503', async ({
   await mockNansen(page, 503);
   await openCounter(page);
   await expect(page.locator('.deck-status')).toContainText(
-    'Offline · Nansen is not configured.',
+    'Nansen is not configured.',
   );
+  await expect(
+    page.locator('.deck-status').getByRole('button', { name: 'Try again' }),
+  ).toBeVisible();
   await expect(
     page.locator('.plaque-level', { hasText: 'Offline' }),
   ).toHaveCount(3);
@@ -137,12 +144,28 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
     timeout: 45000,
   });
 
-  // The ember on the 3D card is the keyboard and pointer target for the pick.
-  const card = page.getByRole('button', {
-    name: 'Read The Crypto Bull Market',
-  });
-  await expect(card).toBeVisible();
-  await card.click({ force: true });
+  // Click the middle 3D card (The Crypto Bull Market) where the camera draws it.
+  type Camera = {
+    pose(): { moving: boolean };
+    project(point: [number, number, number]): [number, number, number];
+  };
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          // The dev probe appears once the camera rig mounts.
+          (
+            window as typeof window & { __teaCamera?: Camera }
+          ).__teaCamera?.pose().moving,
+      ),
+    )
+    .toBe(false);
+  const [x, y] = await page.evaluate(() =>
+    (window as typeof window & { __teaCamera: Camera }).__teaCamera.project([
+      -1.36, 1.345, 6.416,
+    ]),
+  );
+  await page.mouse.click(x, y);
 
   const panel = page.locator('.reading-panel');
   const main = page.locator('main');
@@ -153,7 +176,6 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
     page.getByRole('button', { name: /Open The Crypto Bull Market/ }),
   ).toHaveAttribute('aria-current', 'true');
   await expect(main).toHaveAttribute('data-mood', 'supported');
-  await expect(page.getByRole('button', { name: /^Read / })).toHaveCount(0);
 
   await panel.evaluate((el) => {
     el.dataset.probe = 'one-window';
@@ -215,5 +237,23 @@ test('full motion reading switches theses in place and returns focus to the book
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 20_000 });
   await expect(ai).toBeFocused();
   await expect(robinhood).toHaveAccessibleName(/Following\./);
+  expect(errors).toEqual([]);
+});
+
+test('blocked site storage does not crash the page', async ({ page }) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('denied', 'SecurityError');
+      },
+    }),
+  );
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  const music = page.getByRole('button', { name: 'Background music' });
+  await expect(music).toBeVisible({ timeout: 45000 });
+  await music.click();
   expect(errors).toEqual([]);
 });

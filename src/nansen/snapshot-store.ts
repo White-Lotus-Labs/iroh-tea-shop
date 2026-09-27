@@ -1,7 +1,12 @@
 import type { PrismaClient } from '@prisma/client';
 
-/** How long a saved reading stays fresh before the screen may call it stale. */
+/** How often the background loop saves fresh readings. */
 export const NANSEN_REFRESH_MS = 60 * 60 * 1000;
+/**
+ * A saved row keeps its run's start time, so it is an hour old when the next
+ * run starts. The grace covers that run, so readers do not see a false Stale.
+ */
+const STALE_AFTER_MS = NANSEN_REFRESH_MS + 15 * 60 * 1000;
 
 export const NANSEN_WARMING_MESSAGE =
   'Market readings are still being saved. The shop updates them about once an hour.';
@@ -47,14 +52,14 @@ export async function readNansenSnapshot<T extends object>(
     return null;
   }
   const fetchedAtMs = row.fetchedAt.getTime();
-  const overdue = now >= fetchedAtMs + NANSEN_REFRESH_MS;
+  const overdue = now >= fetchedAtMs + STALE_AFTER_MS;
   const refreshError =
     row.refreshError ??
     (overdue ? 'This reading is older than an hour.' : undefined);
   return {
     ...payload,
     fetchedAt: row.fetchedAt.toISOString(),
-    expiresAt: new Date(fetchedAtMs + NANSEN_REFRESH_MS).toISOString(),
+    expiresAt: new Date(fetchedAtMs + STALE_AFTER_MS).toISOString(),
     source: 'nansen',
     stale: row.stale || overdue,
     ...(refreshError ? { refreshError } : {}),

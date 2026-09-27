@@ -26,6 +26,8 @@ type Shaft = {
   direction: Point;
   length: number;
   gain: number;
+  /** Gain weights for the 4 boundary sheets and the 2 diagonals; default [1, 1]. */
+  sheetGain?: [number, number];
 };
 
 const VERANDA_DIR: Point = [0.45, -0.55, 1];
@@ -38,6 +40,8 @@ const SHAFTS: Shaft[] = [
     direction: VERANDA_DIR,
     length: 5.2,
     gain: 0.7,
+    // The boundary sheets face the Host camera beside the jambs; let the diagonals carry the core.
+    sheetGain: [0.45, 1.15],
   },
   {
     origin: [-1.55, 1.05, -6.22],
@@ -69,7 +73,8 @@ function shaftGeometry() {
     const o = v(shaft.origin),
       a = v(shaft.across),
       u = v(shaft.up),
-      d = v(shaft.direction).normalize().multiplyScalar(shaft.length);
+      d = v(shaft.direction).normalize().multiplyScalar(shaft.length),
+      [side, core] = shaft.sheetGain ?? [1, 1];
     const c = [o, o.clone().add(a), o.clone().add(a).add(u), o.clone().add(u)];
     const sheets: [Vector3, Vector3][] = [
       [c[0], c[1]],
@@ -79,7 +84,7 @@ function shaftGeometry() {
       [c[0], c[2]],
       [c[1], c[3]],
     ];
-    for (const [p, q] of sheets) {
+    sheets.forEach(([p, q], k) => {
       const base = positions.length / 3;
       for (const [corner, s, t] of [
         [p, 0, 0],
@@ -89,10 +94,10 @@ function shaftGeometry() {
       ] as [Vector3, number, number][]) {
         positions.push(corner.x, corner.y, corner.z);
         uvs.push(s, t);
-        gains.push(shaft.gain);
+        gains.push(shaft.gain * (k < 4 ? side : core));
       }
       index.push(base, base + 1, base + 2, base, base + 2, base + 3);
-    }
+    });
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute(

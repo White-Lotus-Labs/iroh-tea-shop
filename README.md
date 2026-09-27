@@ -20,16 +20,18 @@ You need Node.js 22.12 or newer, npm, and a current browser.
 
 ```sh
 npm ci
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Put your Nansen key in `.env.local`:
+Put your Nansen key in `.env`:
 
 ```sh
 NANSEN_API_KEY=your-key
 ```
 
-The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env.local`.
+The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env`.
+
+`scripts/tripo.mjs` reads `TRIPO_API_KEY` from `.env.local`, not `.env`.
 
 ```sh
 npm run db:migrate
@@ -38,9 +40,9 @@ npm run dev
 
 Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101`.
 
-`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL` in `.env` (not `.env.local`, because the Prisma CLI reads only `.env`). Copy the line from `.env.example`: `file:./dev.db`, which Prisma stores as `prisma/dev.db` (git ignores it). Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
+`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL` in `.env` (`file:./dev.db`, which Prisma stores as `prisma/dev.db`; git ignores it). Keep it in `.env`, because the Prisma CLI does not read `.env.local`. Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
 
-Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env.local`. The default is 1.
+Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env`. The default is 1.
 
 When the server starts, it fills the database in the background, then does it again about every hour. The first minute after boot, the thesis desk and the shelf can say the readings are still being saved. That is the fill running. It is not a visitor waiting on a live call.
 
@@ -58,7 +60,7 @@ A full background save makes **94 Nansen requests**:
 | ------------------ | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                           |
 | Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book (2 requests). |
-| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Meme Traders) and five sorts. Account holdings reuses the account-value row.                                                          |
+| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Whales) and five sorts. Account holdings reuses the account-value row.                                                                |
 
 12 + 67 + 15 = 94. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
 
@@ -73,7 +75,7 @@ Conviction, in plain words: a thesis looks at its four assets. An asset "counts"
 1. **Waiting room.** A sketchbook. Press **Enter Teashop** when you want the stations.
 2. **Counter.** Three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. Each book has a conviction seal from the saved readings. Open a book, then open an asset, to see buyers and sellers, holders, supply that is not circulating yet, and perp positioning. You can ask Uncle about it, share it on X, or follow it in this browser.
 3. **Host.** Talk to Uncle. Guests keep the conversation until they leave the page. Signed-in people get a list of old chats.
-4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. A rank opens that wallet in Nansen's profiler.
+4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. Rank 1 is open by default. Click another rank to open it in place with realized and unrealized PnL, 30-day volume, trade count, and its largest open positions. Each rank links to that wallet in Nansen's profiler.
 5. **Observatorium.** Wind the orrery. No market data.
 
 Sign-in is optional. It is a nickname and a password, stored in the same SQLite file as chats and saved readings. Guests can use the room without an account.

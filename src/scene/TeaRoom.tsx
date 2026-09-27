@@ -3,8 +3,10 @@ import {
   startTransition,
   Suspense,
   type ReactNode,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { advance, Canvas, useStore, type RootState } from '@react-three/fiber';
@@ -34,6 +36,7 @@ import { lightExperience } from './lightExperience';
 import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
+import type { ThesisId } from '../thesis/types';
 import { bookResting } from '../ui/waiting-room/bookMotion';
 
 function RoomGeometry({
@@ -60,7 +63,7 @@ function RoomGeometry({
   station: Station;
   menuClosed: boolean;
   onMenuOpen: () => void;
-  onThesisPick?: () => void;
+  onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
   hostModel: boolean;
@@ -68,6 +71,11 @@ function RoomGeometry({
   const [hostHalo, setHostHalo] = useState(false);
   const [orreryHot, setOrreryHot] = useState(false);
   const posters = station !== 'Entrance';
+  // The shell's shelf callback changes on every station move. Read it through
+  // a ref so the memo below (and its ContactShadows) survives the move.
+  const shelfSelect = useRef(onShelfSelect);
+  shelfSelect.current = onShelfSelect;
+  const selectShelf = useCallback(() => shelfSelect.current(), []);
   // Deck state (mood, menuClosed) re-renders this component on every thesis
   // switch. Each drei ContactShadows then redraws the whole room, so the static
   // detail is memoized away from it.
@@ -88,14 +96,14 @@ function RoomGeometry({
         />
         <MechanicalPlanetarySystem reduced={reduced} onHover={setOrreryHot} />
         <TeaShelf
-          onSelect={onShelfSelect}
+          onSelect={selectShelf}
           revealed={shelfRevealed}
           reduced={reduced}
           posters={posters}
         />
       </>
     ),
-    [reduced, onShelfSelect, shelfRevealed, posters],
+    [reduced, selectShelf, shelfRevealed, posters],
   );
   const covered = station === 'Counter' && !menuClosed;
   const finish = useMemo(() => <ScenePolish covered={covered} />, [covered]);
@@ -330,7 +338,7 @@ export default function TeaRoom({
   shelfRevealed: boolean;
   menuClosed: boolean;
   onMenuOpen: () => void;
-  onThesisPick?: () => void;
+  onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
   hostModel: boolean;

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { DECK_FIXTURE } from '../../src/thesis/fixtures';
 import { registerBrowserAccount } from './auth-helper';
 import { beginVisit, openStationPanel } from './room-helpers';
 
@@ -111,7 +112,52 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   });
   await page.goto('/');
   await expect(page.getByText('The room is resting.')).toBeVisible();
+  // Nothing behind the waiting room is reachable or read out.
+  await expect(page.getByText('is only the beginning.')).toHaveCount(0);
+  await expect(page.locator('.topbar')).toHaveAttribute('inert', '');
   await beginVisit(page);
+  await expect(
+    page.getByRole('button', { name: 'Open the Thesis Desk' }),
+  ).toBeFocused();
+  await expect(page.locator('.topbar')).not.toHaveAttribute('inert');
+
+  // The desk fetches even without a key, and Try again recovers it.
+  let deckStatus = 503;
+  await page.route('**/api/theses', (route) =>
+    deckStatus === 200
+      ? route.fulfill({ json: DECK_FIXTURE })
+      : route.fulfill({
+          status: 503,
+          json: { error: 'Nansen is unavailable right now.' },
+        }),
+  );
+  await page.keyboard.press('Enter');
+  const status = page.locator('.deck-status');
+  await expect(status).toHaveText(/^Nansen is unavailable right now\./);
+  deckStatus = 200;
+  await status.getByRole('button', { name: 'Try again' }).click();
+  await expect(status).toContainText('Saved Nansen readings');
+
+  // Asking Uncle about a thesis, then docking back, reopens that thesis.
+  await page
+    .getByRole('button', { name: /Open The Crypto Bull Market/ })
+    .click();
+  await page
+    .getByRole('button', { name: 'Ask Uncle about this thesis' })
+    .click();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-station',
+    'AvatarSeat',
+  );
+  // Keyboard: the dev overlay badge can sit over this dock button.
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Counter/ })
+    .press('Enter');
+  await expect(
+    page.getByRole('dialog', { name: 'The Crypto Bull Market' }),
+  ).toBeVisible();
+
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Shelf/ })
@@ -127,4 +173,36 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+  await expect(page.locator('.reading-panel')).toBeFocused();
+
+  // Closing the Shelf leaves a keyboard way back in.
+  const approach = page.getByRole('button', { name: 'See the top traders' });
+  await page.getByRole('button', { name: 'Close Shelf menu' }).click();
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await expect(approach).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await expect(approach).toBeFocused();
+
+  // Escape keeps a half-typed question to Uncle; an empty composer closes.
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Host/ })
+    .click();
+  await page.getByRole('button', { name: 'Ask Uncle', exact: true }).click();
+  const box = page.getByRole('textbox', {
+    name: 'Ask an onchain research question',
+  });
+  await box.fill('Is SOL');
+  await box.press('Escape');
+  await expect(box).toHaveValue('Is SOL');
+  // Focus off the composer still keeps the draft.
+  await box.blur();
+  await page.keyboard.press('Escape');
+  await expect(box).toHaveValue('Is SOL');
+  await box.fill('');
+  await box.press('Escape');
+  await expect(box).toHaveCount(0);
 });

@@ -289,6 +289,35 @@ float irohNoise( vec3 p ) {
 }`;
 
 /**
+ * Advance Iroh's playlist at `now`. A new activity waits for the current
+ * action to end (or cuts a rest short). The latest activity wins, so a flip
+ * that reverts before then (A -> B -> A) changes nothing.
+ */
+export function stepActivity(
+  m: {
+    activity: IrohActivity;
+    index: number;
+    action: ActionName;
+    start: number;
+  },
+  activity: IrohActivity,
+  now: number,
+) {
+  const change = activity !== m.activity;
+  if (
+    now - m.start < ACTIONS[m.action].length &&
+    !(change && m.action === 'rest')
+  )
+    return;
+  if (change) {
+    m.activity = activity;
+    m.index = 0;
+  } else m.index++;
+  m.action = actionAt(m.activity, m.index);
+  m.start = now;
+}
+
+/**
  * One fur shell over the beard and hair. Each shell sits further out along
  * the skinned normal; strands are streaks of noise that run downward, thin
  * out with height, and glow warm at the tips against the light.
@@ -697,7 +726,6 @@ export function IrohModel({
   const state = useRef({
     rest: null as Rest | null,
     activity,
-    pending: null as IrohActivity | null,
     index: 0,
     action: actionAt(activity, 0) as ActionName,
     start: -1,
@@ -748,20 +776,7 @@ export function IrohModel({
 
     const now = (m.clock += delta);
     if (m.start < 0) m.start = now;
-    if (activity !== m.activity) m.pending = activity;
-    if (
-      !frozen &&
-      (now - m.start >= ACTIONS[m.action].length ||
-        (m.pending && m.action === 'rest'))
-    ) {
-      if (m.pending) {
-        m.activity = m.pending;
-        m.pending = null;
-        m.index = 0;
-      } else m.index++;
-      m.action = actionAt(m.activity, m.index);
-      m.start = now;
-    }
+    if (!frozen) stepActivity(m, activity, now);
     const action = frozen?.action ?? m.action;
     const t = frozen ? frozen.at : now - m.start;
     const dt = frozen ? 1 : delta;

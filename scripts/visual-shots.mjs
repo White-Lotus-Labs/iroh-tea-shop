@@ -67,8 +67,9 @@ mkdirSync(outDir, { recursive: true });
 
 const gpuArgs = {
   // Uncapped frame rate, so the sampler shows headroom above the display refresh.
+  // ANGLE Metal on macOS; elsewhere Chromium's default GPU backend (D3D11 on Windows).
   metal: [
-    '--use-angle=metal',
+    ...(process.platform === 'darwin' ? ['--use-angle=metal'] : []),
     '--enable-webgl',
     '--ignore-gpu-blocklist',
     '--disable-gpu-vsync',

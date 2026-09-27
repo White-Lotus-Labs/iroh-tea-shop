@@ -35,7 +35,9 @@ test('GET reads the saved leaderboard and does not call Nansen', async () => {
   );
   vi.stubGlobal('fetch', upstream);
   const { writeNansenSnapshot } = await import('../src/nansen/snapshot-store');
-  const { LEADERBOARD_CACHE_KEY } = await import('../src/leaderboard/snapshot');
+  const { DEFAULT_LEADERBOARD_CACHE_KEY: LEADERBOARD_CACHE_KEY } = await import(
+    '../src/leaderboard/boards'
+  );
   const saved = await writeNansenSnapshot(
     temp.db,
     LEADERBOARD_CACHE_KEY,
@@ -94,13 +96,13 @@ test('GET reads the board and sort named in the query', async () => {
   const { boardCacheKey } = await import('../src/leaderboard/boards');
   await writeNansenSnapshot(
     temp.db,
-    boardCacheKey('meme', 'roi'),
+    boardCacheKey('whales', 'roi'),
     {
       entries: [
         {
           rank: 1,
           address: `0x${'2'.repeat(40)}`,
-          displayName: 'Meme Trader',
+          displayName: 'Whale Trader',
           pnl: 10,
           roi: 2,
           accountValue: null,
@@ -112,12 +114,12 @@ test('GET reads the board and sort named in the query', async () => {
   const { GET } = await import('../src/app/api/smart-wallet-leaderboard/route');
   const response = await GET(
     new Request(
-      'http://127.0.0.1/api/smart-wallet-leaderboard?board=meme&metric=roi',
+      'http://127.0.0.1/api/smart-wallet-leaderboard?board=whales&metric=roi',
     ),
   );
   expect(response.status).toBe(200);
   const body = (await response.json()) as {
     entries: { displayName: string }[];
   };
-  expect(body.entries[0]?.displayName).toBe('Meme Trader');
+  expect(body.entries[0]?.displayName).toBe('Whale Trader');
 });

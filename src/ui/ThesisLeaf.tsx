@@ -433,7 +433,7 @@ export function ThesisLeaf({
             <span className="plaque-shimmer" />
             <span className="plaque-shimmer plaque-shimmer--short" />
             <span className="sr-only">
-              Asking Nansen for {ticker.symbol}’s latest smart-money activity…
+              Loading saved Nansen readings for {ticker.symbol}…
             </span>
           </div>
         ) : state.status === 'error' ? (

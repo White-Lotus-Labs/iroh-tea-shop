@@ -174,7 +174,7 @@ test('the Shelf stays in the room until opened, then reveals ranked wallets with
   );
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
-  ).toHaveCount(9);
+  ).toHaveCount(10);
 });
 
 test('clicking the Shelf in the room starts the focus journey', async ({
@@ -230,8 +230,19 @@ test('a hanging spirit paper answers hover and opens the Shelf', async ({
 
   await page.getByRole('button', { name: 'Close Shelf menu' }).click();
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  const approach = page.getByRole('button', { name: 'See the top traders' });
+  await expect(approach).toBeFocused();
   await page.mouse.click(...portrait);
   await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  expect(await cameraPose(page)).toEqual(beforeOpen);
+
+  // Keyboard: Escape closes the parchment, Enter on the hint reopens it.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await expect(approach).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  await expect(page.locator('.reading-panel')).toBeFocused();
   expect(await cameraPose(page)).toEqual(beforeOpen);
 });
 
@@ -261,9 +272,9 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await expect(
     page.getByText('Fund and Smart Trader wallets · last 30 days').first(),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'Meme Traders' }).click();
+  await page.getByRole('tab', { name: 'Whales' }).click();
   await expect(
-    page.getByText('Token Millionaire wallets · last 30 days').first(),
+    page.getByText('Accounts worth $10M or more · last 30 days').first(),
   ).toBeVisible();
   await page.getByRole('tab', { name: 'Perps Traders' }).click();
   await page.getByLabel('Rank by').selectOption('roi');
@@ -278,23 +289,15 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await expect(page.getByTestId('top-wallet')).toContainText('Azure Dragon', {
     timeout: 15_000,
   });
-  const spiritWindow = page.getByTestId('shelf-spirit-window');
-  await expect(spiritWindow).toContainText('Azure Dragon');
-  await page.locator('[data-rank="2"]').click();
-  await expect(spiritWindow).toContainText('Vermilion Phoenix');
-  await expect(page.locator('[data-rank="2"]')).toHaveAttribute(
+  await expect(page.getByTestId('top-wallet')).toContainText('+27.4%');
+  await expect(page.locator('[data-rank="1"]')).toHaveAttribute(
     'data-selected',
     'true',
   );
-  await expect(page.locator('[data-rank="2"]')).toContainText(
-    'Vermilion Phoenix',
-  );
   await expect(page.locator('[data-rank="10"]')).toContainText('Jade Rabbit');
-  await expect(page.getByTestId('top-wallet')).toContainText('+27.4%');
   await expect(
     page.getByTestId('rank-grid').locator('[data-rank]'),
-  ).toHaveCount(9);
-  await expect(page.getByTestId('rank-grid')).toHaveAttribute('start', '2');
+  ).toHaveCount(10);
   const second = page.locator('[data-rank="2"]');
   await expect(second.locator('.wallet-roi')).toHaveClass(/wallet-roi-down/);
   await expect(second.locator('.wallet-bar > span')).toHaveAttribute(
@@ -309,6 +312,19 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
     'href',
     `https://app.nansen.ai/profiler?address=${address(2)}&chain=hyperliquid`,
   );
+  // Opening a row moves the full card to that spirit and folds rank 1 back into a row.
+  await second.getByRole('button', { expanded: false }).click();
+  await expect(second).toHaveAttribute('data-selected', 'true');
+  await expect(page.getByTestId('top-wallet')).toContainText(
+    'Vermilion Phoenix',
+  );
+  await expect(page.getByTestId('top-wallet')).toContainText(
+    '#2 by 30-day PnL',
+  );
+  await expect(page.getByTestId('top-wallet')).toBeFocused();
+  await expect(
+    page.locator('[data-rank="1"]').getByRole('button', { expanded: false }),
+  ).toBeVisible();
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await second
     .getByRole('button', { name: `Copy wallet address ${address(2)}` })
@@ -356,9 +372,7 @@ test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', 
   await expect(page.getByTestId('leaderboard-parchment')).toContainText(
     'Nansen API is not configured.',
   );
-  await expect(
-    page.getByRole('button', { name: 'Retry leaderboard' }),
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 });
 
 test('an invalid server response shows a safe parchment error', async ({
@@ -441,9 +455,8 @@ test('a stale real snapshot is labelled and small screens keep values readable',
   await page.goto('/');
   await focusShelf(page);
   await expect(page.getByText(/showing the last saved copy/)).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: 'Retry leaderboard' }),
-  ).toBeVisible();
+  // A server-stale row has nothing newer to fetch, so no retry is offered.
+  await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

@@ -1,7 +1,8 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import {
   BOARD_BLURB,
+  BOARD_INTRO,
   BOARD_LABELS,
   LEADERBOARD_BOARDS,
   LEADERBOARD_METRICS,
@@ -25,6 +26,16 @@ import {
 import { shelfLabel } from './shelfLabels';
 
 const snapshotCache = new Map<string, SmartWalletLeaderboardSnapshot>();
+
+// Same wording as deckModel's formatRelative. Importing that module here
+// would pull the whole deck model into the first-paint shell chunk.
+function ageLabel(iso: string) {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+}
 
 function viewKey(board: LeaderboardBoard, metric: LeaderboardMetric) {
   return `${board}:${metric}`;
@@ -59,8 +70,8 @@ function Portrait({ rank }: { rank: number }) {
   const identity = shelfIdentityForRank(rank);
   const index = identity?.portraitIndex ?? 9;
   return (
-    <div className="wallet-portrait-frame">
-      <div
+    <span className="wallet-portrait-frame">
+      <span
         className="wallet-portrait"
         role="img"
         aria-label={identity?.name ?? SHELF_GUEST_NAME}
@@ -68,7 +79,7 @@ function Portrait({ rank }: { rank: number }) {
           backgroundPosition: `${(index % 5) * 25}% ${index < 5 ? 0 : 100}%`,
         }}
       />
-    </div>
+    </span>
   );
 }
 
@@ -134,59 +145,37 @@ function WalletActions({
   );
 }
 
-const SPIRIT_POSTERS: Record<number, string> = {
-  1: '/images/shelf/spirit-1.d17cfc.webp',
-  2: '/images/shelf/spirit-2.db8327.webp',
-  3: '/images/shelf/spirit-3.bd8816.webp',
-};
-
-function SpiritWindow({ rank }: { rank: number }) {
-  const identity = shelfIdentityForRank(rank);
-  const name = identity?.name ?? SHELF_GUEST_NAME;
-  const poster = SPIRIT_POSTERS[rank] ?? null;
-  const index = identity?.portraitIndex ?? 9;
-  return (
-    <figure className="shelf-mini-scroll" data-testid="shelf-spirit-window">
-      <span className="shelf-mini-rod" aria-hidden="true" />
-      <div className="shelf-mini-window">
-        {poster ? (
-          <img src={poster} alt="" />
-        ) : (
-          <div
-            className="wallet-portrait shelf-mini-portrait"
-            role="img"
-            aria-label={name}
-            style={{
-              backgroundPosition: `${(index % 5) * 25}% ${index < 5 ? 0 : 100}%`,
-            }}
-          />
-        )}
-      </div>
-      <figcaption>{name}</figcaption>
-      <span className="shelf-mini-rod" aria-hidden="true" />
-    </figure>
-  );
+function formatCount(value: number | null | undefined) {
+  return value == null ? '—' : Math.round(value).toLocaleString('en-US');
 }
 
-function Leader({
-  entry,
-  selected,
-  onSelect,
-}: {
-  entry: SmartWalletLeaderboardEntry;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+function eyebrow(rank: number, metric: LeaderboardMetric) {
+  return metric === 'wins'
+    ? `#${rank} by 30-day PnL`
+    : `#${rank} · ${METRIC_LABELS[metric]}`;
+}
+
+/** The open spirit: headline numbers plus the trading detail Nansen returns with the leaderboard. */
+const SpiritCard = forwardRef<
+  HTMLElement,
+  { entry: SmartWalletLeaderboardEntry; metric: LeaderboardMetric }
+>(function SpiritCard({ entry, metric }, ref) {
   const name = shelfIdentityForRank(entry.rank)?.name ?? SHELF_GUEST_NAME;
   const label = shelfLabel(entry.displayName, entry.address);
+  const positions = entry.positions ?? [];
+  const hasTrading = [
+    entry.realizedPnl,
+    entry.unrealizedPnl,
+    entry.volume,
+    entry.trades,
+  ].some((value) => value != null);
   return (
     <article
+      ref={ref}
       className="wallet-hero"
-      data-rank={entry.rank}
-      data-selected={selected || undefined}
       data-testid="top-wallet"
+      tabIndex={-1}
       aria-label={`Rank ${entry.rank}, ${name}${label ? `, ${label}` : ''}`}
-      onClick={onSelect}
     >
       <div className="wallet-hero-portrait">
         <Portrait rank={entry.rank} />
@@ -195,7 +184,7 @@ function Leader({
         </span>
       </div>
       <div className="wallet-hero-body">
-        <p className="wallet-hero-eyebrow">#1 by 30-day PnL</p>
+        <p className="wallet-hero-eyebrow">{eyebrow(entry.rank, metric)}</p>
         <h2>{name}</h2>
         {label && <p className="wallet-label">{label}</p>}
         <dl className="wallet-hero-metrics">
@@ -216,6 +205,56 @@ function Leader({
             <dd>{formatMoney(entry.accountValue)}</dd>
           </div>
         </dl>
+        {hasTrading && (
+          <dl className="wallet-hero-trading">
+            <div>
+              <dt>Realized</dt>
+              <dd className={`wallet-tone-${tone(entry.realizedPnl ?? null)}`}>
+                {formatMoney(entry.realizedPnl ?? null, true)}
+              </dd>
+            </div>
+            <div>
+              <dt>Unrealized</dt>
+              <dd
+                className={`wallet-tone-${tone(entry.unrealizedPnl ?? null)}`}
+              >
+                {formatMoney(entry.unrealizedPnl ?? null, true)}
+              </dd>
+            </div>
+            <div>
+              <dt>30-day volume</dt>
+              <dd>{formatMoney(entry.volume ?? null)}</dd>
+            </div>
+            <div>
+              <dt>Trades</dt>
+              <dd>{formatCount(entry.trades)}</dd>
+            </div>
+          </dl>
+        )}
+        {positions.length > 0 && (
+          <div className="wallet-positions">
+            <p className="wallet-positions-head">Largest open positions</p>
+            <ul>
+              {positions.map((position) => (
+                <li key={`${position.coin}:${position.side}`}>
+                  <strong>{position.coin}</strong>
+                  <span className={`wallet-side wallet-side-${position.side}`}>
+                    {position.side}
+                  </span>
+                  <span className="wallet-position-value">
+                    {formatMoney(position.valueUsd)}
+                  </span>
+                  <span
+                    className={`wallet-position-pnl wallet-tone-${tone(position.unrealizedPnl)}`}
+                  >
+                    <span className="sr-only">Unrealized PnL </span>
+                    {formatMoney(position.unrealizedPnl, true)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="wallet-hero-address">
           <code title={entry.address}>{shortenAddress(entry.address)}</code>
           <WalletActions address={entry.address} labelled />
@@ -223,17 +262,15 @@ function Leader({
       </div>
     </article>
   );
-}
+});
 
 function WalletRow({
   entry,
   leaderPnl,
-  selected,
   onSelect,
 }: {
   entry: SmartWalletLeaderboardEntry;
   leaderPnl: number | null;
-  selected: boolean;
   onSelect: () => void;
 }) {
   const name = shelfIdentityForRank(entry.rank)?.name ?? SHELF_GUEST_NAME;
@@ -243,44 +280,46 @@ function WalletRow({
       ? Math.min(1, Math.abs(entry.pnl) / Math.abs(leaderPnl))
       : 0;
   return (
-    <li
-      className="wallet-row"
-      data-rank={entry.rank}
-      data-selected={selected || undefined}
-      onClick={onSelect}
-    >
-      <span className="wallet-seal">
-        <span className="sr-only">Rank </span>
-        {entry.rank}
-      </span>
-      <Portrait rank={entry.rank} />
-      <div className="wallet-who">
-        <h3>{name}</h3>
-        {label ? (
-          <p className="wallet-label">{label}</p>
-        ) : (
-          <p className="wallet-address" title={entry.address}>
-            {shortenAddress(entry.address)}
-          </p>
-        )}
-      </div>
-      <div className="wallet-pnl">
-        <span className={`wallet-pnl-value wallet-tone-${tone(entry.pnl)}`}>
-          <span className="sr-only">PnL </span>
-          {formatMoney(entry.pnl, true)}
+    <li className="wallet-row" data-rank={entry.rank}>
+      <button
+        type="button"
+        className="wallet-row-main"
+        aria-expanded={false}
+        onClick={onSelect}
+      >
+        <span className="wallet-seal">
+          <span className="sr-only">Rank </span>
+          {entry.rank}
         </span>
-        <span className="wallet-bar" aria-hidden="true">
-          <span
-            className={`wallet-tone-${tone(entry.pnl)}`}
-            style={{ width: `${(share * 100).toFixed(1)}%` }}
-          />
+        <Portrait rank={entry.rank} />
+        <span className="wallet-who">
+          <span className="wallet-name">{name}</span>
+          {label ? (
+            <span className="wallet-label">{label}</span>
+          ) : (
+            <span className="wallet-address" title={entry.address}>
+              {shortenAddress(entry.address)}
+            </span>
+          )}
         </span>
-      </div>
-      <RoiChip roi={entry.roi} />
-      <span className="wallet-value">
-        <span className="sr-only">Account value </span>
-        {formatMoney(entry.accountValue)}
-      </span>
+        <span className="wallet-pnl">
+          <span className={`wallet-pnl-value wallet-tone-${tone(entry.pnl)}`}>
+            <span className="sr-only">PnL </span>
+            {formatMoney(entry.pnl, true)}
+          </span>
+          <span className="wallet-bar" aria-hidden="true">
+            <span
+              className={`wallet-tone-${tone(entry.pnl)}`}
+              style={{ width: `${(share * 100).toFixed(1)}%` }}
+            />
+          </span>
+        </span>
+        <RoiChip roi={entry.roi} />
+        <span className="wallet-value">
+          <span className="sr-only">Account value </span>
+          {formatMoney(entry.accountValue)}
+        </span>
+      </button>
       <WalletActions address={entry.address} />
     </li>
   );
@@ -289,12 +328,12 @@ function WalletRow({
 function FreshnessPopover({
   board,
   snapshot,
-  age,
+  updated,
   onClose,
 }: {
   board: LeaderboardBoard;
   snapshot: SmartWalletLeaderboardSnapshot | null;
-  age: number;
+  updated: string;
   onClose: () => void;
 }) {
   return (
@@ -321,9 +360,7 @@ function FreshnessPopover({
       </p>
       <p>The shop saves this ranking and refreshes it about once an hour.</p>
       <p className="leaderboard-freshness-age">
-        {snapshot
-          ? `Snapshot updated ${age === 0 ? 'just now' : `${age} min ago`}.`
-          : 'Fetching snapshot…'}
+        {snapshot ? `Snapshot updated ${updated}.` : 'Loading…'}
       </p>
     </div>
   );
@@ -346,6 +383,8 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   const [selectedRank, setSelectedRank] = useState(1);
   const [revealed, setRevealed] = useState(() => snapshotCache.size > 0);
   const requestId = useRef(0);
+  const openCard = useRef<HTMLElement>(null);
+  const movedFocus = useRef(false);
 
   const toggleFreshness = useCallback((anchor: 'header' | 'footer') => {
     setFreshnessAnchor((prev) => (prev === anchor ? null : anchor));
@@ -354,10 +393,13 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   useEffect(() => {
     if (!freshnessAnchor) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFreshnessAnchor(null);
+      if (e.key !== 'Escape') return;
+      // Capture phase: Escape closes the popover and keeps the panel open.
+      e.stopPropagation();
+      setFreshnessAnchor(null);
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [freshnessAnchor]);
 
   const load = useCallback(async () => {
@@ -414,6 +456,19 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
     setSelectedRank(1);
   }, [board, metric]);
 
+  // The clicked row's button unmounts when it opens, so hand focus to the open card.
+  useEffect(() => {
+    if (!movedFocus.current) return;
+    movedFocus.current = false;
+    openCard.current?.focus({ preventScroll: true });
+    openCard.current?.scrollIntoView({ block: 'nearest' });
+  }, [selectedRank]);
+
+  const openSpirit = (rank: number) => {
+    movedFocus.current = true;
+    setSelectedRank(rank);
+  };
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -428,15 +483,10 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
     return () => window.clearTimeout(timer);
   }, [snapshot, load]);
 
-  const leader = snapshot?.entries[0];
-  const others = snapshot?.entries.slice(1, 10) ?? [];
+  const entries = snapshot?.entries.slice(0, 10) ?? [];
+  const leader = entries[0];
   const unconfigured = nansen === 'unavailable' && !snapshot && !revealed;
-  const age = snapshot
-    ? Math.max(
-        0,
-        Math.floor((Date.now() - Date.parse(snapshot.fetchedAt)) / 60_000),
-      )
-    : 0;
+  const updated = snapshot ? ageLabel(snapshot.fetchedAt) : '';
   return (
     <div className="parchment-hanger" data-testid="leaderboard-parchment">
       <div className="parchment-rod" aria-hidden="true" />
@@ -493,9 +543,8 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                 </em>
               </h1>
               <p className="leaderboard-intro">
-                {board === 'perps'
-                  ? 'The ten Smart HL Perps Traders leading by 30-day PnL. Each spirit is a visual alias—not a claim about the wallet owner.'
-                  : `${BOARD_BLURB[board]}. Each spirit is a visual alias—not a claim about the wallet owner.`}
+                {BOARD_INTRO[board]} Each spirit is a visual alias—not a claim
+                about the wallet owner.
               </p>
               <div className="leaderboard-meta">
                 <span>{BOARD_BLURB[board]}</span>
@@ -519,7 +568,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                 <FreshnessPopover
                   board={board}
                   snapshot={snapshot}
-                  age={age}
+                  updated={updated}
                   onClose={() => setFreshnessAnchor(null)}
                 />
               )}
@@ -528,43 +577,42 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
         </header>
         {snapshot?.stale && (
           <p className="leaderboard-stale" role="status">
-            Last updated {age} min ago · showing the last saved copy.
+            Updated {updated} · showing the last saved copy.
           </p>
         )}
         {leader ? (
           <div className="leaderboard-content" aria-busy={loading}>
-            <SpiritWindow rank={selectedRank} />
-            <Leader
-              entry={leader}
-              selected={selectedRank === leader.rank}
-              onSelect={() => setSelectedRank(leader.rank)}
-            />
-            {others.length > 0 && (
-              <>
-                <div className="wallet-list-head" aria-hidden="true">
-                  <span>Spirit</span>
-                  <span>30-day PnL</span>
-                  <span>ROI</span>
-                  <span>Account value</span>
-                </div>
-                <ol
-                  className="wallet-list"
-                  start={2}
-                  aria-label="Ranks 2 to 10"
-                  data-testid="rank-grid"
-                >
-                  {others.map((entry) => (
-                    <WalletRow
-                      key={entry.address}
-                      entry={entry}
-                      leaderPnl={leader.pnl}
-                      selected={selectedRank === entry.rank}
-                      onSelect={() => setSelectedRank(entry.rank)}
-                    />
-                  ))}
-                </ol>
-              </>
-            )}
+            <div className="wallet-list-head" aria-hidden="true">
+              <span>Spirit</span>
+              <span>30-day PnL</span>
+              <span>ROI</span>
+              <span>Account value</span>
+            </div>
+            <ol
+              className="wallet-list"
+              aria-label="Top ten traders"
+              data-testid="rank-grid"
+            >
+              {entries.map((entry) =>
+                entry.rank === selectedRank ? (
+                  <li
+                    key={entry.address}
+                    className="wallet-row is-open"
+                    data-rank={entry.rank}
+                    data-selected="true"
+                  >
+                    <SpiritCard ref={openCard} entry={entry} metric={metric} />
+                  </li>
+                ) : (
+                  <WalletRow
+                    key={entry.address}
+                    entry={entry}
+                    leaderPnl={leader.pnl}
+                    onSelect={() => openSpirit(entry.rank)}
+                  />
+                ),
+              )}
+            </ol>
             {snapshot!.entries.length < 10 && (
               <p className="leaderboard-note">
                 Nansen returned {snapshot!.entries.length} ranked wallets for
@@ -572,26 +620,22 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
               </p>
             )}
           </div>
+        ) : loading ? (
+          <p className="leaderboard-message" role="status">
+            Loading saved Nansen readings…
+          </p>
         ) : unconfigured ? (
           <div className="leaderboard-message">
             <p>Nansen research is offline.</p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={loading}
-            >
-              Retry
+            <button type="button" onClick={() => void load()}>
+              Try again
             </button>
           </div>
-        ) : loading ? (
-          <p className="leaderboard-message" role="status">
-            Reading the Nansen leaderboard…
-          </p>
         ) : error ? (
           <div className="leaderboard-message" role="alert">
             <p>{error}</p>
             <button type="button" onClick={() => void load()}>
-              Retry leaderboard
+              Try again
             </button>
           </div>
         ) : (
@@ -605,7 +649,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
               <FreshnessPopover
                 board={board}
                 snapshot={snapshot}
-                age={age}
+                updated={updated}
                 onClose={() => setFreshnessAnchor(null)}
               />
             )}
@@ -626,12 +670,11 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                   <span aria-hidden="true">i</span>
                 </button>
               </div>
-              {snapshot && (
-                <span>Updated {age === 0 ? 'just now' : `${age} min ago`}</span>
-              )}
-              {snapshot?.stale && (
+              {snapshot && <span>Updated {updated}</span>}
+              {/* A server-stale row only re-reads the same saved copy. */}
+              {error && snapshot && (
                 <button type="button" onClick={() => void load()}>
-                  Retry leaderboard
+                  Try again
                 </button>
               )}
             </footer>

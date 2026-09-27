@@ -13,6 +13,8 @@ export default function AuthScreen() {
     if (pending) return;
     setPending(true);
     setError('');
+    // Raw exception text ('Failed to fetch', a JSON SyntaxError) never shows.
+    let message = 'Could not reach the shop. Try again.';
     try {
       const response = await fetch(
         `/api/auth/${mode === 'login' ? 'login' : 'register'}`,
@@ -23,15 +25,14 @@ export default function AuthScreen() {
         },
       );
       if (!response.ok) {
-        const body = await response.json();
-        throw new Error(
-          typeof body.error === 'string' ? body.error : 'Please try again.',
-        );
+        const body = await response.json().catch(() => null);
+        if (typeof body?.error === 'string') message = body.error;
+        throw new Error();
       }
       setPassword('');
       window.location.assign('/');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Please try again.');
+    } catch {
+      setError(message);
     } finally {
       setPending(false);
     }
@@ -118,6 +119,7 @@ export default function AuthScreen() {
                 }
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                minLength={mode === 'register' ? 8 : undefined}
                 required
               />
               {mode === 'register' && (

@@ -1,14 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   normalizeLeaderboard,
   formatMoney,
   formatRoi,
 } from '../src/leaderboard/model';
 import { fetchNansenLeaderboard } from '../src/leaderboard/provider';
-import {
-  createSnapshotService,
-  SNAPSHOT_TTL_MS,
-} from '../src/leaderboard/snapshot';
 
 const address = (n: number) => `0x${n.toString(16).padStart(40, '0')}`;
 const row = (n: number, overrides: Record<string, unknown> = {}) => ({
@@ -47,10 +43,10 @@ describe('Nansen leaderboard provider', () => {
     expect(entries[0]).toMatchObject({ rank: 1, displayName: 'Alpha Trader' });
   });
 
-  test('asks Nansen for Smart Money labels and the Memecoin label', async () => {
-    const fetcher = vi.fn().mockImplementation(async () =>
-      Response.json({ data: [row(1)] }),
-    );
+  test('asks Nansen for Smart Money labels and the whale account floor', async () => {
+    const fetcher = vi
+      .fn()
+      .mockImplementation(async () => Response.json({ data: [row(1)] }));
     const now = Date.parse('2026-09-25T12:34:00Z');
     await fetchNansenLeaderboard(
       'private-key',
@@ -59,7 +55,13 @@ describe('Nansen leaderboard provider', () => {
       'smart-money',
       'roi',
     );
-    await fetchNansenLeaderboard('private-key', now, fetcher, 'meme', 'losses');
+    await fetchNansenLeaderboard(
+      'private-key',
+      now,
+      fetcher,
+      'whales',
+      'losses',
+    );
     const bodies = fetcher.mock.calls.map((call) =>
       JSON.parse((call as [string, RequestInit])[1].body as string),
     );
@@ -72,7 +74,7 @@ describe('Nansen leaderboard provider', () => {
     ]);
     expect(bodies[0].order_by).toEqual([{ field: 'roi', direction: 'DESC' }]);
     expect(bodies[1].filters).toEqual({
-      trader_address_label: 'Token Millionaire',
+      account_value: { min: 10_000_000 },
     });
     expect(bodies[1].order_by).toEqual([
       { field: 'total_pnl', direction: 'ASC' },
@@ -109,6 +111,54 @@ describe('Nansen leaderboard provider', () => {
     expect(normalizeLeaderboard({ data: [] })).toEqual([]);
   });
 
+  test('keeps trading detail and the three largest open positions', () => {
+    const position = (coin: unknown, side: unknown) => ({
+      coin,
+      side,
+      position_value_usd: 9_627_600,
+      unrealized_pnl_usd: -416_477,
+    });
+    const [entry] = normalizeLeaderboard({
+      data: [
+        row(1, {
+          realized_pnl_usd: 7_411_990,
+          unrealized_pnl_usd: 1_305_889,
+          volume_usd: 176_761_142,
+          total_trades: 57_013,
+          top_positions: [
+            position('xyz:MU', 'long'),
+            position(42, 'long'),
+            position('SOL', 'sideways'),
+            position('ZEC', 'short'),
+            position('BTC', 'long'),
+            position('ETH', 'long'),
+          ],
+        }),
+      ],
+    });
+    expect(entry).toMatchObject({
+      realizedPnl: 7_411_990,
+      unrealizedPnl: 1_305_889,
+      volume: 176_761_142,
+      trades: 57_013,
+    });
+    expect(entry.positions).toEqual([
+      {
+        coin: 'MU',
+        side: 'long',
+        valueUsd: 9_627_600,
+        unrealizedPnl: -416_477,
+      },
+      expect.objectContaining({ coin: 'ZEC', side: 'short' }),
+      expect.objectContaining({ coin: 'BTC' }),
+    ]);
+    expect(normalizeLeaderboard({ data: [row(2)] })[0]).toMatchObject({
+      volume: null,
+      trades: null,
+      positions: [],
+    });
+  });
+
   test('reports safe errors for absent key and failed Nansen calls', async () => {
     const fetcher = vi.fn();
     await expect(
@@ -131,62 +181,5 @@ describe('Nansen leaderboard provider', () => {
       status: 429,
       retryAfterMs: 120_000,
     });
-  });
-});
-
-describe('in-process snapshot helper', () => {
-  let now: number;
-  beforeEach(() => {
-    now = Date.parse('2026-09-25T12:00:00Z');
-  });
-
-  test('serves the same snapshot on repeat route-equivalent requests and refreshes only after expiry', async () => {
-    type Payload = { entries: ReturnType<typeof normalizeLeaderboard> };
-    const load = vi
-      .fn<() => Promise<Payload>>()
-      .mockResolvedValueOnce({
-        entries: [normalizeLeaderboard({ data: [row(1)] })[0]],
-      })
-      .mockResolvedValueOnce({
-        entries: [normalizeLeaderboard({ data: [row(2)] })[0]],
-      });
-    const service = createSnapshotService(load, SNAPSHOT_TTL_MS, () => now);
-    const first = await service.get();
-    expect(first.expiresAt).toBe('2026-09-25T12:30:00.000Z');
-    now += 20 * 60_000;
-    expect(await service.get()).toEqual(first);
-    expect(await service.get()).toEqual(first);
-    expect(load).toHaveBeenCalledTimes(1);
-    now += 10 * 60_000;
-    const second = await service.get();
-    expect(load).toHaveBeenCalledTimes(2);
-    expect(second.entries[0].address).toBe(address(2));
-  });
-
-  test('coalesces concurrent requests and marks a previous real snapshot stale on failure', async () => {
-    type Payload = { entries: ReturnType<typeof normalizeLeaderboard> };
-    let release!: (value: Payload) => void;
-    const load = vi
-      .fn<() => Promise<Payload>>()
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            release = resolve;
-          }),
-      )
-      .mockRejectedValueOnce(new Error('provider offline'));
-    const service = createSnapshotService(load, SNAPSHOT_TTL_MS, () => now);
-    const pending = [service.get(), service.get(), service.get()];
-    expect(load).toHaveBeenCalledTimes(1);
-    release({ entries: normalizeLeaderboard({ data: [row(1)] }) });
-    const snapshots = await Promise.all(pending);
-    expect(snapshots[0]).toEqual(snapshots[1]);
-    now += 30 * 60_000;
-    const stale = await service.get();
-    expect(stale).toMatchObject({ stale: true, source: 'nansen' });
-    expect(stale.fetchedAt).toBe(snapshots[0].fetchedAt);
-    expect(load).toHaveBeenCalledTimes(2);
-    expect(await service.get()).toEqual(stale);
-    expect(load).toHaveBeenCalledTimes(2);
   });
 });
