@@ -402,12 +402,13 @@ export default function TeaRoomShell({
         reduced={reduced}
         onEnter={() => {
           onReveal();
+          focusHintOnArrive.current = true;
           navigate('Counter');
         }}
       >
         <WaitingVersions reduced={reduced} />
       </WaitingRoom>
-      <header className="topbar">
+      <header className="topbar" inert={isEntrance || undefined}>
         <a href="#main-panel" className="brand">
           <span className="brand-mark" aria-hidden="true">
             ◒
@@ -421,7 +422,11 @@ export default function TeaRoomShell({
         <div className="topbar-right">
           <MusicToggle floating={isEntrance} />
           <div className="status-indicator">
-            <button className="status-icon" aria-label="Data source status">
+            <button
+              className="status-icon"
+              aria-label="Data source status"
+              aria-describedby="status-popup"
+            >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <circle
                   cx="8"
@@ -440,7 +445,7 @@ export default function TeaRoomShell({
               </svg>
             </button>
 
-            <div className="status-popup" role="tooltip">
+            <div className="status-popup" id="status-popup" role="tooltip">
               <div className="status-row">
                 <span className="status-label">Thesis</span>
                 <span
@@ -475,7 +480,7 @@ export default function TeaRoomShell({
         </div>
       </header>
 
-      <div className="room-layout">
+      <div className="room-layout" inert={isEntrance || undefined}>
         <section
           className="room-stage"
           aria-label="Guided three-dimensional tea room"
@@ -565,82 +570,50 @@ export default function TeaRoomShell({
           )}
         </section>
 
-        {isEntrance ? (
-          <div className="entrance-hero">
-            <div className="entrance-hero-content">
-              <span className="entrance-hero-mark" aria-hidden="true">
-                ◒
-              </span>
-              <div className="eyebrow">WELCOME · FOLLOW THE EVIDENCE</div>
-              <h1>
-                A market story
-                <br />
-                <em>is only the beginning.</em>
-              </h1>
-              <span className="entrance-hero-rule" aria-hidden="true" />
-              <p className="intro">
-                Choose a thesis. Check its live Nansen conviction signal. Then
-                open each asset to see the smart-money flows, holders, trades,
-                and positions behind it.
-              </p>
-              <button
-                type="button"
-                className="primary entrance-hero-cta"
-                onClick={() => navigate('Counter')}
-              >
-                <span>Open the Thesis Desk</span>
-                <span className="entrance-hero-cta-arrow" aria-hidden="true">
-                  →
-                </span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          showPanel && (
-            <section
-              key={station}
-              className="reading-panel"
-              id="main-panel"
-              ref={panel}
-              tabIndex={-1}
-              aria-label={active.label}
+        {showPanel && (
+          <section
+            key={station}
+            className="reading-panel"
+            id="main-panel"
+            ref={panel}
+            tabIndex={-1}
+            aria-label={active.label}
+          >
+            <button
+              type="button"
+              className="panel-close"
+              aria-label={`Close ${active.label} menu`}
+              onClick={closePanel}
             >
-              <button
-                type="button"
-                className="panel-close"
-                aria-label={`Close ${active.label} menu`}
-                onClick={closePanel}
-              >
-                <span aria-hidden="true">×</span>
-                <span className="sr-only">Close menu</span>
-              </button>
-              <span
-                className="scroll-ornament"
-                aria-hidden="true"
-                data-seal={teaser?.glyph ?? '茶'}
+              <span aria-hidden="true">×</span>
+              <span className="sr-only">Close menu</span>
+            </button>
+            <span
+              className="scroll-ornament"
+              aria-hidden="true"
+              data-seal={teaser?.glyph ?? '茶'}
+            />
+            {station === 'Counter' && (
+              <ThesisDeck
+                nansen={nansen}
+                reduced={reduced}
+                initialThesis={initialThesis}
+                selectedThesis={selectedThesis}
+                onOpenThesis={onOpenThesis}
+                onCloseThesis={onCloseThesis}
+                onTalkToUncle={onTalkToUncle}
               />
-              {station === 'Counter' && (
-                <ThesisDeck
-                  nansen={nansen}
-                  reduced={reduced}
-                  initialThesis={initialThesis}
-                  selectedThesis={selectedThesis}
-                  onOpenThesis={onOpenThesis}
-                  onCloseThesis={onCloseThesis}
-                  onTalkToUncle={onTalkToUncle}
-                />
-              )}
-              {station === 'AvatarSeat' && (
-                <IrohChat
-                  session={irohSession}
-                  user={user}
-                  nansen={nansen}
-                  draft={uncleDraft}
-                />
-              )}
-              {shelfOpen && <SmartWalletShelf nansen={nansen} />}
-            </section>
-          )
+            )}
+            {station === 'AvatarSeat' && (
+              <IrohChat
+                session={irohSession}
+                user={user}
+                nansen={nansen}
+                draft={uncleDraft}
+              />
+            )}
+            {shelfOpen && <SmartWalletShelf nansen={nansen} />}
+          </section>
         )}
       </div>
 

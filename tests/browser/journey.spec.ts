@@ -139,4 +139,20 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
   await expect(approach).toBeFocused();
+
+  // Escape keeps a half-typed question to Uncle; an empty composer closes.
+  await page
+    .getByRole('navigation', { name: 'Tea room stations' })
+    .getByRole('button', { name: /Host/ })
+    .click();
+  await page.getByRole('button', { name: 'Ask Uncle', exact: true }).click();
+  const box = page.getByRole('textbox', {
+    name: 'Ask an onchain research question',
+  });
+  await box.fill('Is SOL');
+  await box.press('Escape');
+  await expect(box).toHaveValue('Is SOL');
+  await box.fill('');
+  await box.press('Escape');
+  await expect(box).toHaveCount(0);
 });
