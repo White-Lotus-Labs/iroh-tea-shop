@@ -11,6 +11,7 @@ import { TeaTable } from './props/TeaTable';
 import { BackWall } from './props/BackWall';
 import { RightWall } from './props/RightWall';
 import { Hengaku, WallShelf, WallTrim } from './props/WallDetail';
+import { Noren } from './props/Noren';
 import {
   block,
   boxUv,
@@ -654,6 +655,9 @@ function TeaHouseDoorway() {
           surface="paper"
         />
       ))}
+
+      {/* Split noren on a rod just under the lintel soffit (2.41), clear of the andon */}
+      <Noren position={[0, 2.38, z + 0.08]} span={doorWidth + 0.02} />
 
       {/* Wall andon on the jamb: lit washi inside the frame, hung from the bracket arm */}
       <group position={ANDON}>
