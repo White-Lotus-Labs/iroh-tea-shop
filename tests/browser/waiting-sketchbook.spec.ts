@@ -100,6 +100,31 @@ test('on a phone every page is one tap away, not only a swipe', async ({
   );
 });
 
+test('the sketchbook opens from a closed cover', async ({ browser }) => {
+  test.setTimeout(60_000);
+  const context = await browser.newContext({
+    reducedMotion: 'no-preference',
+    viewport: { width: 1440, height: 900 },
+  });
+  const page = await context.newPage();
+  await page.goto('/?waiting=sketchbook');
+  const book = page.locator('.sb');
+  await book.waitFor();
+  const phase = await book.getAttribute('data-open');
+  if (phase !== 'open') {
+    await expect(book).toHaveAttribute('data-open', /^(shut|opening)$/);
+    await expect(page.locator('.sb-cloth-name').first()).toHaveText(
+      'Tea After Pour',
+    );
+  }
+  await expect(book).toHaveAttribute('data-open', 'open', { timeout: 20_000 });
+  await expect(page.locator('.sb-book')).toHaveAttribute(
+    'aria-label',
+    'The tea shop, spread 1 of 5',
+  );
+  await context.close();
+});
+
 test('on a phone held sideways one page keeps a size its text fits', async ({
   page,
 }) => {
