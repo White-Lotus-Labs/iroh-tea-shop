@@ -329,7 +329,7 @@ function Bamboo({
     const c = new Color();
     layout.leaves.forEach((_, k) => {
       const shade = 0.78 + ((k * 37) % 11) / 30;
-      m.setColorAt(k, c.setRGB(0.24 * shade, 0.36 * shade, 0.18 * shade));
+      m.setColorAt(k, c.setRGB(0.19 * shade, 0.29 * shade, 0.13 * shade));
     });
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }, [layout, leavesRef]);
@@ -375,7 +375,7 @@ function Bamboo({
           roughness={0.62}
           color="#ffffff"
           emissive="#1a2410"
-          emissiveIntensity={reduced ? 0.4 : 0.3}
+          emissiveIntensity={0.25}
         />
       </instancedMesh>
     </group>

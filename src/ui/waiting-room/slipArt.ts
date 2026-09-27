@@ -343,9 +343,9 @@ export function drawBack(ctx: Ctx, member: Member, i: number) {
     vertical(ctx, x0 - k * gap, 222, () => ctx.fillText(text, 0, 0)),
   );
 
-  ctx.font = `700 15px ${SANS}`;
-  ctx.fillStyle = 'rgba(43,29,19,.62)';
-  track(ctx, member.handle.toUpperCase(), FW / 2, 1318, 3.5, true);
+  ctx.font = `italic 400 24px ${SERIF}`;
+  ctx.fillStyle = 'rgba(43,29,19,.7)';
+  track(ctx, `— @${member.handle}`, FW / 2, 1320, 0.5, true);
   hanko(ctx, 1244, 54, paper, 1200 + i);
 }
 
