@@ -163,7 +163,7 @@ function buildFittings() {
   ];
   parts.push(...trayAt(-1.36, 6.24, 0.56, 0.2));
   const menu = (geometry: BufferGeometry) =>
-    place(geometry, [-0.8, TOP_Y, 6.3], [0, 0.5, 0]);
+    place(geometry, MENU_AT, [0, MENU_TURN, 0]);
   parts.push(
     menu(block([0.28, 0.03, 0.085], [0, 0.015, 0], '#2a180e')),
     menu(block([0.018, 0.34, 0.02], [-0.121, 0.2, 0], '#3a2215')),
@@ -371,6 +371,24 @@ function buildCaddy() {
   ]);
 }
 
+function drawSign(ctx: CanvasRenderingContext2D) {
+  const random = createRandom(733);
+  ctx.fillStyle = '#3a2416';
+  ctx.fillRect(0, 0, 512, 160);
+  for (let i = 0; i < 260; i++) {
+    const y = random() * 160;
+    ctx.fillStyle = `rgba(${random() > 0.5 ? '90,60,38' : '24,14,8'},${0.12 + random() * 0.2})`;
+    ctx.fillRect(0, y, 512, 0.6 + random() * 1.6);
+  }
+  ctx.strokeStyle = 'rgba(214,176,112,.55)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(12, 12, 488, 136);
+  for (let i = 0; i < 4; i++)
+    glyph(ctx, 380 - i * 108, 26, 104, random, '226,196,138');
+  ctx.fillStyle = '#9e2f1e';
+  ctx.fillRect(40, 104, 22, 22);
+}
+
 function drawMenu(ctx: CanvasRenderingContext2D) {
   const random = createRandom(4242);
   paper(ctx, 0, 0, 256, 352, '#e8dbbb', random);
@@ -416,6 +434,10 @@ function drawMenu(ctx: CanvasRenderingContext2D) {
   }
 }
 
+// Faces both the counter camera and the lantern, so the paper is lit from the front.
+const MENU_AT: Point = [-3.02, TOP_Y, 6.32];
+const MENU_TURN = 1.05;
+
 const CANISTERS: JarSpec[] = [
   {
     kind: 'canister',
@@ -451,7 +473,8 @@ export function Counter() {
       bamboo = merge(buildWhisk().map((g) => place(g, [-1.95, TOP_Y, 5.92]))),
       ceramics = merge(buildCeramics()),
       caddy = buildCaddy(),
-      menu = canvasTexture(256, 352, drawMenu);
+      menu = canvasTexture(256, 352, drawMenu),
+      sign = canvasTexture(512, 160, drawSign);
     return {
       top,
       wood,
@@ -459,8 +482,9 @@ export function Counter() {
       ceramics,
       caddy,
       menu,
+      sign,
       dispose() {
-        [top, wood, bamboo, ceramics, caddy, menu].forEach((item) =>
+        [top, wood, bamboo, ceramics, caddy, menu, sign].forEach((item) =>
           item.dispose(),
         );
       },
@@ -469,13 +493,38 @@ export function Counter() {
   return (
     <group>
       <CounterShelves />
+      <group position={[-2.2, 1.92, 3.445]} rotation={[0.04, 0, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[1.02, 0.34, 0.03]} />
+          <meshStandardMaterial color="#24150c" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0, 0.0155]}>
+          <planeGeometry args={[0.98, 0.306]} />
+          <meshPhysicalMaterial
+            map={built.sign}
+            roughness={0.45}
+            clearcoat={0.5}
+            clearcoatRoughness={0.3}
+          />
+        </mesh>
+        {[-1, 1].map((side) => (
+          <mesh
+            key={side}
+            position={[side * 0.36, 0.3, -0.01]}
+            rotation={[0, 0, side * 0.5]}
+          >
+            <cylinderGeometry args={[0.003, 0.003, 0.3, 5]} />
+            <meshStandardMaterial color="#6b5a3a" roughness={0.9} />
+          </mesh>
+        ))}
+      </group>
       <mesh geometry={built.top} castShadow receiveShadow>
         <WoodMaterial clearcoat={0.55} />
       </mesh>
       <mesh geometry={built.wood} castShadow receiveShadow>
         <WoodMaterial clearcoat={0.25} />
       </mesh>
-      <group position={[-0.8, TOP_Y, 6.3]} rotation={[0, 0.5, 0]}>
+      <group position={MENU_AT} rotation={[0, MENU_TURN, 0]}>
         <mesh position={[0, 0.21, -0.002]}>
           <planeGeometry args={[0.222, 0.305]} />
           <meshStandardMaterial map={built.menu} roughness={0.9} />

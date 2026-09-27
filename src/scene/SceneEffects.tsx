@@ -217,7 +217,7 @@ export function SceneEffects({ reduced }: { reduced: boolean }) {
       />
       <fogExp2 attach="fog" args={['#2a1c13', 0.028]} />
       <RoomEnvironment />
-      {/* <Atmosphere reduced={reduced} /> */}
+      <Atmosphere reduced={reduced} />
       <Composer reduced={reduced} ao={tier === 2} />
     </>
   );

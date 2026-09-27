@@ -31,7 +31,7 @@ const SHAFTS: Shaft[] = [
     up: [0, 2.5, 0],
     direction: [0.45, -0.55, 1],
     length: 5.2,
-    gain: 0.2,
+    gain: 0.42,
   },
   {
     origin: [-1.55, 1.05, -6.22],
@@ -39,7 +39,7 @@ const SHAFTS: Shaft[] = [
     up: [0, 1.8, 0],
     direction: [0.15, -0.42, 1],
     length: 2.8,
-    gain: 0.075,
+    gain: 0.2,
   },
   {
     origin: [3.93, 1.05, 0.8],
@@ -47,7 +47,7 @@ const SHAFTS: Shaft[] = [
     up: [0, 1.75, 0],
     direction: [-1, -0.42, -0.12],
     length: 3,
-    gain: 0.075,
+    gain: 0.2,
   },
 ];
 
@@ -149,14 +149,15 @@ function shaftMaterial() {
       varying vec3 vWorld;
       ${noiseGlsl}
       void main() {
-        float across = pow(sin(3.14159 * vUv.x), 1.6);
-        float along = smoothstep(0.0, 0.12, vUv.y) * pow(1.0 - vUv.y, 1.8);
-        float streak = 0.55 + 0.45 * noise(vec2(vUv.x * 9.0 + vUv.y * 2.0, uTime * 0.06));
+        vec2 uv = clamp(vUv, 0.0, 1.0);
+        float across = pow(max(sin(3.14159 * uv.x), 0.0), 1.6);
+        float along = smoothstep(0.0, 0.12, uv.y) * pow(1.0 - uv.y, 1.8);
+        float streak = 0.55 + 0.45 * noise(vec2(uv.x * 9.0 + uv.y * 2.0, uTime * 0.06));
         float drift = 0.7 + 0.3 * noise(vWorld.xz * 1.4 + vWorld.y * 0.8 + uTime * 0.07);
         float edge = smoothstep(0.02, 0.45, vFacing);
         float fog = exp(-uFog * uFog * vDepth * vDepth);
         float a = across * along * streak * drift * edge * vGain * fog;
-        gl_FragColor = vec4(uColor, a);
+        gl_FragColor = vec4(uColor, clamp(a, 0.0, 1.0));
       }`,
     transparent: true,
     depthWrite: false,
@@ -216,18 +217,18 @@ function moteMaterial() {
           (rise - 0.5) * 0.35 + sin(t * 0.09 + aSeed * 23.0) * 0.04,
           cos(t * 0.11 + aSeed * 31.0) * 0.09);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        float depth = -mv.z;
+        float depth = max(-mv.z, 0.05);
         gl_Position = projectionMatrix * mv;
-        gl_PointSize = max(1.5, (0.004 + aSeed * 0.004) * uScale / depth);
+        gl_PointSize = max(1.5, (0.006 + aSeed * 0.006) * uScale / depth);
         float twinkle = 0.55 + 0.45 * sin(t * (0.6 + aSeed) + aSeed * 12.0);
-        vAlpha = twinkle * sin(3.14159 * rise) * exp(-uFog * uFog * depth * depth);
+        vAlpha = twinkle * max(sin(3.14159 * rise), 0.0) * exp(-uFog * uFog * depth * depth);
       }`,
     fragmentShader: /* glsl */ `
       uniform vec3 uColor;
       varying float vAlpha;
       void main() {
         float d = length(gl_PointCoord - 0.5);
-        float a = smoothstep(0.5, 0.05, d) * vAlpha * 0.55;
+        float a = smoothstep(0.5, 0.05, d) * vAlpha * 0.8;
         gl_FragColor = vec4(uColor, a);
       }`,
     transparent: true,

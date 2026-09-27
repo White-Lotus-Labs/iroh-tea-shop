@@ -620,6 +620,7 @@ export function WaitingRoom() {
       <Counter />
       <WaitingDressing />
       <PaperLantern position={[-2.3, 2.5, 5.55]} drop={0.92} light={7} />
+      <PaperLantern position={[-1.2, 2.62, 7.35]} drop={0.8} light={3.2} />
     </group>
   );
 }

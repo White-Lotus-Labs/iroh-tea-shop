@@ -83,6 +83,23 @@ The new part "Prop and architecture detail" starts in this round (see the rubric
 | Mood/color grade             | 7     | Unchanged.                                                                                                              |
 | Prop and architecture detail | 4     | The counter and table are plain boxes, the pot is primitives, and painted backdrops hold the shoji, alcove, and plants. |
 
+## Round 4: sculpted props, walls, light shafts
+
+Shots: `_scratch/shots/round-4` (headless Metal from here on). Frame rate: mean 92 fps, min 70 fps (`counter`).
+
+Changes: code-sculpted back wall (veranda with deck and railing, painted landscape kept only as a distant matte, lattice shoji, tokonoma with a calligraphy scroll), a framed right wall with a kumiko shoji in place of its painting, and neutral clay plaster. Veranda and shoji light shafts with dust motes (NaN-guarded). A lathe teapot with lid gallery, knob, hollow spout, and glaze break, cups with foot rings, and a tray, caddy, and scoop. A joined walnut table with tapered legs and a fringed runner. A hibachi brazier with ember charcoal and a hobnailed tetsubin. A framed counter with slats, canisters, a whisk, and a tray of cups. Back-bar shelving with labelled jars, a bonsai, bamboo, a tufted zabuton, a carved kanban signboard, and a customer-side lantern.
+
+| Part                         | Score | Reason                                                                                                              |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------- |
+| Lighting and shadows         | 7     | The brazier glow and veranda shafts add motivated light, but the counter front and the tokonoma stay dim.           |
+| Environment/atmosphere       | 7     | Shafts and motes read well behind the orrery and on the veranda; in the wide view they are almost invisible.        |
+| Walls/architecture           | 7     | Real shoji, veranda and alcove replace the painted walls; the side-wall plaster panels are large and blank.         |
+| Floor and table              | 7     | The joined walnut table and runner read as crafted; the table grain is still a little loud in close-up.             |
+| Tea set and steam            | 7     | A sculpted pot, cups, tray and kettle with steam; the glaze needs more highlight breakup to reach a food-shot look. |
+| Orrery                       | 8     | Brass glints against the dusk veranda, with a light pool, motes behind it and a contact shadow.                     |
+| Mood/color grade             | 7     | The purple dusk through the veranda gives a cool counterpoint; the counter view is still murky.                     |
+| Prop and architecture detail | 7     | Every prop the camera sees now has parts; the tokonoma and side walls are sparse, and the brazier box is plain.     |
+
 ## Proposed
 
 Items that need an off-limits file, a dependency, or a big architecture change.

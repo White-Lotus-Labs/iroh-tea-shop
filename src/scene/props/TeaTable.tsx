@@ -201,8 +201,16 @@ function tableGeometry() {
   }
   const top = merge([
     [topSlab(2.28, 1.37, 0.07), [0, 0.575, Z], 0],
-    [new RoundedBoxGeometry(0.15, 0.076, 1.37, 2, 0.008), [-1.2165, 0.575, Z], 2],
-    [new RoundedBoxGeometry(0.15, 0.076, 1.37, 2, 0.008), [1.2165, 0.575, Z], 2],
+    [
+      new RoundedBoxGeometry(0.15, 0.076, 1.37, 2, 0.008),
+      [-1.2165, 0.575, Z],
+      2,
+    ],
+    [
+      new RoundedBoxGeometry(0.15, 0.076, 1.37, 2, 0.008),
+      [1.2165, 0.575, Z],
+      2,
+    ],
   ]);
   return { top, base: merge(legs), ends: merge(ends) };
 }
@@ -235,8 +243,7 @@ function runnerMaps() {
           (edge > 0.044 && edge < 0.0465),
         base = dyed ? indigo : linen,
         tone =
-          (0.86 + over * 0.1 + (slub - 0.5) * 0.22) *
-          (edge < 0.004 ? 0.8 : 1),
+          (0.86 + over * 0.1 + (slub - 0.5) * 0.22) * (edge < 0.004 ? 0.8 : 1),
         i = (y * width + x) * 4;
       for (let c = 0; c < 3; c++) color.data[i + c] = base[c] * tone;
       color.data[i + 3] = 255;
@@ -286,10 +293,7 @@ function Fringe() {
 /** The host's low tea table, its runner, the guest cups and the tea tools. */
 export function TeaTable() {
   const geometry = useMemo(tableGeometry, []);
-  const wood = useMemo(
-    () => woodMaps([128, 76, 46], [66, 36, 21], 301),
-    [],
-  );
+  const wood = useMemo(() => woodMaps([106, 70, 48], [70, 44, 30], 301), []);
   const runner = useMemo(runnerMaps, []);
   const materials = useMemo(() => {
     const make = (color: string, clearcoat: number, clearcoatRoughness = 0.3) =>
