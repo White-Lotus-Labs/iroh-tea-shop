@@ -144,15 +144,6 @@ export function xIntentUrl(
 
 export const FOLLOW_KEY = 'tea.followedTheses';
 
-/** window.localStorage, or null when the browser blocks site data (the getter throws). */
-export function localStore(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 // ponytail: follows live in localStorage, so they do not sync across devices
 // or accounts. Upgrade path: a Prisma FollowedThesis(userId, thesisId) table.
 export function readFollowed(

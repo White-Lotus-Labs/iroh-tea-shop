@@ -7,11 +7,11 @@ import {
   convictionSentence,
   formatRelative,
   isDust,
-  localStore,
   readFollowed,
   toggleFollowed,
   xIntentUrl,
 } from '../src/ui/deckModel';
+import { localStore } from '../src/ui/backgroundMusic';
 
 const ai = findThesis('ai')!;
 const aiSummary = DECK_FIXTURE.theses.find((t) => t.id === 'ai')!;

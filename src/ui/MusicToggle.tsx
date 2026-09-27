@@ -4,10 +4,10 @@ import { createPortal } from 'react-dom';
 import {
   backgroundMusicSources,
   loopBounds,
+  localStore,
   readBackgroundMusic,
   writeBackgroundMusic,
 } from './backgroundMusic';
-import { localStore } from './deckModel';
 import './MusicToggle.css';
 
 const VOLUME = 0.7;

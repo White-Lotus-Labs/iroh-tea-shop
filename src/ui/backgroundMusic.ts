@@ -25,6 +25,15 @@ export function loopBounds(samples: Float32Array, sampleRate: number) {
   return { start: start / sampleRate, end: end / sampleRate };
 }
 
+/** window.localStorage, or null when the browser blocks site data (the getter throws). */
+export function localStore(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 /** On unless the guest turned it off. */
 export function readBackgroundMusic(
   storage: Pick<Storage, 'getItem'> | null,

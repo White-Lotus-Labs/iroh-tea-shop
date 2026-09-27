@@ -33,10 +33,10 @@ import {
   shareText,
   thesisLink,
   toggleFollowed,
-  localStore,
   xIntentUrl,
   type DeckState,
 } from './deckModel';
+import { localStore } from './backgroundMusic';
 import { useMotionBudget } from './motionBudget';
 import { ThesisLeaf } from './ThesisLeaf';
 import './styles/deck.css';
