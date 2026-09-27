@@ -1,24 +1,30 @@
-import type {
-  SmartWalletLeaderboardEntry,
-  SmartWalletLeaderboardSnapshot,
-} from './model';
+import { NansenError } from '../nansen/client';
 import { LeaderboardError } from './provider';
 
 export const SNAPSHOT_TTL_MS = 30 * 60 * 1000;
 export const LEADERBOARD_CACHE_KEY =
   'smart-wallet-leaderboard:hyperliquid:smart-hl-perps-trader:30d:total-pnl-desc:top-10';
 
-/** One server process owns the snapshot and all simultaneous refreshes for this configuration. */
-export function createSnapshotService(
-  load: () => Promise<SmartWalletLeaderboardEntry[]>,
+type SnapshotMeta = {
+  fetchedAt: string;
+  expiresAt: string;
+  source: 'nansen';
+  stale: boolean;
+  refreshError?: string;
+};
+
+/** One server process owns the snapshot and all simultaneous refreshes for this key. */
+export function createSnapshotService<V extends object>(
+  load: () => Promise<V>,
+  ttlMs: number = SNAPSHOT_TTL_MS,
   now: () => number = Date.now,
 ) {
-  let snapshot: SmartWalletLeaderboardSnapshot | null = null;
-  let inFlight: Promise<SmartWalletLeaderboardSnapshot> | null = null;
+  let snapshot: (V & SnapshotMeta) | null = null;
+  let inFlight: Promise<V & SnapshotMeta> | null = null;
   let retryAt = 0;
-  let lastError: LeaderboardError | null = null;
+  let lastError: NansenError | null = null;
 
-  async function get(): Promise<SmartWalletLeaderboardSnapshot> {
+  async function get(): Promise<V & SnapshotMeta> {
     if (snapshot && now() < Date.parse(snapshot.expiresAt)) return snapshot;
     if (inFlight) return inFlight;
     if (now() < retryAt) {
@@ -26,20 +32,17 @@ export function createSnapshotService(
         return { ...snapshot, stale: true, refreshError: lastError?.message };
       throw (
         lastError ??
-        new LeaderboardError(
-          'Smart Wallet leaderboard is temporarily unavailable.',
-          502,
-        )
+        new NansenError('Nansen is temporarily unavailable.', 502)
       );
     }
     inFlight = (async () => {
       try {
-        const entries = await load();
+        const value = await load();
         const fetched = now();
         snapshot = {
-          entries,
+          ...value,
           fetchedAt: new Date(fetched).toISOString(),
-          expiresAt: new Date(fetched + SNAPSHOT_TTL_MS).toISOString(),
+          expiresAt: new Date(fetched + ttlMs).toISOString(),
           source: 'nansen',
           stale: false,
         };
@@ -48,12 +51,9 @@ export function createSnapshotService(
         return snapshot;
       } catch (error) {
         lastError =
-          error instanceof LeaderboardError
+          error instanceof NansenError
             ? error
-            : new LeaderboardError(
-                'Smart Wallet leaderboard is temporarily unavailable.',
-                502,
-              );
+            : new NansenError('Nansen is temporarily unavailable.', 502);
         retryAt = now() + Math.max(60_000, lastError.retryAfterMs);
         if (snapshot)
           return { ...snapshot, stale: true, refreshError: lastError.message };
@@ -68,17 +68,37 @@ export function createSnapshotService(
   return { get };
 }
 
-const services = new Map<string, ReturnType<typeof createSnapshotService>>();
+const services = new Map<string, { get: () => Promise<unknown> }>();
 
-/** Configuration identity prevents a future leaderboard variant from reusing this snapshot. */
-export function getSnapshotService(
+/** Configuration identity prevents a future variant from reusing this snapshot. */
+export function getSnapshotService<V extends object>(
   key: string,
-  load: () => Promise<SmartWalletLeaderboardEntry[]>,
+  load: () => Promise<V>,
+  ttlMs: number = SNAPSHOT_TTL_MS,
 ) {
-  let service = services.get(key);
+  let service = services.get(key) as
+    | ReturnType<typeof createSnapshotService<V>>
+    | undefined;
   if (!service) {
-    service = createSnapshotService(load);
+    service = createSnapshotService(load, ttlMs);
     services.set(key, service);
   }
   return service;
+}
+
+/** Kept so leaderboard failures still surface LeaderboardError in routes. */
+export function asLeaderboardError(error: unknown): LeaderboardError {
+  if (error instanceof LeaderboardError) return error;
+  if (error instanceof NansenError)
+    return new LeaderboardError(
+      error.status === 502
+        ? 'Smart Wallet leaderboard is temporarily unavailable.'
+        : error.message,
+      error.status,
+      error.retryAfterMs,
+    );
+  return new LeaderboardError(
+    'Smart Wallet leaderboard is temporarily unavailable.',
+    502,
+  );
 }

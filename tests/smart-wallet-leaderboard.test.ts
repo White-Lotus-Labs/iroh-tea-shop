@@ -5,7 +5,7 @@ import {
   formatRoi,
 } from '../src/leaderboard/model';
 import { fetchNansenLeaderboard } from '../src/leaderboard/provider';
-import { createSnapshotService } from '../src/leaderboard/snapshot';
+import { createSnapshotService, SNAPSHOT_TTL_MS } from '../src/leaderboard/snapshot';
 
 const address = (n: number) => `0x${n.toString(16).padStart(40, '0')}`;
 const row = (n: number, overrides: Record<string, unknown> = {}) => ({
@@ -106,11 +106,16 @@ describe('30-minute server snapshot', () => {
   });
 
   test('serves the same snapshot on repeat route-equivalent requests and refreshes only after expiry', async () => {
+    type Payload = { entries: ReturnType<typeof normalizeLeaderboard> };
     const load = vi
-      .fn()
-      .mockResolvedValueOnce([normalizeLeaderboard({ data: [row(1)] })[0]])
-      .mockResolvedValueOnce([normalizeLeaderboard({ data: [row(2)] })[0]]);
-    const service = createSnapshotService(load, () => now);
+      .fn<() => Promise<Payload>>()
+      .mockResolvedValueOnce({
+        entries: [normalizeLeaderboard({ data: [row(1)] })[0]],
+      })
+      .mockResolvedValueOnce({
+        entries: [normalizeLeaderboard({ data: [row(2)] })[0]],
+      });
+    const service = createSnapshotService(load, SNAPSHOT_TTL_MS, () => now);
     const first = await service.get();
     expect(first.expiresAt).toBe('2026-09-25T12:30:00.000Z');
     now += 20 * 60_000;
@@ -124,9 +129,10 @@ describe('30-minute server snapshot', () => {
   });
 
   test('coalesces concurrent requests and marks a previous real snapshot stale on failure', async () => {
-    let release!: (value: ReturnType<typeof normalizeLeaderboard>) => void;
+    type Payload = { entries: ReturnType<typeof normalizeLeaderboard> };
+    let release!: (value: Payload) => void;
     const load = vi
-      .fn()
+      .fn<() => Promise<Payload>>()
       .mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -134,10 +140,10 @@ describe('30-minute server snapshot', () => {
           }),
       )
       .mockRejectedValueOnce(new Error('provider offline'));
-    const service = createSnapshotService(load, () => now);
+    const service = createSnapshotService(load, SNAPSHOT_TTL_MS, () => now);
     const pending = [service.get(), service.get(), service.get()];
     expect(load).toHaveBeenCalledTimes(1);
-    release(normalizeLeaderboard({ data: [row(1)] }));
+    release({ entries: normalizeLeaderboard({ data: [row(1)] }) });
     const snapshots = await Promise.all(pending);
     expect(snapshots[0]).toEqual(snapshots[1]);
     now += 30 * 60_000;
