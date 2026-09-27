@@ -67,8 +67,14 @@ export function createAgentDailyCap() {
       };
     },
     /** Give a claim back when Nansen never answered. Never crosses a reset. */
-    refund(clientIp: string, now: number = Date.now()) {
-      if (day !== utcDay(now)) return;
+    refund(clientIp: string, claim: AgentCapClaim, now: number = Date.now()) {
+      // A new day or limit since the claim already cleared it.
+      if (
+        day !== utcDay(now) ||
+        day !== utcDay(claim.resetAt - 1) ||
+        limit !== claim.limit
+      )
+        return;
       const used = usedByClient.get(clientIp) ?? 0;
       if (used > 1) usedByClient.set(clientIp, used - 1);
       else usedByClient.delete(clientIp);

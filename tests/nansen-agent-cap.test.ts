@@ -54,13 +54,25 @@ describe('Nansen Research Agent daily cap', () => {
     const cap = createAgentDailyCap();
     const now = Date.UTC(2026, 8, 27, 23, 59, 59);
 
-    expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(true);
-    cap.refund('203.0.113.10', now);
-    cap.refund('203.0.113.10', now);
-    expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(true);
+    const first = cap.claim('203.0.113.10', now, '1');
+    expect(first.allowed).toBe(true);
+    cap.refund('203.0.113.10', first, now);
+    cap.refund('203.0.113.10', first, now);
+    const second = cap.claim('203.0.113.10', now, '1');
+    expect(second.allowed).toBe(true);
     expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(false);
-    cap.refund('203.0.113.10', now + 2_000);
+    cap.refund('203.0.113.10', second, now + 2_000);
     expect(cap.claim('203.0.113.10', now, '1').allowed).toBe(false);
+  });
+
+  it('does not refund a claim from before a reset', () => {
+    const cap = createAgentDailyCap();
+    const now = Date.UTC(2026, 8, 27, 23, 59, 50);
+    const late = cap.claim('203.0.113.10', now, '1');
+    const tomorrow = now + 20_000;
+    expect(cap.claim('203.0.113.10', tomorrow, '1').allowed).toBe(true);
+    cap.refund('203.0.113.10', late, tomorrow + 10_000);
+    expect(cap.claim('203.0.113.10', tomorrow, '1').allowed).toBe(false);
   });
 
   it('takes the first valid forwarded IP and ignores invalid values', () => {

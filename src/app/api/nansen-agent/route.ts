@@ -183,7 +183,7 @@ export async function POST(request: Request) {
     return capError(cap);
   }
   // Nansen did not answer, so the guest keeps their cup for a retry.
-  const refundCup = () => agentDailyCap.refund(clientIp);
+  const refundCup = () => agentDailyCap.refund(clientIp, cap);
 
   const preparation: {
     value: Awaited<ReturnType<typeof prepareAdmittedResearchRequest>> | null;
