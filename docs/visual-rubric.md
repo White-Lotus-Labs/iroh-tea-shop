@@ -94,6 +94,15 @@ Frame-time budget: the headed Metal run must stay at or above 50 fps. The M5 Max
 - 8: A clear cinematic grade: controlled contrast, warm highlights, deep but not crushed shadows, subtle bloom on light sources, gentle vignette. Painted and 3D layers match.
 - 10: Every frame could be a key-art still.
 
+### Prop and architecture detail
+
+Added in round 3. The reference bar is a scene where every object is sculpted in code with part-level detail, such as Meng To's ship scene.
+
+- 4: Props are boxes, spheres, and cylinders. Painted backdrops carry most of the detail.
+- 6: Main props have their real parts (legs, lids, handles, frames), but edges are hard and repeated parts look identical.
+- 8: Every prop the camera sees has part-level detail: beams with joinery and bevels, lattice shoji, lanterns with ribs and tassels, a tea set with lids, handles, and glaze variation, and plants with branches and leaves. Painted backdrops stay only beyond windows.
+- 10: Close-ups hold up everywhere. Wear, labels, knots, and small props make the room look lived in.
+
 ## Host parts (owned by the host lane)
 
 The scene lane scores these rows as a baseline but does not edit the host. Use `host-face`, `host-hands`, and `host-full`.

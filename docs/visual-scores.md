@@ -54,15 +54,34 @@ Shots: `_scratch/shots/round-2`. Frame rate: mean 92 fps, min 73 fps (`tea-set`,
 
 Changes: glazed ceramics with clearcoat, amber tea with a glossy surface, torn-wisp steam sprites from spout, lid and cups, `ContactShadows` under the tea set and the orrery, ribbed chochin lanterns at a lower emissive, smoother plaster and finer floor grain.
 
-| Part                   | Score | Reason                                                                                                                         |
-| ---------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Part                   | Score | Reason                                                                                                                            |
+| ---------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Lighting and shadows   | 7     | Lanterns glow without clipping and key shadows rake the counter floor, but lanterns cast no light pools and the counter is murky. |
-| Environment/atmosphere | 6     | Fog gives depth, but the glowing shoji throw no light shafts and the air has no haze or dust.                                  |
-| Walls/architecture     | 6     | The frame, wainscot and ceiling read well, but the right plaster wall reads as blotchy rusted metal.                           |
-| Floor and table        | 7     | Floor and tatami hold up; the table top grain is stringy and aliased in the tea-set close-up.                                  |
-| Tea set and steam      | 6     | Grounded by contact shadows, with glossy glaze and visible steam, but the uniform green glaze still reads as plastic.          |
-| Orrery                 | 7     | Brass rings, planets and the glowing sun read clearly against the scroll; the dial face is flat and the andon clutters.        |
-| Mood/color grade       | 7     | Warm dusk grade with controlled highlights; the palette lacks a cool counterpoint, so every view is orange-brown.              |
+| Environment/atmosphere | 6     | Fog gives depth, but the glowing shoji throw no light shafts and the air has no haze or dust.                                     |
+| Walls/architecture     | 6     | The frame, wainscot and ceiling read well, but the right plaster wall reads as blotchy rusted metal.                              |
+| Floor and table        | 7     | Floor and tatami hold up; the table top grain is stringy and aliased in the tea-set close-up.                                     |
+| Tea set and steam      | 6     | Grounded by contact shadows, with glossy glaze and visible steam, but the uniform green glaze still reads as plastic.             |
+| Orrery                 | 7     | Brass rings, planets and the glowing sun read clearly against the scroll; the dial face is flat and the andon clutters.           |
+| Mood/color grade       | 7     | Warm dusk grade with controlled highlights; the palette lacks a cool counterpoint, so every view is orange-brown.                 |
+
+## Round 3: merge of origin/main (Andrii's doorway and host diorama)
+
+Shots: `_scratch/shots/round-3-merge`. Frame rate: mean 72 fps, min 47 fps (`room-wide`). These numbers are not comparable: another lane ran a headless Playwright job at about 635% CPU during the capture.
+
+Changes: Andrii's `TeaHouseDoorway` (jamb posts, lattice ranma transom, side shoji, green noren, jamb lantern) replaces the old partition wall and my noren. The host diorama arrives from the host lane. No scene-lane art changes.
+
+The new part "Prop and architecture detail" starts in this round (see the rubric).
+
+| Part                         | Score | Reason                                                                                                                  |
+| ---------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------- |
+| Lighting and shadows         | 7     | Unchanged. The doorway lantern adds a motivated warm pool at the counter.                                               |
+| Environment/atmosphere       | 6     | Unchanged: no light shafts, haze, or dust.                                                                              |
+| Walls/architecture           | 6     | The doorway frame and transom fix the blank counter partition, but the right plaster wall still reads as rusted metal.  |
+| Floor and table              | 7     | Unchanged.                                                                                                              |
+| Tea set and steam            | 6     | Unchanged.                                                                                                              |
+| Orrery                       | 7     | Unchanged.                                                                                                              |
+| Mood/color grade             | 7     | Unchanged.                                                                                                              |
+| Prop and architecture detail | 4     | The counter and table are plain boxes, the pot is primitives, and painted backdrops hold the shoji, alcove, and plants. |
 
 ## Proposed
 
