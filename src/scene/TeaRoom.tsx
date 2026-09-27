@@ -108,10 +108,7 @@ function RoomGeometry({
     [reduced, selectShelf, shelfRevealed, posters],
   );
   const covered = station === 'Counter' && !menuClosed;
-  const finish = useMemo(
-    () => <ScenePolish covered={covered} />,
-    [covered],
-  );
+  const finish = useMemo(() => <ScenePolish covered={covered} />, [covered]);
   return (
     <>
       <color attach="background" args={['#2f2119']} />
@@ -179,9 +176,7 @@ function RoomGeometry({
             model={hostModel}
             lit={hostHalo}
             onActivate={() =>
-              station === 'AvatarSeat'
-                ? onMenuOpen()
-                : onNavigate('AvatarSeat')
+              station === 'AvatarSeat' ? onMenuOpen() : onNavigate('AvatarSeat')
             }
           />
         </Suspense>
