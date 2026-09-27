@@ -1582,11 +1582,24 @@
   font-size: 12px;
 }
 
+/* Three groups in DOM order, so focus order matches: talk, share (x3), follow. */
 .scroll-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   padding-top: 16px;
+}
+
+.scroll-actions > .scroll-action:not(.scroll-action--primary, .scroll-action--seal) {
+  padding: 0 14px;
+}
+
+.scroll-action--primary {
+  margin-inline-end: 10px;
+}
+
+.scroll-action--seal {
+  margin-inline-start: auto;
 }
 
 .scroll-action {

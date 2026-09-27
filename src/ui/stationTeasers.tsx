@@ -14,7 +14,7 @@ export const STATION_TEASERS: Partial<
   },
   Shelf: {
     glyph: '卷',
-    text: 'Unroll the scroll. The top 10 smart perp traders, 30 days.',
+    text: 'Unroll the top 10 smart perp traders.',
   },
   TeaTable: { glyph: '星', text: 'Wind the orrery.' },
 };

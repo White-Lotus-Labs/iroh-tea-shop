@@ -95,33 +95,41 @@ function drawShino(ctx: CanvasRenderingContext2D) {
 }
 const shinoMap = once(() => canvasTexture(512, 256, drawShino));
 
+const JAR_AT: Point = [2.12, 0, -1.8];
 const KENSUI: Point = [2.02, 0, -1.3];
 const LID_REST: Point = [2.34, 0, -1.03];
 const LID_REST_H = 0.055;
-/** Floor-board top. Bases sit this far above it so they are not coplanar. */
-const FLOOR_TOP = 0;
-const TEMAE_SEAT = 0.008;
 /** Tatami top, from the mat boxes in TeaArchitecture. */
 const TATAMI_TOP = 0.052;
-const HISHAU_R = 0.0055;
+const HISHAKU_R = 0.0055;
+/** Contact shades lie this far above their surface, below the room's ContactShadows planes. */
+const SHADE_LIFT = 0.001;
+
+function drawShade(ctx: CanvasRenderingContext2D) {
+  const gradient = ctx.createRadialGradient(32, 32, 4, 32, 32, 32);
+  gradient.addColorStop(0, 'rgba(20,10,4,0.85)');
+  gradient.addColorStop(0.5, 'rgba(20,10,4,0.45)');
+  gradient.addColorStop(1, 'rgba(20,10,4,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 64, 64);
+}
+const shadeMap = once(() => canvasTexture(64, 64, drawShade));
 
 /**
- * Where the temae sits: jar, kensui and lid rest clear of the boards, the hishaku
- * handle biting the kensui lip, and the fukusa sunk a hair into the tatami.
+ * Where the temae sits: jar, kensui and lid rest on the boards, the hishaku handle
+ * biting the kensui lip, the fukusa sunk a hair into the tatami, and a soft contact
+ * shade under each. The room's ContactShadows are too blurred for pieces this small.
  */
 export function temaeLayout() {
   const [kx, , kz] = KENSUI,
     [fx, , fz] = LID_REST,
     toward = new Vector3(kx - fx, 0, kz - fz).normalize(),
-    cupY = TEMAE_SEAT + LID_REST_H + 0.0225,
+    cupY = LID_REST_H + 0.0225,
     joint = new Vector3(fx, cupY, fz).addScaledVector(toward, 0.028),
     // Widest point of the bronze lip. The cord centreline sits just inside its radius.
-    lip = new Vector3(kx, TEMAE_SEAT + 0.082, kz).addScaledVector(
-      toward,
-      -0.076,
-    ),
+    lip = new Vector3(kx, 0.082, kz).addScaledVector(toward, -0.076),
     rest = lip.clone();
-  rest.y += HISHAU_R - 0.0015;
+  rest.y += HISHAKU_R - 0.0015;
   const tip = rest
     .clone()
     .addScaledVector(rest.clone().sub(joint).normalize(), 0.014);
@@ -129,17 +137,17 @@ export function temaeLayout() {
     sink = 0.002,
     clothBottom = TATAMI_TOP - sink,
     foldH = 0.004,
-    clothSize: Point = [0.13, clothH, 0.09],
-    // Ring starts outside the cloth's corners so the contact shade sits on the mat.
-    shadowInner = Math.hypot(clothSize[0] / 2, clothSize[2] / 2) + 0.004;
+    clothSize: Point = [0.13, clothH, 0.09];
+  const shade = ([x, y, z]: Point, width: number, depth = width) => ({
+    at: [x, y + SHADE_LIFT, z] as Point,
+    size: [width, depth] as [number, number],
+  });
   return {
-    seat: TEMAE_SEAT,
-    floorTop: FLOOR_TOP,
     tatami: TATAMI_TOP,
-    cordRadius: HISHAU_R,
-    jarAt: [2.12, TEMAE_SEAT, -1.8] as Point,
-    bowlAt: [kx, TEMAE_SEAT, kz] as Point,
-    restAt: [fx, TEMAE_SEAT, fz] as Point,
+    cordRadius: HISHAKU_R,
+    jarAt: JAR_AT,
+    bowlAt: KENSUI,
+    restAt: LID_REST,
     cupY,
     joint,
     lip,
@@ -149,9 +157,13 @@ export function temaeLayout() {
     clothBottom,
     fold: [1.238, clothBottom + clothH - 0.001 + foldH / 2, -1.44] as Point,
     foldSize: [0.124, foldH, 0.046] as Point,
-    shadow: [1.24, TATAMI_TOP + 0.001, -1.42] as Point,
-    shadowInner,
-    shadowOuter: shadowInner + 0.022,
+    // Each shade reaches a few cm past the base it grounds.
+    shades: [
+      shade(JAR_AT, 0.26),
+      shade(KENSUI, 0.2),
+      shade(LID_REST, 0.1),
+      shade([1.24, TATAMI_TOP, -1.42], 0.2, 0.15),
+    ],
   };
 }
 
@@ -169,17 +181,13 @@ export function TemaeSet() {
         paint(
           place(new CylinderGeometry(0.075, 0.075, 0.012, 28), [
             jarAt[0],
-            jarAt[1] + 0.186,
+            0.186,
             jarAt[2],
           ]),
           '#120a06',
         ),
         paint(
-          place(new SphereGeometry(0.012, 12, 8), [
-            jarAt[0],
-            jarAt[1] + 0.196,
-            jarAt[2],
-          ]),
+          place(new SphereGeometry(0.012, 12, 8), [jarAt[0], 0.196, jarAt[2]]),
           '#120a06',
         ),
       ]),
@@ -193,11 +201,11 @@ export function TemaeSet() {
         ]),
         '#c9a860',
       ),
-      paint(cord(joint.toArray(), tip.toArray(), HISHAU_R), '#c9a860'),
+      paint(cord(joint.toArray(), tip.toArray(), HISHAKU_R), '#c9a860'),
       paint(
         place(new CylinderGeometry(0.024, 0.024, LID_REST_H, 14), [
           restAt[0],
-          restAt[1] + LID_REST_H / 2,
+          LID_REST_H / 2,
           restAt[2],
         ]),
         '#a88a48',
@@ -206,6 +214,7 @@ export function TemaeSet() {
     return {
       jar,
       shino: shinoMap(),
+      shade: shadeMap(),
       lacquer,
       bronze,
       bamboo,
@@ -242,18 +251,18 @@ export function TemaeSet() {
       <mesh geometry={built.bamboo} castShadow>
         <meshStandardMaterial vertexColors roughness={0.55} />
       </mesh>
-      <mesh position={layout.shadow} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[layout.shadowInner, layout.shadowOuter, 28]} />
-        <meshBasicMaterial
-          color="#140c09"
-          transparent
-          opacity={0.32}
-          depthWrite={false}
-          polygonOffset
-          polygonOffsetFactor={-1}
-          polygonOffsetUnits={-4}
-        />
-      </mesh>
+      {layout.shades.map(({ at, size }) => (
+        <mesh key={at.join()} position={at} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={size} />
+          <meshBasicMaterial
+            map={built.shade}
+            transparent
+            depthWrite={false}
+            polygonOffset
+            polygonOffsetFactor={-2}
+          />
+        </mesh>
+      ))}
       <Solid
         position={layout.cloth}
         size={layout.clothSize}
@@ -390,8 +399,8 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
     ctx.globalAlpha = 0.18;
     inkStroke(ctx, path, width * 2.4, random, '150,118,82');
     ctx.filter = 'none';
-    ctx.globalAlpha = 0.32;
-    inkStroke(ctx, path, width * 0.65, random, '118,90,62');
+    ctx.globalAlpha = 0.5;
+    inkStroke(ctx, path, width * 0.8, random, '92,70,48');
     ctx.restore();
   };
   const trunk: [number, number][] = [
@@ -401,7 +410,7 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
     [560, 380],
     [470, 330],
   ];
-  wash(trunk, 18);
+  wash(trunk, 22);
   const branches: [number, number][][] = [
     [
       [640, 480],
@@ -419,8 +428,8 @@ function drawScreen(ctx: CanvasRenderingContext2D) {
       [300, 350],
     ],
   ];
-  branches.forEach((path) => wash(path, 7));
-  ctx.globalAlpha = 0.35;
+  branches.forEach((path) => wash(path, 9));
+  ctx.globalAlpha = 0.45;
   for (const [cx, cy] of [
     [840, 410],
     [560, 225],
