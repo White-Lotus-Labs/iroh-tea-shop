@@ -28,12 +28,13 @@ import {
   SPREAD_TITLES,
   sketchPreloadUrl,
 } from './sketchbookPages';
+import { bakePageShot, getPageShot, snapshotAndStore } from './pageSnapshot';
 import { usePetalCanvas } from './usePetalCanvas';
 import './Sketchbook.css';
 
 // Page curl after the Meng To sketchbook: a leaf is a chain of nested strips
 // whose tangent sweeps through an arc, so paper bends instead of pivoting.
-// Strip count comes from the motion budget (18, or 8 on a light machine).
+// Strip count comes from the motion budget (18, or 16 on a light machine).
 const BETA = 0.6;
 const TILT_X = 3.5;
 const TILT_Y = 6;
@@ -100,37 +101,19 @@ function PageView({
   index,
   side,
   live,
-  plain = false,
 }: {
   index: number;
   side: 'left' | 'right';
   live: boolean;
-  /** Light budget: one picture (or a title) instead of a second full page. */
-  plain?: boolean;
 }) {
-  const page = SKETCH_PAGES[index];
   return (
     <div
-      className={`sb-page is-${side}${plain ? ' is-plain' : ''}`}
+      className={`sb-page is-${side}`}
+      data-index={index}
       inert={!live || undefined}
       aria-hidden={!live || undefined}
     >
-      {plain ? (
-        <div className="sb-page-inner sb-plain">
-          {page.picture ? (
-            <img
-              src={sketchPreloadUrl(page.picture)}
-              alt=""
-              draggable={false}
-              decoding="async"
-            />
-          ) : (
-            <p className="sb-plain-label">{page.label}</p>
-          )}
-        </div>
-      ) : (
-        page.render(live)
-      )}
+      {SKETCH_PAGES[index].render(live)}
     </div>
   );
 }
@@ -141,7 +124,8 @@ function Leaf({
   back,
   mode,
   strips,
-  plain,
+  frontShot,
+  backShot,
   bind,
 }: {
   cls: string;
@@ -149,12 +133,14 @@ function Leaf({
   back?: number;
   mode: Mode;
   strips: number;
-  plain: boolean;
+  frontShot?: string;
+  backShot?: string;
   bind: (i: number) => (el: HTMLDivElement | null) => void;
 }) {
   // prev leaves hang from the gutter's left edge, so their faces swap sides.
   const frontSide = cls === 'prev' ? 'left' : 'right';
   const backSide = cls === 'prev' ? 'right' : 'left';
+  const shotFaces = Boolean(frontShot);
   let chain: ReactNode = null;
   for (let i = strips - 1; i >= 0; i--)
     chain = (
@@ -165,28 +151,34 @@ function Leaf({
         style={{ '--i': i } as CSSProperties}
       >
         <div className="face front">
-          <div className={`face-page as-${frontSide}`}>
-            <PageView
-              index={front}
-              side={mode === 'single' ? 'right' : frontSide}
-              live={false}
-              plain={plain}
-            />
+          <div
+            className={`face-page as-${frontSide}${frontShot ? ' is-shot' : ''}`}
+            style={
+              frontShot ? { backgroundImage: `url(${frontShot})` } : undefined
+            }
+          >
+            {frontShot ? null : (
+              <PageView
+                index={front}
+                side={mode === 'single' ? 'right' : frontSide}
+                live={false}
+              />
+            )}
           </div>
           <span className="sh" />
           <span className="gl" />
         </div>
         <div className="face back">
-          <div className={`face-page as-${backSide}`}>
+          <div
+            className={`face-page as-${backSide}${backShot ? ' is-shot' : ''}`}
+            style={
+              backShot ? { backgroundImage: `url(${backShot})` } : undefined
+            }
+          >
             {back === undefined ? (
               <div className="sb-page is-left sb-verso" />
-            ) : (
-              <PageView
-                index={back}
-                side={backSide}
-                live={false}
-                plain={plain}
-              />
+            ) : backShot ? null : (
+              <PageView index={back} side={backSide} live={false} />
             )}
           </div>
           <span className="sh" />
@@ -196,13 +188,52 @@ function Leaf({
       </div>
     );
   return (
-    <div className={`curl ${cls}`} aria-hidden="true">
+    <div
+      className={`curl ${cls}`}
+      data-shot={shotFaces ? 'on' : undefined}
+      aria-hidden="true"
+    >
       {chain}
     </div>
   );
 }
 
 type Phase = 'shut' | 'opening' | 'open';
+
+function pageWidth(bookEl: HTMLElement | null, mode: Mode): number {
+  const w = bookEl?.clientWidth ?? 0;
+  return mode === 'spread' ? w / 2 : w;
+}
+
+function livePageEl(
+  bookEl: HTMLElement | null,
+  index: number,
+): HTMLElement | null {
+  return (
+    bookEl?.querySelector<HTMLElement>(
+      `.sb-half > .sb-page[data-index="${index}"]`,
+    ) ?? null
+  );
+}
+
+function shotsForLeaf(
+  mode: Mode,
+  turn: Turn,
+  bookEl: HTMLElement | null,
+): { front?: string; back?: string } {
+  const leaf = leafOf(mode, turn);
+  const width = pageWidth(bookEl, mode);
+  const take = (index: number) => {
+    const cached = getPageShot(index, width);
+    if (cached) return cached;
+    const el = livePageEl(bookEl, index);
+    return el ? (snapshotAndStore(el, index, width) ?? undefined) : undefined;
+  };
+  return {
+    front: take(leaf.front),
+    back: leaf.back === undefined ? undefined : take(leaf.back),
+  };
+}
 
 /** The front cover, bent with the same strip curl as a page. */
 function Cover({
@@ -268,7 +299,11 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   const strips = useRef<(HTMLDivElement | null)[]>([]);
   const lidStrips = useRef<(HTMLDivElement | null)[]>([]);
   const stripLock = useRef(FULL_STRIPS);
-  const plainLock = useRef(false);
+  const shotLock = useRef<{ front?: string; back?: string }>({});
+  const [bakeIndex, setBakeIndex] = useState(0);
+  const [pageW, setPageW] = useState(0);
+  const bakeDone = useRef(false);
+  const baker = useRef<HTMLDivElement>(null);
   const stripsRef = useRef(FULL_STRIPS);
   const kickRef = useRef<() => void>(() => {});
   const bounds = useRef({ left: 0, top: 0, width: 0, height: 0, at: 0 });
@@ -285,7 +320,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   const count =
     mode === 'spread' ? SKETCH_PAGES.length / 2 : SKETCH_PAGES.length;
   const stripCount = turn ? stripLock.current : stripsFor(budget);
-  const plainCurl = turn ? plainLock.current : budget === 'light';
+  const leafShots = turn ? shotLock.current : {};
   stripsRef.current = stripCount;
   const bind = useCallback(
     (i: number) => (el: HTMLDivElement | null) => {
@@ -375,6 +410,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     if (!el) return;
     const size = () => {
       stage.current?.style.setProperty('--bw', `${el.clientWidth}px`);
+      setPageW(pageWidth(el, live.current.mode));
       const rect = el.getBoundingClientRect();
       bounds.current = {
         left: rect.left,
@@ -389,6 +425,38 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (phase === 'shut' || bakeIndex >= SKETCH_PAGES.length) {
+      if (bakeIndex >= SKETCH_PAGES.length) bakeDone.current = true;
+      return;
+    }
+    let cancel = false;
+    const width = pageW || pageWidth(book.current, mode);
+    const run = async () => {
+      if (width < 8) return;
+      if (getPageShot(bakeIndex, width)) {
+        if (!cancel) setBakeIndex((i) => i + 1);
+        return;
+      }
+      const el = baker.current?.querySelector<HTMLElement>('.sb-page');
+      if (el) {
+        await Promise.all(
+          [...el.querySelectorAll('img')].map((img) =>
+            img.decode
+              ? img.decode().catch(() => undefined)
+              : Promise.resolve(),
+          ),
+        );
+        if (!cancel) await bakePageShot(el, bakeIndex, width);
+      }
+      if (!cancel) setBakeIndex((i) => i + 1);
+    };
+    void run();
+    return () => {
+      cancel = true;
+    };
+  }, [phase, bakeIndex, mode, pageW]);
 
   const settle = useCallback(() => {
     const s = spring.current;
@@ -422,8 +490,8 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
       progress.current = 0;
       const budgetNow = currentMotionBudget();
       stripLock.current = stripsFor(budgetNow);
-      plainLock.current = budgetNow === 'light';
       const next = { dir, from: view, to };
+      shotLock.current = shotsForLeaf(mode, next, book.current);
       live.current.turn = next;
       setTurn(next);
       if (!quiet) setTurned(true);
@@ -651,6 +719,16 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
         new Promise((resolve) => window.setTimeout(resolve, 600)),
       ]);
       await Promise.race([pictures, cap]);
+      await Promise.race([
+        new Promise<void>((resolve) => {
+          const tick = () => {
+            if (cancel || bakeDone.current) return resolve();
+            window.setTimeout(tick, 40);
+          };
+          tick();
+        }),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 4000)),
+      ]);
       if (cancel || !auto.current || live.current.turn) return;
       const steps =
         live.current.mode === 'spread'
@@ -775,6 +853,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
       data-mode={mode}
       data-open={phase}
       data-budget={budget}
+      data-bake={bakeIndex}
     >
       <svg className="sb-defs" aria-hidden="true" focusable="false">
         <filter id="sb-blur-1">
@@ -855,15 +934,28 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
               )}
               {leaf && (
                 <Leaf
-                  key={stripCount}
+                  key={`${turn!.dir}-${turn!.from}-${stripCount}`}
                   cls={leaf.cls}
                   front={leaf.front}
                   back={'back' in leaf ? leaf.back : undefined}
                   mode={mode}
                   strips={stripCount}
-                  plain={plainCurl}
+                  frontShot={leafShots.front}
+                  backShot={leafShots.back}
                   bind={bind}
                 />
+              )}
+              {phase !== 'shut' && bakeIndex < SKETCH_PAGES.length && (
+                <div
+                  ref={baker}
+                  className="sb-baker"
+                  aria-hidden="true"
+                  style={{
+                    width: pageWidth(book.current, mode) || undefined,
+                  }}
+                >
+                  <PageView index={bakeIndex} side="right" live={false} />
+                </div>
               )}
             </div>
           </div>

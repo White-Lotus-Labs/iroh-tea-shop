@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 
 /** Nested page-curl strips on a machine that can spend them. */
 export const FULL_STRIPS = 18;
-/** Fewer strips: the bend stays, the main thread survives. */
-export const LIGHT_STRIPS = 8;
+/** Still a paper bend. Faces are page snapshots, so 16 strips stay cheap. */
+export const LIGHT_STRIPS = 16;
 export const LOW_CORE_COUNT = 4;
 /** `navigator.deviceMemory` is capped and coarse; 4 GB is the low bucket. */
 export const LOW_DEVICE_MEMORY_GB = 4;

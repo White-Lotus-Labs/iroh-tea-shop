@@ -5,7 +5,7 @@ import { LotusMark } from './LotusMark';
 
 export type SketchPage = {
   key: string;
-  /** Short line for the light-budget curl, which does not clone the whole page. */
+  /** Short line used by tests and the baker, not drawn on the curl. */
   label: string;
   picture?: string;
   render: (live: boolean) => ReactNode;
