@@ -70,7 +70,7 @@ Conviction, in plain words: a thesis looks at its four assets. An asset "counts"
 
 ## A walk through the room
 
-1. **Waiting room.** A sketchbook. Enter the tea room when you want the stations.
+1. **Waiting room.** A sketchbook. Press **Enter Teashop** when you want the stations.
 2. **Counter.** Three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. Each book has a conviction seal from the saved readings. Open a book, then open an asset, to see buyers and sellers, holders, supply that is not circulating yet, and perp positioning. You can ask Uncle about it, share it on X, or follow it in this browser.
 3. **Host.** Talk to Uncle. Guests keep the conversation until they leave the page. Signed-in people get a list of old chats.
 4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. A rank opens that wallet in Nansen's profiler.

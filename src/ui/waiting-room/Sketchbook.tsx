@@ -56,7 +56,8 @@ const PetalCanvas = dynamic(
 
 type Mode = 'spread' | 'single';
 type Dir = 'next' | 'prev';
-type Turn = { dir: Dir; from: number; to: number };
+/** `landed`: the leaf lies flat over the page it carried; see the lift effect. */
+type Turn = { dir: Dir; from: number; to: number; landed?: boolean };
 type Spring = {
   target: number;
   v: number;
@@ -406,6 +407,34 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   }, [turn, mode, paint]);
 
   useEffect(() => noteBook('turn', Boolean(turn)), [turn]);
+
+  // A landed leaf hides the live page mounting under it. Lift it once that
+  // page's pictures are decoded and a frame has drawn them, so the swap never
+  // shows a blank or stale picture.
+  useEffect(() => {
+    if (!turn?.landed) return;
+    let cancel = false;
+    let raf = 0;
+    const pictures = [
+      ...(book.current?.querySelectorAll<HTMLImageElement>('.sb-half img') ??
+        []),
+    ].map((img) => img.decode().catch(() => {}));
+    const cap = new Promise((resolve) => window.setTimeout(resolve, 500));
+    void Promise.race([Promise.all(pictures), cap]).then(() => {
+      if (cancel) return;
+      raf = requestAnimationFrame(() => {
+        // A drag can begin() in this frame before the cleanup runs.
+        if (live.current.turn !== turn) return;
+        live.current.turn = null;
+        setTurn(null);
+      });
+    });
+    return () => {
+      cancel = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [turn]);
+
   useEffect(() => releaseBook, []);
 
   useLayoutEffect(() => {
@@ -527,8 +556,10 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
           live.current.view = turn.to;
           setView(turn.to);
         }
-        live.current.turn = null;
-        setTurn(null);
+        // Keep the leaf down while the resting page mounts under it.
+        const rest = live.current.reduced ? null : { ...turn, landed: true };
+        live.current.turn = rest;
+        setTurn(rest);
         then?.();
       };
       if (live.current.reduced) {
@@ -863,6 +894,8 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
   };
 
   const leaf = turn ? leafOf(mode, turn) : null;
+  // A landed leaf covers the page it carried; the resting spread goes under.
+  const under = turn?.landed ? null : leaf?.under;
   const shown = view;
   const spreadTitle =
     SPREAD_TITLES[mode === 'spread' ? shown : Math.floor(shown / 2)];
@@ -922,7 +955,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
                 <>
                   <div className="sb-half is-left">
                     <PageView
-                      index={leaf ? leaf.under[0] : 2 * view}
+                      index={under ? under[0] : 2 * view}
                       side="left"
                       live={open && !turn}
                     />
@@ -930,7 +963,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
                   </div>
                   <div className="sb-half is-right">
                     <PageView
-                      index={leaf ? leaf.under[1] : 2 * view + 1}
+                      index={under ? under[1] : 2 * view + 1}
                       side="right"
                       live={open && !turn}
                     />
@@ -940,7 +973,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
               ) : (
                 <div className="sb-half is-right">
                   <PageView
-                    index={leaf ? leaf.under[0] : view}
+                    index={under ? under[0] : view}
                     side="right"
                     live={open && !turn}
                   />
