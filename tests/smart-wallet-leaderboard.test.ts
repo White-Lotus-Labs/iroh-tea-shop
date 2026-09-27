@@ -43,7 +43,7 @@ describe('Nansen leaderboard provider', () => {
     expect(entries[0]).toMatchObject({ rank: 1, displayName: 'Alpha Trader' });
   });
 
-  test('asks Nansen for Smart Money labels and the Memecoin label', async () => {
+  test('asks Nansen for Smart Money labels and the whale account floor', async () => {
     const fetcher = vi
       .fn()
       .mockImplementation(async () => Response.json({ data: [row(1)] }));
@@ -55,7 +55,13 @@ describe('Nansen leaderboard provider', () => {
       'smart-money',
       'roi',
     );
-    await fetchNansenLeaderboard('private-key', now, fetcher, 'meme', 'losses');
+    await fetchNansenLeaderboard(
+      'private-key',
+      now,
+      fetcher,
+      'whales',
+      'losses',
+    );
     const bodies = fetcher.mock.calls.map((call) =>
       JSON.parse((call as [string, RequestInit])[1].body as string),
     );
@@ -68,7 +74,7 @@ describe('Nansen leaderboard provider', () => {
     ]);
     expect(bodies[0].order_by).toEqual([{ field: 'roi', direction: 'DESC' }]);
     expect(bodies[1].filters).toEqual({
-      trader_address_label: 'Token Millionaire',
+      account_value: { min: 10_000_000 },
     });
     expect(bodies[1].order_by).toEqual([
       { field: 'total_pnl', direction: 'ASC' },
@@ -103,6 +109,54 @@ describe('Nansen leaderboard provider', () => {
     expect(formatRoi(-0.082)).toBe('-8.2%');
     expect(formatRoi(null)).toBe('—');
     expect(normalizeLeaderboard({ data: [] })).toEqual([]);
+  });
+
+  test('keeps trading detail and the three largest open positions', () => {
+    const position = (coin: unknown, side: unknown) => ({
+      coin,
+      side,
+      position_value_usd: 9_627_600,
+      unrealized_pnl_usd: -416_477,
+    });
+    const [entry] = normalizeLeaderboard({
+      data: [
+        row(1, {
+          realized_pnl_usd: 7_411_990,
+          unrealized_pnl_usd: 1_305_889,
+          volume_usd: 176_761_142,
+          total_trades: 57_013,
+          top_positions: [
+            position('xyz:MU', 'long'),
+            position(42, 'long'),
+            position('SOL', 'sideways'),
+            position('ZEC', 'short'),
+            position('BTC', 'long'),
+            position('ETH', 'long'),
+          ],
+        }),
+      ],
+    });
+    expect(entry).toMatchObject({
+      realizedPnl: 7_411_990,
+      unrealizedPnl: 1_305_889,
+      volume: 176_761_142,
+      trades: 57_013,
+    });
+    expect(entry.positions).toEqual([
+      {
+        coin: 'MU',
+        side: 'long',
+        valueUsd: 9_627_600,
+        unrealizedPnl: -416_477,
+      },
+      expect.objectContaining({ coin: 'ZEC', side: 'short' }),
+      expect.objectContaining({ coin: 'BTC' }),
+    ]);
+    expect(normalizeLeaderboard({ data: [row(2)] })[0]).toMatchObject({
+      volume: null,
+      trades: null,
+      positions: [],
+    });
   });
 
   test('reports safe errors for absent key and failed Nansen calls', async () => {

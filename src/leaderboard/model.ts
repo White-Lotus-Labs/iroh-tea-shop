@@ -1,3 +1,10 @@
+export interface WalletPosition {
+  coin: string;
+  side: 'long' | 'short';
+  valueUsd: number | null;
+  unrealizedPnl: number | null;
+}
+
 export interface SmartWalletLeaderboardEntry {
   rank: number;
   address: string;
@@ -5,6 +12,12 @@ export interface SmartWalletLeaderboardEntry {
   pnl: number | null;
   roi: number | null;
   accountValue: number | null;
+  /** Optional: rows saved before these fields existed do not have them. */
+  realizedPnl?: number | null;
+  unrealizedPnl?: number | null;
+  volume?: number | null;
+  trades?: number | null;
+  positions?: WalletPosition[];
 }
 
 export interface SmartWalletLeaderboardSnapshot {
@@ -24,6 +37,26 @@ export function shortenAddress(address: string): string {
 
 function numberOrNull(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** Nansen `top_positions`, largest first. HIP-3 coins drop their deployer prefix (`xyz:MU` → `MU`). */
+function normalizePositions(value: unknown): WalletPosition[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (p): p is Record<string, unknown> =>
+        !!p &&
+        typeof p === 'object' &&
+        typeof p.coin === 'string' &&
+        (p.side === 'long' || p.side === 'short'),
+    )
+    .slice(0, 3)
+    .map((p) => ({
+      coin: (p.coin as string).replace(/^[^:]+:/, ''),
+      side: p.side as 'long' | 'short',
+      valueUsd: numberOrNull(p.position_value_usd),
+      unrealizedPnl: numberOrNull(p.unrealized_pnl_usd),
+    }));
 }
 
 export function normalizeLeaderboard(
@@ -66,6 +99,11 @@ export function normalizeLeaderboard(
         pnl: numberOrNull(row.total_pnl),
         roi: numberOrNull(row.roi),
         accountValue: numberOrNull(row.account_value),
+        realizedPnl: numberOrNull(row.realized_pnl_usd),
+        unrealizedPnl: numberOrNull(row.unrealized_pnl_usd),
+        volume: numberOrNull(row.volume_usd),
+        trades: numberOrNull(row.total_trades),
+        positions: normalizePositions(row.top_positions),
       };
     });
 }

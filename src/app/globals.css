@@ -1415,7 +1415,7 @@ body:has(.auth-shell) {
   text-shadow: none;
 }
 .leaderboard-intro {
-  max-width: 42ch;
+  max-width: 58ch;
   margin: 8px auto 0;
   color: var(--scroll-muted);
   font: 500 13px/1.45 var(--font-body);
@@ -1449,6 +1449,8 @@ body:has(.auth-shell) {
   flex-wrap: wrap;
   justify-content: center;
   gap: 4px;
+  box-sizing: border-box;
+  min-height: 38px;
   padding: 3px;
   border: 1px solid var(--scroll-line);
   border-radius: 999px;
@@ -1474,11 +1476,16 @@ body:has(.auth-shell) {
 .leaderboard-tab:hover {
   color: var(--scroll-ink);
 }
+.leaderboard-metric {
+  display: flex;
+  margin: 0;
+}
 .leaderboard-metric select {
-  min-height: 32px;
-  padding: 5px 28px 5px 10px;
+  min-height: 38px;
+  height: 38px;
+  padding: 0 30px 0 14px;
   border: 1px solid var(--scroll-line);
-  border-radius: 6px;
+  border-radius: 999px;
   background:
     linear-gradient(45deg, transparent 50%, var(--scroll-muted) 50%)
       calc(100% - 14px) / 5px 5px no-repeat,
@@ -1592,48 +1599,15 @@ body:has(.auth-shell) {
   min-height: 0;
 }
 
-/* A small opened-scroll window for the spirit the guest picked in the alcove. */
-.shelf-mini-scroll {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  width: 132px;
-  margin: 0 auto 14px;
+.wallet-hero:focus {
+  outline: none;
 }
-.shelf-mini-rod {
-  width: 118%;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(#9a7044, #4a301c 55%, #2c1c12);
-  box-shadow: 0 1px 0 rgba(255, 236, 204, 0.35) inset;
-}
-.shelf-mini-window {
-  width: 112px;
-  height: 146px;
-  overflow: hidden;
-  border: 1px solid var(--scroll-line);
-  background: #e6d3ab;
-}
-.shelf-mini-window img,
-.shelf-mini-portrait {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.shelf-mini-scroll figcaption {
-  margin: 0;
-  color: var(--scroll-ink);
-  font: 600 13px/1.3 var(--font-display);
-  text-align: center;
-}
-.wallet-hero[data-selected],
-.wallet-row[data-selected] {
-  outline: 1px solid var(--gold);
-  outline-offset: 1px;
+.wallet-hero:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
-/* Rank 1: one calm hero card. */
+/* The open spirit: rank 1 by default, or the row the guest opened. */
 .wallet-hero {
   display: grid;
   grid-template-columns: clamp(118px, 17vw, 160px) minmax(0, 1fr);
@@ -1748,6 +1722,76 @@ body:has(.auth-shell) {
 .wallet-hero-metrics .wallet-roi {
   font-size: 13px;
 }
+.wallet-hero-trading {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 9px 0 0;
+  border-top: 1px dashed var(--scroll-line);
+}
+.wallet-hero-trading > div {
+  min-width: 0;
+}
+.wallet-hero-trading dt,
+.wallet-positions-head {
+  margin: 0;
+  color: var(--scroll-muted);
+  font: 600 9.5px/1.2 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.wallet-hero-trading dd {
+  margin: 3px 0 0;
+  color: var(--scroll-ink);
+  font: 650 14px/1.15 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wallet-positions {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--scroll-line);
+}
+.wallet-positions ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.wallet-positions li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px;
+  border: 1px solid var(--scroll-line);
+  border-radius: 999px;
+  background: rgba(255, 250, 238, 0.7);
+  font: 500 12px/1.2 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wallet-positions strong {
+  color: var(--scroll-ink);
+  font-weight: 700;
+}
+.wallet-side {
+  font: 700 9.5px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.wallet-side-long {
+  color: var(--jade);
+}
+.wallet-side-short {
+  color: var(--seal);
+}
+.wallet-position-value {
+  color: var(--scroll-muted);
+}
 .wallet-hero-address {
   display: flex;
   align-items: center;
@@ -1780,19 +1824,20 @@ body:has(.auth-shell) {
   grid-auto-flow: column;
 }
 
-/* Ranks 2-10: one row per spirit. */
+/* The other spirits: one row each. The row button opens that spirit in place. */
 .wallet-list-head,
-.wallet-row {
+.wallet-row-main {
   display: grid;
-  grid-template-columns:
-    24px 46px minmax(0, 1.25fr) minmax(0, 1.1fr) 70px 96px
-    56px;
+  grid-template-columns: 28px 60px minmax(0, 1.35fr) minmax(0, 1fr) 74px 92px;
   gap: 12px;
   align-items: center;
 }
 .wallet-list-head {
-  margin: 16px 0 2px;
-  padding: 0 8px 6px;
+  grid-template-columns:
+    28px 60px minmax(0, 1.35fr) minmax(0, 1fr)
+    74px 92px 60px;
+  margin: 4px 0 2px;
+  padding: 0 10px 6px;
   border-bottom: 1px solid var(--scroll-line);
   color: var(--scroll-muted);
   font: 600 10px/1.2 var(--font-body);
@@ -1817,7 +1862,11 @@ body:has(.auth-shell) {
 }
 .wallet-row {
   position: relative;
-  padding: 7px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 60px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
   border-bottom: 1px solid var(--scroll-line);
   border-radius: 4px;
   transition: background-color 180ms var(--ease-lift);
@@ -1825,28 +1874,53 @@ body:has(.auth-shell) {
 .wallet-row:last-child {
   border-bottom: 0;
 }
-.wallet-row:hover,
-.wallet-row:focus-within {
+.wallet-row:not(.is-open):hover,
+.wallet-row:not(.is-open):focus-within {
   background: rgba(184, 145, 63, 0.1);
 }
-.wallet-row .wallet-portrait-frame {
-  width: 46px;
-  height: 46px;
+.wallet-row.is-open {
+  display: block;
+  padding: 8px 0;
+}
+.wallet-row.is-open .wallet-hero {
+  animation: leaderboard-ink var(--dur-ink) var(--ease-lift) both;
+}
+.leaderboard-parchment .wallet-row-main {
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.leaderboard-parchment .wallet-row-main:focus-visible {
+  outline-offset: 6px;
+}
+.wallet-row-main .wallet-portrait-frame {
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   box-shadow:
-    0 0 0 1px rgba(122, 46, 36, 0.22),
-    0 3px 8px -5px rgba(42, 33, 24, 0.6);
+    0 0 0 1.5px rgba(184, 145, 63, 0.55),
+    0 4px 10px -5px rgba(42, 33, 24, 0.6);
+}
+.wallet-portrait {
+  display: block;
 }
 .wallet-who {
+  display: grid;
+  gap: 2px;
   min-width: 0;
 }
-.wallet-who h3 {
-  overflow: hidden;
-  margin: 0;
+.wallet-name {
   color: var(--scroll-ink);
-  font: 600 20px/1.1 var(--font-display);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font: 600 22px/1.05 var(--font-display);
+  overflow-wrap: normal;
+  text-wrap: balance;
 }
 .wallet-pnl {
   display: grid;
@@ -1854,7 +1928,7 @@ body:has(.auth-shell) {
   min-width: 0;
 }
 .wallet-pnl-value {
-  font: 650 14px/1 var(--font-body);
+  font: 650 15px/1 var(--font-body);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -2101,12 +2175,14 @@ body:has(.auth-shell) {
   }
   .wallet-hero {
     grid-template-columns: 84px minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-rows: auto auto 1fr auto auto auto auto;
     grid-template-areas:
       'portrait eyebrow'
       'portrait name'
       'portrait label'
       'metrics metrics'
+      'trading trading'
+      'positions positions'
       'address address';
     gap: 0 12px;
     align-items: start;
@@ -2136,6 +2212,13 @@ body:has(.auth-shell) {
   .wallet-hero-metrics dd {
     font-size: 16px;
   }
+  .wallet-hero-trading {
+    grid-area: trading;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .wallet-positions {
+    grid-area: positions;
+  }
   .wallet-hero-address {
     grid-area: address;
     justify-content: space-between;
@@ -2147,42 +2230,54 @@ body:has(.auth-shell) {
     margin-top: 10px;
   }
   .wallet-row {
-    grid-template-columns: 22px 40px minmax(0, 1fr) auto auto;
-    grid-template-areas:
-      'seal portrait who who actions'
-      'seal portrait pnl roi value';
-    gap: 5px 8px;
-    padding: 9px 4px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px 4px;
   }
-  .wallet-row > .wallet-seal {
+  /* Actions float top-right so the numbers line gets the full row width. */
+  .wallet-row > .wallet-actions {
+    position: absolute;
+    top: 10px;
+    right: 4px;
+  }
+  .wallet-row-main > .wallet-who {
+    padding-right: 60px;
+  }
+  .wallet-row-main {
+    grid-template-columns: 22px 48px auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'seal portrait who who who'
+      'seal portrait pnl roi value';
+    gap: 6px 10px;
+  }
+  .wallet-row-main .wallet-pnl-value {
+    font-size: 13.5px;
+  }
+  .wallet-row-main > .wallet-seal {
     grid-area: seal;
     width: 22px;
     height: 22px;
     font-size: 11.5px;
   }
-  .wallet-row > .wallet-portrait-frame {
+  .wallet-row-main > .wallet-portrait-frame {
     grid-area: portrait;
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
   }
-  .wallet-row > .wallet-who {
+  .wallet-row-main > .wallet-who {
     grid-area: who;
   }
-  .wallet-row > .wallet-pnl {
+  .wallet-row-main > .wallet-pnl {
     grid-area: pnl;
   }
-  .wallet-row > .wallet-roi {
+  .wallet-row-main > .wallet-roi {
     grid-area: roi;
   }
-  .wallet-row > .wallet-value {
+  .wallet-row-main > .wallet-value {
     grid-area: value;
     font-size: 12px;
   }
-  .wallet-row > .wallet-actions {
-    grid-area: actions;
-  }
-  .wallet-who h3 {
-    font-size: 17px;
+  .wallet-name {
+    font-size: 18px;
   }
 }
 @media (max-height: 800px) and (min-width: 761px) {
@@ -2202,14 +2297,15 @@ body:has(.auth-shell) {
   .wallet-hero h2 {
     font-size: 30px;
   }
-  .wallet-row {
-    padding-block: 5px;
+  .wallet-row:not(.is-open) {
+    padding-block: 7px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .leaderboard-freshness-popover,
   .wallet-copied,
-  .wallet-row {
+  .wallet-row,
+  .wallet-row.is-open .wallet-hero {
     animation: none;
     transition: none;
   }
