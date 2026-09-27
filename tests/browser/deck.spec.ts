@@ -88,7 +88,7 @@ test('Counter deck opens a thesis scroll, expands a leaf, and hands off to Uncle
     'AvatarSeat',
   );
   const composer = page.getByRole('textbox', {
-    name: 'Ask Iroh a research question',
+    name: 'Ask Uncle a research question',
   });
   await expect(composer).toHaveValue(/Thesis: AI taking over the world/);
   await expect(composer).toHaveValue(/Weakest signal: NVDA/);

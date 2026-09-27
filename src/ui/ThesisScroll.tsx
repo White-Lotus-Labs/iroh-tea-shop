@@ -36,7 +36,6 @@ export interface ThesisScrollProps {
   reduced: boolean;
   now: number;
   followed: boolean;
-  fontClass: string;
   morphName: string | undefined;
   onToggleFollow: () => void;
   onClose: () => void;
@@ -151,7 +150,6 @@ export function ThesisScroll({
   reduced,
   now,
   followed,
-  fontClass,
   morphName,
   onToggleFollow,
   onClose,
@@ -250,7 +248,7 @@ export function ThesisScroll({
   if (!host) return null;
   return createPortal(
     <div
-      className={`scroll-layer ${fontClass}`}
+      className="scroll-layer"
       data-reduced={reduced ? 'true' : 'false'}
       style={style}
     >
@@ -272,7 +270,7 @@ export function ThesisScroll({
         <div className="scroll-rod scroll-rod--top" aria-hidden="true">
           <i />
         </div>
-        <div className="scroll-sheet">
+        <div className="scroll-sheet" data-seal="茶">
           <button
             ref={closeButton}
             type="button"

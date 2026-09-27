@@ -1,5 +1,4 @@
 'use client';
-import { Cormorant_Garamond } from 'next/font/google';
 import {
   useCallback,
   useEffect,
@@ -39,14 +38,6 @@ export interface ThesisDeckProps {
   onCloseThesis: () => void;
   onTalkToUncle: (draft: string) => void;
 }
-
-const display = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-cormorant',
-  display: 'swap',
-});
 
 const MORPH_NAME = 'thesis-art';
 const OWN_THESIS_DRAFT =
@@ -191,13 +182,10 @@ export function ThesisDeck({
   const openThesis = THESES.find((t) => t.id === openId) ?? null;
 
   return (
-    <div
-      className={`thesis-deck ${display.variable}`}
-      data-reduced={reduced ? 'true' : 'false'}
-    >
+    <div className="thesis-deck" data-reduced={reduced ? 'true' : 'false'}>
       <header className="deck-head">
         <h1 className="deck-title">
-          Thesis Desk
+          Thesis <em>Desk</em>
           <span className="deck-kicker">three scrolls</span>
         </h1>
         <DeckStatus deck={deck} now={now} />
@@ -236,7 +224,7 @@ export function ThesisDeck({
         </p>
         <button
           type="button"
-          className="deck-discuss"
+          className="primary deck-discuss"
           onClick={() => onTalkToUncle(OWN_THESIS_DRAFT)}
         >
           <span className="deck-discuss-seal" aria-hidden="true">
@@ -254,7 +242,6 @@ export function ThesisDeck({
           reduced={reduced}
           now={now}
           followed={followed.includes(openThesis.id)}
-          fontClass={display.variable}
           morphName={reduced ? undefined : MORPH_NAME}
           onToggleFollow={() => onToggleFollow(openThesis.id)}
           onClose={close}
