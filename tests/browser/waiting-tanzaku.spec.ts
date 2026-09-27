@@ -53,3 +53,30 @@ test('on a phone the noren flaps work as tabs for the four stations', async ({
     'false',
   );
 });
+
+test('on short phones the slips hang in view, sideways or upright', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const [width, height] of [
+    [844, 390],
+    [375, 667],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/?waiting=tanzaku');
+    const dock = (await page.locator('.waiting-entry').boundingBox())!;
+    const slip = page.getByRole('button', { name: /^@0x_iroh, / });
+    // The hit buttons wait off-screen until the rig first draws. The top
+    // quarter of a slip holds the portrait.
+    await expect
+      .poll(
+        async () => {
+          const b = await slip.boundingBox();
+          return b && b.height > 0 ? b.y + b.height / 4 : Infinity;
+        },
+        { timeout: 30_000 },
+      )
+      .toBeLessThan(dock.y);
+  }
+});
