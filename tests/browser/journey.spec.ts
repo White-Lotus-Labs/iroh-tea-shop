@@ -127,4 +127,16 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+  await expect(page.locator('.reading-panel')).toBeFocused();
+
+  // Closing the Shelf leaves a keyboard way back in.
+  const approach = page.getByRole('button', { name: 'See the top traders' });
+  await page.getByRole('button', { name: 'Close Shelf menu' }).click();
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await expect(approach).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('leaderboard-parchment')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
+  await expect(approach).toBeFocused();
 });
