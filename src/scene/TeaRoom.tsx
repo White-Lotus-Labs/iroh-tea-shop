@@ -3,6 +3,7 @@ import {
   Suspense,
   type ReactNode,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import dynamic from 'next/dynamic';
@@ -67,6 +68,41 @@ function RoomGeometry({
   onNavigate: (station: Station) => void;
   polish: boolean;
 }) {
+  const posters = station !== 'Entrance';
+  // Deck state (mood, menuClosed) re-renders this component on every thesis
+  // switch. Each drei ContactShadows then redraws the whole room, so the static
+  // detail is memoized away from it.
+  const detail = useMemo(
+    () => (
+      <>
+        <WaitingDetail />
+        <ChamberDetail reduced={reduced} />
+        <ContactShadows
+          position={[0, 0.016, -2.55]}
+          opacity={0.3}
+          scale={5.7}
+          blur={2.4}
+          far={1.6}
+          resolution={256}
+          frames={1}
+          color="#25180f"
+        />
+        <MechanicalPlanetarySystem reduced={reduced} />
+        <TeaShelf
+          onSelect={onShelfSelect}
+          revealed={shelfRevealed}
+          reduced={reduced}
+          posters={posters}
+        />
+      </>
+    ),
+    [reduced, onShelfSelect, shelfRevealed, posters],
+  );
+  const covered = station === 'Counter' && !menuClosed;
+  const finish = useMemo(
+    () => polish && <ScenePolish reduced={reduced} covered={covered} />,
+    [polish, reduced, covered],
+  );
   return (
     <>
       <color attach="background" args={['#2f2119']} />
@@ -109,25 +145,7 @@ function RoomGeometry({
       <WaitingRoom />
       {/* Later group: no lights, so the shell's programs stay valid when it arrives. */}
       <Staged reduced={reduced} precompile={compileRoom}>
-        <WaitingDetail />
-        <ChamberDetail reduced={reduced} />
-        <ContactShadows
-          position={[0, 0.016, -2.55]}
-          opacity={0.3}
-          scale={5.7}
-          blur={2.4}
-          far={1.6}
-          resolution={256}
-          frames={1}
-          color="#25180f"
-        />
-        <MechanicalPlanetarySystem reduced={reduced} />
-        <TeaShelf
-          onSelect={onShelfSelect}
-          revealed={shelfRevealed}
-          reduced={reduced}
-          posters={station !== 'Entrance'}
-        />
+        {detail}
         <ThesisCards
           halos={station === 'Counter' && menuClosed}
           reduced={reduced}
@@ -141,7 +159,7 @@ function RoomGeometry({
           onMenuOpen={onMenuOpen}
           onShelfSelect={onShelfSelect}
         />
-        {polish && <ScenePolish reduced={reduced} />}
+        {finish}
       </Staged>
       <TeaChamber>
         <LanternLight mood={mood} reduced={reduced} />

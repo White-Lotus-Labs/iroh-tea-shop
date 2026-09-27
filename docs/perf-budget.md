@@ -122,6 +122,12 @@ On the light path the thesis deck still opens, switches, and closes:
 - book shadows are not blurred, and the open scroll fades with opacity and transform only
 - the 3D counter cards write their spring once when they are already at rest, instead of every frame
 
+On both paths, the 3D room behind the deck is the main cost, not the deck itself:
+
+- while the Counter deck is open, the room is drawn every other frame, and the quality ladder does not climb
+- a thesis switch no longer re-renders the static room, so the `frames={1}` contact shadows do not redraw the whole scene on each click
+- the tea-pot contact shadow redraws only while the pot pours, not every frame
+
 A capable machine keeps the 18-strip curl, the riffle blur, the view transitions, and the full petal counts.
 
 ### Page turn at 4× CPU
