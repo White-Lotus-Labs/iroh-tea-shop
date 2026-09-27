@@ -1,12 +1,7 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { flushSync } from 'react-dom';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MotionPreference, Station } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import type { IrohActivity } from '../scene/TeaHost3D';
@@ -408,7 +403,10 @@ export default function TeaRoomShell({
                 <span className="panel-open-hint-title">
                   Open <em>{panelStation}</em>
                 </span>
-                <InkLine text={teaser.text} className="panel-open-hint-teaser" />
+                <InkLine
+                  text={teaser.text}
+                  className="panel-open-hint-teaser"
+                />
               </span>
               <span id="panel-open-teaser" className="sr-only">
                 {teaser.text}

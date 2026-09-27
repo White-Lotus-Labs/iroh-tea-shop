@@ -169,7 +169,9 @@ test('Host immediately shows Iroh chat in the Host panel, keeps history across s
   const nav = page.getByRole('navigation', { name: 'Tea room stations' });
   await nav.getByRole('button', { name: /Shelf/ }).click();
   await nav.getByRole('button', { name: /Host/ }).click();
-  await page.getByRole('button', { name: 'Open Host' }).click({ timeout: 20000 });
+  await page
+    .getByRole('button', { name: 'Open Host' })
+    .click({ timeout: 20000 });
   await expect(page.getByText('Nansen answer 1')).toBeVisible();
   await input.fill('What about HYPE?');
   await page.getByRole('button', { name: 'Send question' }).click();

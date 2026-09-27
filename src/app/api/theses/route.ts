@@ -1,8 +1,6 @@
 import { NansenError } from '../../../nansen/client';
 import { nansenAvailabilityFromEnv } from '../../../nansen/availability';
-import {
-  getSnapshotService,
-} from '../../../leaderboard/snapshot';
+import { getSnapshotService } from '../../../leaderboard/snapshot';
 import {
   DECK_CACHE_KEY,
   DECK_TTL_MS,

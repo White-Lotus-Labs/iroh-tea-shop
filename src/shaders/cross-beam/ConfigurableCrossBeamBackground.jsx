@@ -1,6 +1,11 @@
-import { useEffect, useRef } from "react";
-import { ATMOSPHERE_FRAGMENT, BEAM_FRAGMENT, GLYPH_FRAGMENT, VERTEX_SHADER } from "./crossBeamShaders";
-import "./CrossBeamBackground.css";
+import { useEffect, useRef } from 'react';
+import {
+  ATMOSPHERE_FRAGMENT,
+  BEAM_FRAGMENT,
+  GLYPH_FRAGMENT,
+  VERTEX_SHADER,
+} from './crossBeamShaders';
+import './CrossBeamBackground.css';
 
 // Hero "beam glyph diffuse" background, hand-written in WebGL2.
 //
@@ -18,7 +23,7 @@ import "./CrossBeamBackground.css";
 // an explicit quantize(), so fusing does not brighten the saturated beam core
 // or shift which side of a dither level a pixel lands on.
 
-const BLUE_NOISE_SRC = new URL("./blue-noise-128.png", import.meta.url).href;
+const BLUE_NOISE_SRC = new URL('./blue-noise-128.png', import.meta.url).href;
 
 // Shader-time per wall-clock second. The layer speeds these come from (0.25 and
 // 0.56) were applied once per frame at a nominal 60fps, so driving them off
@@ -56,7 +61,7 @@ export const CROSS_BEAM_SHAPES = Object.freeze({
 
 /** @type {Readonly<{ variant: keyof typeof CROSS_BEAM_SHAPES, speed: number, beamWidth: number, dither: number, glyphSize: number, glyphAmount: number, noiseScale: number, hue: number }>} */
 export const CROSS_BEAM_DEFAULTS = Object.freeze({
-  variant: "cross",
+  variant: 'cross',
   speed: 1,
   beamWidth: 1,
   dither: DITHER_STEP,
@@ -68,10 +73,13 @@ export const CROSS_BEAM_DEFAULTS = Object.freeze({
 
 const clamp = (value, min, max, fallback) => {
   const number = Number(value);
-  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+  return Number.isFinite(number)
+    ? Math.min(max, Math.max(min, number))
+    : fallback;
 };
 
-const easeInOutQuart = (t) => (t < 0.5 ? 8.0 * t * t * t * t : 1.0 - 8.0 * (1.0 - t) ** 4);
+const easeInOutQuart = (t) =>
+  t < 0.5 ? 8.0 * t * t * t * t : 1.0 - 8.0 * (1.0 - t) ** 4;
 
 function compileShader(gl, type, source) {
   const shader = gl.createShader(type);
@@ -105,14 +113,30 @@ function createProgram(gl, fragmentSource) {
 function createTarget(gl, width, height) {
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA8,
+    width,
+    height,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   const framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    texture,
+    0,
+  );
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   return { texture, framebuffer };
 }
@@ -139,13 +163,15 @@ const ConfigurableCrossBeamBackground = ({
   glyphAmount = CROSS_BEAM_DEFAULTS.glyphAmount,
   noiseScale = CROSS_BEAM_DEFAULTS.noiseScale,
   hue = CROSS_BEAM_DEFAULTS.hue,
-  className = "",
+  className = '',
 }) => {
   const mountRef = useRef(null);
   const canvasRef = useRef(null);
   const settingsRef = useRef(CROSS_BEAM_DEFAULTS);
   settingsRef.current = {
-    shape: CROSS_BEAM_SHAPES[variant] ?? CROSS_BEAM_SHAPES[CROSS_BEAM_DEFAULTS.variant],
+    shape:
+      CROSS_BEAM_SHAPES[variant] ??
+      CROSS_BEAM_SHAPES[CROSS_BEAM_DEFAULTS.variant],
     speed: clamp(speed, 0, 2, CROSS_BEAM_DEFAULTS.speed),
     beamWidth: clamp(beamWidth, 0.4, 2, CROSS_BEAM_DEFAULTS.beamWidth),
     dither: clamp(dither, 0.03, 0.25, CROSS_BEAM_DEFAULTS.dither),
@@ -158,23 +184,25 @@ const ConfigurableCrossBeamBackground = ({
   useEffect(() => {
     const mount = mountRef.current;
     const canvas = canvasRef.current;
-    if (!mount || !canvas || typeof window === "undefined") return undefined;
+    if (!mount || !canvas || typeof window === 'undefined') return undefined;
 
-    const gl = canvas.getContext("webgl2", {
+    const gl = canvas.getContext('webgl2', {
       alpha: true,
       antialias: false,
       depth: false,
       stencil: false,
-      powerPreference: "low-power",
+      powerPreference: 'low-power',
       preserveDrawingBuffer: false,
     });
     if (!gl) {
-      mount.dataset.webglState = "unavailable";
+      mount.dataset.webglState = 'unavailable';
       return undefined;
     }
 
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+    const reducedMotionQuery = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    );
+    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
     // Render above CSS resolution so the halftone edges stay crisp. Capped at
     // 1.5x — measured side by side, 2x is indistinguishable once the browser
     // has scaled it back down, and costs ~60% more fragment work.
@@ -216,7 +244,7 @@ const ConfigurableCrossBeamBackground = ({
     for (let i = 0; i < MAX_RIPPLES; i += 1) rippleBuffer[i * 3 + 2] = -1;
 
     const setAnimationActive = (active) => {
-      canvas.dataset.animationActive = active ? "true" : "false";
+      canvas.dataset.animationActive = active ? 'true' : 'false';
     };
 
     try {
@@ -226,30 +254,30 @@ const ConfigurableCrossBeamBackground = ({
         glyph: createProgram(gl, GLYPH_FRAGMENT),
       };
     } catch (error) {
-      mount.dataset.webglState = "error";
+      mount.dataset.webglState = 'error';
       if (import.meta.env.DEV) console.warn(error);
       return undefined;
     }
 
     const uniforms = {
       beam: {
-        thickness: gl.getUniformLocation(programs.beam, "uThickness"),
-        time: gl.getUniformLocation(programs.beam, "uTime"),
-        shape: gl.getUniformLocation(programs.beam, "uShape"),
+        thickness: gl.getUniformLocation(programs.beam, 'uThickness'),
+        time: gl.getUniformLocation(programs.beam, 'uTime'),
+        shape: gl.getUniformLocation(programs.beam, 'uShape'),
       },
       atmosphere: {
-        scene: gl.getUniformLocation(programs.atmosphere, "uScene"),
-        blueNoise: gl.getUniformLocation(programs.atmosphere, "uBlueNoise"),
-        resolution: gl.getUniformLocation(programs.atmosphere, "uResolution"),
-        time: gl.getUniformLocation(programs.atmosphere, "uTime"),
-        noiseScale: gl.getUniformLocation(programs.atmosphere, "uNoiseScale"),
-        ditherStep: gl.getUniformLocation(programs.atmosphere, "uDitherStep"),
+        scene: gl.getUniformLocation(programs.atmosphere, 'uScene'),
+        blueNoise: gl.getUniformLocation(programs.atmosphere, 'uBlueNoise'),
+        resolution: gl.getUniformLocation(programs.atmosphere, 'uResolution'),
+        time: gl.getUniformLocation(programs.atmosphere, 'uTime'),
+        noiseScale: gl.getUniformLocation(programs.atmosphere, 'uNoiseScale'),
+        ditherStep: gl.getUniformLocation(programs.atmosphere, 'uDitherStep'),
       },
       glyph: {
-        scene: gl.getUniformLocation(programs.glyph, "uScene"),
-        resolution: gl.getUniformLocation(programs.glyph, "uResolution"),
-        gridSize: gl.getUniformLocation(programs.glyph, "uGridSize"),
-        glyphAmount: gl.getUniformLocation(programs.glyph, "uGlyphAmount"),
+        scene: gl.getUniformLocation(programs.glyph, 'uScene'),
+        resolution: gl.getUniformLocation(programs.glyph, 'uResolution'),
+        gridSize: gl.getUniformLocation(programs.glyph, 'uGridSize'),
+        glyphAmount: gl.getUniformLocation(programs.glyph, 'uGlyphAmount'),
       },
     };
 
@@ -259,11 +287,11 @@ const ConfigurableCrossBeamBackground = ({
       Object.entries(programs).map(([name, program]) => [
         name,
         {
-          aspect: gl.getUniformLocation(program, "uAspect"),
-          pointer: gl.getUniformLocation(program, "uPointer"),
-          pointerAmount: gl.getUniformLocation(program, "uPointerAmount"),
-          chaosTime: gl.getUniformLocation(program, "uChaosTime"),
-          ripples: gl.getUniformLocation(program, "uRipples[0]"),
+          aspect: gl.getUniformLocation(program, 'uAspect'),
+          pointer: gl.getUniformLocation(program, 'uPointer'),
+          pointerAmount: gl.getUniformLocation(program, 'uPointerAmount'),
+          chaosTime: gl.getUniformLocation(program, 'uChaosTime'),
+          ripples: gl.getUniformLocation(program, 'uRipples[0]'),
         },
       ]),
     );
@@ -278,19 +306,36 @@ const ConfigurableCrossBeamBackground = ({
     // frames dither evenly instead of flashing an unquantized image.
     blueNoise = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, blueNoise);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128, 255]));
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA8,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array([128, 128, 128, 255]),
+    );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
     const noiseImage = new Image();
-    noiseImage.decoding = "async";
+    noiseImage.decoding = 'async';
     noiseImage.onload = () => {
       if (isDisposed || gl.isContextLost()) return;
       gl.bindTexture(gl.TEXTURE_2D, blueNoise);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, noiseImage);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA8,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        noiseImage,
+      );
       if (!rafId) renderStaticFrame();
     };
     noiseImage.src = BLUE_NOISE_SRC;
@@ -308,7 +353,10 @@ const ConfigurableCrossBeamBackground = ({
         gl.deleteTexture(target.texture);
         gl.deleteFramebuffer(target.framebuffer);
       });
-      targets = [createTarget(gl, width, height), createTarget(gl, width, height)];
+      targets = [
+        createTarget(gl, width, height),
+        createTarget(gl, width, height),
+      ];
       return true;
     };
 
@@ -318,10 +366,13 @@ const ConfigurableCrossBeamBackground = ({
       const follow = 1 - Math.exp(-POINTER_FOLLOW * deltaS);
       pointer.x += (pointer.targetX - pointer.x) * follow;
       pointer.y += (pointer.targetY - pointer.y) * follow;
-      pointer.amount += (pointer.targetAmount - pointer.amount) * (1 - Math.exp(-POINTER_FADE * deltaS));
+      pointer.amount +=
+        (pointer.targetAmount - pointer.amount) *
+        (1 - Math.exp(-POINTER_FADE * deltaS));
 
       for (let i = ripples.length - 1; i >= 0; i -= 1) {
-        if ((nowMs - ripples[i].bornMs) / 1000 > RIPPLE_LIFE_S) ripples.splice(i, 1);
+        if ((nowMs - ripples[i].bornMs) / 1000 > RIPPLE_LIFE_S)
+          ripples.splice(i, 1);
       }
       rippleBuffer.fill(0);
       for (let i = 0; i < MAX_RIPPLES; i += 1) {
@@ -336,7 +387,8 @@ const ConfigurableCrossBeamBackground = ({
       const slots = pointerUniforms[name];
       if (slots.aspect) gl.uniform2f(slots.aspect, width / height, 1);
       if (slots.pointer) gl.uniform2f(slots.pointer, pointer.x, pointer.y);
-      if (slots.pointerAmount) gl.uniform1f(slots.pointerAmount, pointer.amount);
+      if (slots.pointerAmount)
+        gl.uniform1f(slots.pointerAmount, pointer.amount);
       if (slots.chaosTime) gl.uniform1f(slots.chaosTime, seconds);
       if (slots.ripples) gl.uniform3fv(slots.ripples, rippleBuffer);
     };
@@ -352,21 +404,24 @@ const ConfigurableCrossBeamBackground = ({
 
       // Pass A — beams.
       gl.useProgram(programs.beam);
-      uploadPointer("beam", seconds * settings.speed);
+      uploadPointer('beam', seconds * settings.speed);
       gl.uniform3f(
         uniforms.beam.thickness,
         BEAM_THICKNESS[0] * appear * settings.beamWidth,
         BEAM_THICKNESS[1] * appear * settings.beamWidth,
         BEAM_THICKNESS[2] * appear * settings.beamWidth,
       );
-      gl.uniform1f(uniforms.beam.time, seconds * BEAM_TIME_RATE * settings.speed);
+      gl.uniform1f(
+        uniforms.beam.time,
+        seconds * BEAM_TIME_RATE * settings.speed,
+      );
       gl.uniform1i(uniforms.beam.shape, settings.shape);
       gl.bindFramebuffer(gl.FRAMEBUFFER, targets[0].framebuffer);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
 
       // Pass B — diffuse, dither, wisps.
       gl.useProgram(programs.atmosphere);
-      uploadPointer("atmosphere", seconds * settings.speed);
+      uploadPointer('atmosphere', seconds * settings.speed);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, targets[0].texture);
       gl.uniform1i(uniforms.atmosphere.scene, 0);
@@ -374,8 +429,14 @@ const ConfigurableCrossBeamBackground = ({
       gl.bindTexture(gl.TEXTURE_2D, blueNoise);
       gl.uniform1i(uniforms.atmosphere.blueNoise, 1);
       gl.uniform2f(uniforms.atmosphere.resolution, width, height);
-      gl.uniform1f(uniforms.atmosphere.time, seconds * WISP_TIME_RATE * settings.speed);
-      gl.uniform1f(uniforms.atmosphere.noiseScale, settings.noiseScale * renderScale);
+      gl.uniform1f(
+        uniforms.atmosphere.time,
+        seconds * WISP_TIME_RATE * settings.speed,
+      );
+      gl.uniform1f(
+        uniforms.atmosphere.noiseScale,
+        settings.noiseScale * renderScale,
+      );
       gl.uniform1f(uniforms.atmosphere.ditherStep, settings.dither);
       gl.bindFramebuffer(gl.FRAMEBUFFER, targets[1].framebuffer);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -383,12 +444,15 @@ const ConfigurableCrossBeamBackground = ({
       // Pass C — halftone grid, straight to the canvas. uGridSize is a fraction
       // of the frame height, so derive it from the wanted cell size in pixels.
       gl.useProgram(programs.glyph);
-      uploadPointer("glyph", seconds * settings.speed);
+      uploadPointer('glyph', seconds * settings.speed);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, targets[1].texture);
       gl.uniform1i(uniforms.glyph.scene, 0);
       gl.uniform2f(uniforms.glyph.resolution, width, height);
-      gl.uniform1f(uniforms.glyph.gridSize, (settings.glyphSize * renderScale) / height);
+      gl.uniform1f(
+        uniforms.glyph.gridSize,
+        (settings.glyphSize * renderScale) / height,
+      );
       gl.uniform1f(uniforms.glyph.glyphAmount, settings.glyphAmount);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -416,7 +480,9 @@ const ConfigurableCrossBeamBackground = ({
       rafId = window.requestAnimationFrame(tick);
       if (now - lastFrameTime < frameInterval) return;
       checkBudget(now);
-      const deltaS = lastFrameTime ? Math.min((now - lastFrameTime) / 1000, 0.1) : 1 / 60;
+      const deltaS = lastFrameTime
+        ? Math.min((now - lastFrameTime) / 1000, 0.1)
+        : 1 / 60;
       lastFrameTime = now;
       lastElapsed = now - startTime;
       stepPointer(deltaS, now);
@@ -438,7 +504,8 @@ const ConfigurableCrossBeamBackground = ({
     };
 
     const syncPlayback = () => {
-      const shouldRun = !isDisposed && isVisible && !document.hidden && !gl.isContextLost();
+      const shouldRun =
+        !isDisposed && isVisible && !document.hidden && !gl.isContextLost();
       if (!shouldRun) {
         stop();
         return;
@@ -460,7 +527,7 @@ const ConfigurableCrossBeamBackground = ({
     const onContextLost = (event) => {
       event.preventDefault();
       stop();
-      mount.dataset.webglState = "lost";
+      mount.dataset.webglState = 'lost';
     };
 
     // The hero is pointer-events: none so it never steals clicks from the copy
@@ -482,7 +549,7 @@ const ConfigurableCrossBeamBackground = ({
     };
 
     const onPointerMove = (event) => {
-      if (event.pointerType === "touch") return; // no hover to track
+      if (event.pointerType === 'touch') return; // no hover to track
       if (reducedMotionQuery.matches) return;
       const uv = pointerUvFromEvent(event);
       if (!uv) return;
@@ -504,7 +571,7 @@ const ConfigurableCrossBeamBackground = ({
       // Snap the pull to the press so the ripple starts from where it landed.
       pointer.targetX = uv.x;
       pointer.targetY = uv.y;
-      if (event.pointerType !== "touch") pointer.targetAmount = 1;
+      if (event.pointerType !== 'touch') pointer.targetAmount = 1;
       ripples.push({ x: uv.x, y: uv.y, bornMs: performance.now() });
       if (ripples.length > MAX_RIPPLES) ripples.shift();
       // A press while parked offscreen would otherwise never be drawn.
@@ -524,15 +591,16 @@ const ConfigurableCrossBeamBackground = ({
 
     resize();
     const initialBounds = mount.getBoundingClientRect();
-    isVisible = initialBounds.bottom > 0 && initialBounds.top < window.innerHeight;
+    isVisible =
+      initialBounds.bottom > 0 && initialBounds.top < window.innerHeight;
     visibilityObserver.observe(mount);
     resizeObserver.observe(mount);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    reducedMotionQuery.addEventListener?.("change", syncPlayback);
-    canvas.addEventListener("webglcontextlost", onContextLost);
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    window.addEventListener("pointerdown", onPointerDown, { passive: true });
-    document.addEventListener("pointerleave", onPointerLeave);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    reducedMotionQuery.addEventListener?.('change', syncPlayback);
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    document.addEventListener('pointerleave', onPointerLeave);
     setAnimationActive(false);
     syncPlayback();
 
@@ -541,12 +609,12 @@ const ConfigurableCrossBeamBackground = ({
       stop();
       visibilityObserver.disconnect();
       resizeObserver.disconnect();
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      reducedMotionQuery.removeEventListener?.("change", syncPlayback);
-      canvas.removeEventListener("webglcontextlost", onContextLost);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("pointerleave", onPointerLeave);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      reducedMotionQuery.removeEventListener?.('change', syncPlayback);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('pointerleave', onPointerLeave);
       noiseImage.onload = null;
       targets.forEach((target) => {
         gl.deleteTexture(target.texture);
@@ -564,8 +632,16 @@ const ConfigurableCrossBeamBackground = ({
   }, []);
 
   return (
-    <div ref={mountRef} className={`threeui-mount ${className}`.trim()} aria-hidden="true">
-      <canvas ref={canvasRef} className="cross-beam-canvas" style={{ filter: `hue-rotate(${settingsRef.current.hue}deg)` }} />
+    <div
+      ref={mountRef}
+      className={`threeui-mount ${className}`.trim()}
+      aria-hidden="true"
+    >
+      <canvas
+        ref={canvasRef}
+        className="cross-beam-canvas"
+        style={{ filter: `hue-rotate(${settingsRef.current.hue}deg)` }}
+      />
     </div>
   );
 };

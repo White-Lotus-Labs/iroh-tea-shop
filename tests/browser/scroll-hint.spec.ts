@@ -16,7 +16,9 @@ test('the open hint keeps its name, describes the teaser, and gets focus back af
   await expect(page.locator('.halo-label')).toBeAttached({ timeout: 15000 });
   await expect(page.locator('.panel-open-hint-teaser')).toBeHidden();
   await hint.click();
-  await expect(page.getByRole('heading', { name: 'Thesis Desk' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Thesis Desk' }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Close Counter menu' }).click();
   await expect(page.locator('.reading-panel')).toHaveClass(/is-rolling-up/);
   await expect(hint).toBeFocused({ timeout: 5000 });

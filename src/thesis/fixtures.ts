@@ -189,7 +189,8 @@ export const TICKER_DETAIL_FIXTURE: TickerDetail = {
           action: 'buy',
           valueUsd: 22_100,
           at: '2026-09-27T04:41:00.000Z',
-          txHash: '0xabc1230000000000000000000000000000000000000000000000000000000001',
+          txHash:
+            '0xabc1230000000000000000000000000000000000000000000000000000000001',
         },
         {
           trader: '0x7e6d5c4b3a291807f6e5d4c3b2a19087f6e5d4c3',
@@ -197,7 +198,8 @@ export const TICKER_DETAIL_FIXTURE: TickerDetail = {
           action: 'sell',
           valueUsd: 64_000,
           at: '2026-09-27T02:15:00.000Z',
-          txHash: '0xabc1230000000000000000000000000000000000000000000000000000000002',
+          txHash:
+            '0xabc1230000000000000000000000000000000000000000000000000000000002',
         },
       ],
     },

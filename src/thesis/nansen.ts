@@ -250,11 +250,7 @@ export function normalizePerpBook(
         at: stringOrNull(trade.block_timestamp),
       };
     })
-    .filter(
-      (
-        trade,
-      ): trade is PerpBook['recent'][number] => trade !== null,
-    )
+    .filter((trade): trade is PerpBook['recent'][number] => trade !== null)
     .slice(0, 5);
   return {
     smartLongUsd: row ? numberOrNull(row.smart_trader_longs_usd) : null,
@@ -350,7 +346,8 @@ export async function mapPool<T, R>(
 export function countErroredTickers(theses: ThesisSummary[]): number {
   return theses.reduce(
     (total, thesis) =>
-      total + thesis.tickers.filter((ticker) => ticker.status === 'error').length,
+      total +
+      thesis.tickers.filter((ticker) => ticker.status === 'error').length,
     0,
   );
 }
@@ -435,10 +432,9 @@ function unavailable(reason: string): Section<never> {
   return { status: 'unavailable', reason };
 }
 
-async function settled<T>(promise: Promise<T>): Promise<
-  | { ok: true; value: T }
-  | { ok: false; error: NansenError }
-> {
+async function settled<T>(
+  promise: Promise<T>,
+): Promise<{ ok: true; value: T } | { ok: false; error: NansenError }> {
   try {
     return { ok: true, value: await promise };
   } catch (error) {

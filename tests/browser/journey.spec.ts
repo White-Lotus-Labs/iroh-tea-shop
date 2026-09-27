@@ -27,7 +27,10 @@ test('Entrance to Counter shows the thesis desk placeholder', async ({
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-station', 'Entrance');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-station',
+    'Entrance',
+  );
   await beginVisit(page);
   await expect(page.locator('main')).toHaveAttribute('data-station', 'Counter');
   await page.getByRole('button', { name: 'Open Counter' }).click({

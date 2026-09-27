@@ -67,8 +67,9 @@ describe('thesis nansen normalizers', () => {
     expect(trades[0].action).toBe('sell');
     expect(trades.every((trade) => trade.trader.startsWith('0x'))).toBe(true);
     expect(
-      (load('tgm-dex-trades__VVV.json') as { data: { action: string }[] }).data
-        .some((row) => row.action === 'BUY'),
+      (
+        load('tgm-dex-trades__VVV.json') as { data: { action: string }[] }
+      ).data.some((row) => row.action === 'BUY'),
     ).toBe(true);
   });
 

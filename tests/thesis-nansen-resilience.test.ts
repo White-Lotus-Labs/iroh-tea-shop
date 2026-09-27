@@ -46,8 +46,7 @@ describe('withNansenRetry', () => {
     await withNansenRetry(
       async () => {
         attempts += 1;
-        if (attempts === 1)
-          throw new NansenError('upstream', 503, 10_000);
+        if (attempts === 1) throw new NansenError('upstream', 503, 10_000);
         return true;
       },
       async (ms) => {
@@ -267,8 +266,6 @@ describe('loadDeckSnapshot resilience', () => {
         thesis.tickers.every((ticker) => ticker.status === 'ok'),
       ),
     ).toBe(true);
-    expect(
-      [...attempts.values()].some((count) => count >= 2),
-    ).toBe(true);
+    expect([...attempts.values()].some((count) => count >= 2)).toBe(true);
   });
 });

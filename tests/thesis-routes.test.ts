@@ -82,8 +82,7 @@ describe('GET /api/theses', () => {
       const record = body as { token_address?: string };
       if (
         path === 'tgm/flow-intelligence' &&
-        record.token_address ===
-          '0xCA9c78Dd337A67F6e0077F65F5E9218719d30eDf'
+        record.token_address === '0xCA9c78Dd337A67F6e0077F65F5E9218719d30eDf'
       )
         throw new Error('HTTP:502');
       if (path === 'tgm/position-intelligence') return positionOk;
@@ -96,9 +95,9 @@ describe('GET /api/theses', () => {
       .find((thesis: { id: string }) => thesis.id === 'robinhood')
       .tickers.find((ticker: { symbol: string }) => ticker.symbol === 'NET');
     expect(net.status).toBe('error');
-    expect(body.theses[0].tickers.some((t: { status: string }) => t.status === 'ok')).toBe(
-      true,
-    );
+    expect(
+      body.theses[0].tickers.some((t: { status: string }) => t.status === 'ok'),
+    ).toBe(true);
   });
 
   test('returns 503 when Nansen is not configured', async () => {

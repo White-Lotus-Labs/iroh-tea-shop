@@ -12,11 +12,7 @@ export class NansenError extends Error {
 
 function safeError(status: number, retryAfterMs: number): NansenError {
   if (status === 401)
-    return new NansenError(
-      'Nansen authentication failed.',
-      401,
-      retryAfterMs,
-    );
+    return new NansenError('Nansen authentication failed.', 401, retryAfterMs);
   if (status === 402)
     return new NansenError(
       'Nansen API credits are unavailable.',
@@ -35,7 +31,11 @@ function safeError(status: number, retryAfterMs: number): NansenError {
       429,
       retryAfterMs,
     );
-  return new NansenError('Nansen is temporarily unavailable.', 502, retryAfterMs);
+  return new NansenError(
+    'Nansen is temporarily unavailable.',
+    502,
+    retryAfterMs,
+  );
 }
 
 function retryAfter(response: Response, now: number): number {

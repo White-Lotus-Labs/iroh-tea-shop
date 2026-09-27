@@ -8,7 +8,10 @@ test('a guest can use the room and find optional account actions', async ({
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-station', 'Entrance');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-station',
+    'Entrance',
+  );
   await expect(page.getByTestId('account-entry')).toBeVisible();
   await beginVisit(page);
   await page.getByRole('button', { name: 'Open Counter' }).click({
@@ -26,7 +29,10 @@ test('a guest can use the room and find optional account actions', async ({
     page.getByRole('heading', { name: 'Welcome to the room.' }),
   ).toBeVisible();
   await page.getByRole('link', { name: 'Continue without an account' }).click();
-  await expect(page.locator('main')).toHaveAttribute('data-station', 'Entrance');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-station',
+    'Entrance',
+  );
 });
 
 test('register, refresh, logout, and case-insensitive login keep one identity', async ({
@@ -73,7 +79,10 @@ test('register, refresh, logout, and case-insensitive login keep one identity', 
   await page.getByTestId('account-control').click();
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page.getByTestId('account-entry')).toBeVisible();
-  await expect(page.locator('main')).toHaveAttribute('data-station', 'Entrance');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-station',
+    'Entrance',
+  );
   await page.reload();
   expect((await page.request.get('/api/auth/me')).status()).toBe(401);
   await page.getByTestId('account-entry').click();

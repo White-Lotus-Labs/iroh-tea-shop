@@ -37,8 +37,7 @@ export function createSnapshotService<V extends object>(
       if (snapshot)
         return { ...snapshot, stale: true, refreshError: lastError?.message };
       throw (
-        lastError ??
-        new NansenError('Nansen is temporarily unavailable.', 502)
+        lastError ?? new NansenError('Nansen is temporarily unavailable.', 502)
       );
     }
     inFlight = (async () => {

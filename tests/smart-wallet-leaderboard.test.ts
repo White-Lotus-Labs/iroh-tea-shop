@@ -5,7 +5,10 @@ import {
   formatRoi,
 } from '../src/leaderboard/model';
 import { fetchNansenLeaderboard } from '../src/leaderboard/provider';
-import { createSnapshotService, SNAPSHOT_TTL_MS } from '../src/leaderboard/snapshot';
+import {
+  createSnapshotService,
+  SNAPSHOT_TTL_MS,
+} from '../src/leaderboard/snapshot';
 
 const address = (n: number) => `0x${n.toString(16).padStart(40, '0')}`;
 const row = (n: number, overrides: Record<string, unknown> = {}) => ({
