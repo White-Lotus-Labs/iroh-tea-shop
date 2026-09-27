@@ -3600,12 +3600,6 @@ body:has(.auth-shell) {
 .halo-label-wrap {
   pointer-events: none;
 }
-/* Shelf overview: the pin climbs back up to the incense ring. */
-.halo-label-wrap--below .halo-label::after {
-  top: auto;
-  bottom: 100%;
-  background: linear-gradient(transparent, rgba(233, 201, 131, 0.85));
-}
 .halo-label {
   position: relative;
   display: flex;

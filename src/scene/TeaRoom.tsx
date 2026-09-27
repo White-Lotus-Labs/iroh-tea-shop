@@ -181,15 +181,11 @@ function StationMenuHalo({
       </Billboard>
       {settled && teaser && (
         <Html
-          // Shelf: keep the hanging papers clear; sit the tag below-left of the ring.
-          position={station === 'Shelf' ? [-0.72, -0.48, 0] : [0, 0.3, 0]}
+          // Shelf: sit above the top bay so the three hanging papers stay clear.
+          position={station === 'Shelf' ? [-0.15, 1.72, 0] : [0, 0.3, 0]}
           center
           zIndexRange={[6, 0]}
-          wrapperClass={
-            station === 'Shelf'
-              ? 'halo-label-wrap halo-label-wrap--below'
-              : 'halo-label-wrap'
-          }
+          wrapperClass="halo-label-wrap"
           pointerEvents={clickable ? 'auto' : 'none'}
         >
           <div
