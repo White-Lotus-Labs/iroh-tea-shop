@@ -32,6 +32,22 @@ Host baseline (host lane owns these; scene lane does not edit them):
 
 GPU check: headless SwiftShader and headed Metal `room-wide` at 1x differ by a mean 0.14/255. Metal is the scoring renderer.
 
+## Round 1: effects, lighting, architecture, surfaces
+
+Shots: `_scratch/shots/round-1`. Frame rate: mean 101 fps, min 79 fps (`room-wide`).
+
+Changes: `SceneEffects` (Lightformer environment, exp fog, 4x MSAA composer, half-res GTAO, bloom, grade and vignette), less ambient fill, warm key and cool fill, procedural colour/normal/roughness maps with world-scale UVs, board ceiling, framed left wall with scroll and andon, plank floor, tatami, walnut table and runner, paper lanterns, noren, darker orrery brass without emissive.
+
+| Part                   | Score | Reason                                                                                                                                 |
+| ---------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Lighting and shadows   | 6     | Lanterns now motivate the light and IBL shapes forms, but lanterns clip white, the host is over-lit orange, the counter room is murky. |
+| Environment/atmosphere | 6     | The room is closed and fog adds depth, but there is no haze or window light, and the left foreground falls to black.                   |
+| Walls/architecture     | 6     | Posts, rails, wainscot and ceiling battens read well; plaster relief is lumpy up close; backdrops are still unlit.                     |
+| Floor and table        | 7     | Planks vary in tone and grain with a soft sheen; tatami read as woven; the walnut table is too noisy up close.                         |
+| Tea set and steam      | 4     | Unchanged: no contact shadow under the pot and cups, flat tea, and no visible steam.                                                   |
+| Orrery                 | 6     | Brass reads as metal against the pale scroll, but the andon clutters behind it and it has no contact shadow.                           |
+| Mood/color grade       | 6     | Warm, contrasty and cinematic, but saturated orange on skin and white-clipped lanterns cheapen it.                                     |
+
 ## Proposed
 
 Items that need an off-limits file, a dependency, or a big architecture change.

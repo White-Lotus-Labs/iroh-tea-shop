@@ -11,6 +11,7 @@ import {
 } from 'three';
 import { damp, pourPose, type SceneMood } from './motion/dynamics';
 import { Steam } from './Steam';
+import { PaperLantern } from './TeaArchitecture';
 /** A short ceremonial tip rotates about the teapot's foot rim, keeping its
  * support point on the table. Completion/cancellation never delays the result. */
 export function TeaRitual({
@@ -186,7 +187,7 @@ export function LanternLight({
     );
     if (light.current)
       light.current.intensity =
-        15 +
+        6.5 +
         m.warmth * 0.65 +
         (reduced
           ? 0
@@ -194,13 +195,10 @@ export function LanternLight({
             Math.sin(m.time * 0.29 + 2) * 0.035);
   });
   return (
-    <pointLight
-      ref={light}
-      position={[3.1, 2.7, -3.9]}
-      intensity={15}
-      distance={7}
-      color="#ffc36d"
-    />
+    <group position={[2.35, 2.72, -3.15]}>
+      <PaperLantern position={[0, 0, 0]} drop={0.78} radius={0.15} />
+      <pointLight ref={light} intensity={6.5} distance={7} color="#ffc36d" />
+    </group>
   );
 }
 export function ShelfPlacement({
