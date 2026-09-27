@@ -85,11 +85,13 @@ type IrohJob = {
   sequence: number;
   deadline: number;
   controller: AbortController;
+  prepare?: (signal: AbortSignal) => Promise<void>;
+  prepared: boolean;
   signal?: AbortSignal;
   onAbort?: () => void;
   resolve: (lease: IrohLease) => void;
   reject: (error: unknown) => void;
-  state: 'queued' | 'active' | 'done';
+  state: 'queued' | 'preparing' | 'active' | 'done';
   timer?: ReturnType<typeof setTimeout>;
 };
 
@@ -100,6 +102,7 @@ export class NansenRequestManager {
   private normalJobs = new Map<string, NormalJob<any>>();
   private active = 0;
   private activeIroh = 0;
+  private preparingIroh = 0;
   private cooldownUntil = 0;
   private nextSequence = 0;
   private tokens: number;
@@ -167,9 +170,12 @@ export class NansenRequestManager {
     return promise;
   }
 
-  acquireIroh(signal?: AbortSignal): Promise<IrohLease> {
+  acquireIroh(
+    signal?: AbortSignal,
+    prepare?: (signal: AbortSignal) => Promise<void>,
+  ): Promise<IrohLease> {
     if (signal?.aborted) return Promise.reject(abortError());
-    if (this.irohQueue.length >= this.config.irohMaxQueue)
+    if (this.irohQueue.length + this.preparingIroh >= this.config.irohMaxQueue)
       return Promise.reject(
         new NansenManagerError('Nansen Research queue is full.'),
       );
@@ -181,6 +187,8 @@ export class NansenRequestManager {
         sequence: this.nextSequence++,
         deadline: now + this.config.irohMaxQueueWaitMs,
         controller: new AbortController(),
+        prepare,
+        prepared: !prepare,
         signal,
         resolve,
         reject,
@@ -269,6 +277,35 @@ export class NansenRequestManager {
     this.drain();
   }
 
+  private async prepareIroh(job: IrohJob) {
+    let error: unknown;
+    try {
+      await job.prepare!(job.controller.signal);
+    } catch (caught) {
+      error = caught;
+    }
+    this.preparingIroh--;
+    if (job.controller.signal.aborted || error || Date.now() >= job.deadline) {
+      job.state = 'done';
+      job.signal?.removeEventListener('abort', job.onAbort!);
+      job.reject(
+        job.controller.signal.aborted
+          ? abortError()
+          : (error ??
+              new NansenManagerError('Nansen request waited too long.')),
+      );
+    } else {
+      job.prepared = true;
+      job.state = 'queued';
+      const next = this.irohQueue.findIndex(
+        (item) => item.sequence > job.sequence,
+      );
+      this.irohQueue.splice(next < 0 ? this.irohQueue.length : next, 0, job);
+      this.armDeadline(job);
+    }
+    this.drain();
+  }
+
   private replenish() {
     const now = Date.now();
     this.tokens = Math.min(
@@ -295,7 +332,8 @@ export class NansenRequestManager {
     while (this.active < this.config.globalMaxConcurrent) {
       const normal = this.normalQueue[0];
       const iroh =
-        this.activeIroh < this.config.irohMaxConcurrent
+        this.activeIroh < this.config.irohMaxConcurrent &&
+        this.preparingIroh === 0
           ? this.irohQueue[0]
           : undefined;
       if (normal && normal.deadline <= Date.now()) {
@@ -314,6 +352,17 @@ export class NansenRequestManager {
         continue;
       }
       if (!normal && !iroh) return;
+      if (
+        iroh &&
+        !iroh.prepared &&
+        (!normal || iroh.sequence < normal.sequence)
+      ) {
+        this.removeIroh(iroh);
+        iroh.state = 'preparing';
+        this.preparingIroh++;
+        void this.prepareIroh(iroh);
+        continue;
+      }
       const cooldown = this.cooldownUntil - Date.now();
       if (cooldown > 0) {
         this.schedule(cooldown);

@@ -137,48 +137,53 @@ export async function POST(request: Request) {
     persisted = { userId: user.id, chatId: value.chatId };
   }
 
+  const preparation: {
+    value: Awaited<ReturnType<typeof prepareAdmittedResearchRequest>> | null;
+  } = { value: null };
+  const rollbackPrepared = async () => {
+    if (!preparation.value || !persisted || !db) return;
+    await rollbackUnstartedResearchRequest(
+      db,
+      persisted.userId,
+      persisted.chatId,
+      preparation.value.userMessageId,
+      preparation.value.previousTitle,
+    );
+    preparation.value = null;
+  };
   let lease;
   try {
-    lease = await nansenRequestManager.acquireIroh(request.signal);
+    lease = await nansenRequestManager.acquireIroh(
+      request.signal,
+      persisted && db
+        ? async (signal) => {
+            preparation.value = await prepareAdmittedResearchRequest(
+              db!,
+              persisted!.userId,
+              persisted!.chatId,
+              text,
+              signal,
+            );
+          }
+        : undefined,
+    );
   } catch (error) {
-    releaseTurn?.();
+    try {
+      await rollbackPrepared();
+    } finally {
+      releaseTurn?.();
+    }
+    if (error instanceof ChatNotFoundError)
+      return jsonError(404, 'Chat not found.');
     if (error instanceof NansenManagerError)
       return jsonError(error.status, error.message);
     if (request.signal.aborted) return jsonError(499, 'Question cancelled.');
     throw error;
   }
 
-  if (persisted && db) {
-    try {
-      if (lease.signal.aborted)
-        throw new DOMException('Cancelled', 'AbortError');
-      const prepared = await prepareAdmittedResearchRequest(
-        db,
-        persisted.userId,
-        persisted.chatId,
-        text,
-        lease.signal,
-      );
-      text = prepared.text;
-      conversationId = prepared.conversationId ?? undefined;
-      if (lease.signal.aborted) {
-        await rollbackUnstartedResearchRequest(
-          db,
-          persisted.userId,
-          persisted.chatId,
-          prepared.userMessageId,
-          prepared.previousTitle,
-        );
-        throw new DOMException('Cancelled', 'AbortError');
-      }
-    } catch (error) {
-      lease.release();
-      releaseTurn?.();
-      if (error instanceof ChatNotFoundError)
-        return jsonError(404, 'Chat not found.');
-      if (lease.signal.aborted) return jsonError(499, 'Question cancelled.');
-      throw error;
-    }
+  if (preparation.value) {
+    text = preparation.value.text;
+    conversationId = preparation.value.conversationId ?? undefined;
   }
 
   const upstreamController = new AbortController();
@@ -187,8 +192,10 @@ export async function POST(request: Request) {
   const timer = setTimeout(() => upstreamController.abort(), TIMEOUT_MS);
   const upstreamText = conversationId ? text : withUnclePersona(text);
   let upstream: Response;
+  let fetchStarted = false;
   try {
     if (lease.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
+    fetchStarted = true;
     upstream = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
@@ -204,10 +211,20 @@ export async function POST(request: Request) {
       cache: 'no-store',
     });
   } catch {
-    clearTimeout(timer);
-    lease.signal.removeEventListener('abort', onAbort);
-    lease.release();
-    releaseTurn?.();
+    let rollbackFailed = false;
+    try {
+      if (!fetchStarted) await rollbackPrepared();
+    } catch {
+      rollbackFailed = true;
+    } finally {
+      clearTimeout(timer);
+      lease.signal.removeEventListener('abort', onAbort);
+      lease.release();
+      releaseTurn?.();
+    }
+    if (rollbackFailed)
+      return jsonError(500, 'The cancelled question could not be cleaned up.');
+    if (lease.signal.aborted) return jsonError(499, 'Question cancelled.');
     return jsonError(502, 'Nansen Research Agent is temporarily unavailable.');
   }
   if (!upstream.ok) {

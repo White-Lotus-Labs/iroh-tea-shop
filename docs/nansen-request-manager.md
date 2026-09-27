@@ -2,7 +2,7 @@
 
 `src/nansen/request-manager.ts` is the process-local admission layer for real Nansen upstream calls. Deck and ticker detail assembly, snapshot refreshes, and Shelf snapshot refreshes do not acquire slots. Their individual JSON calls use `managedNansenPost`; Iroh Agent SSE uses a separate lease from the same manager.
 
-The manager has FIFO normal and Iroh queues. The oldest eligible head takes the next global slot. An Iroh head is ineligible while its own cap is full, allowing normal work to proceed. Both lanes share a token-bucket request-start gate and one 429 cooldown. An Iroh lease lasts through upstream SSE reading and is released before final chat persistence.
+The manager has FIFO normal and Iroh queues. The oldest eligible head takes the next global slot. An Iroh head is ineligible while its own cap is full, allowing normal work to proceed. Authenticated Iroh preparation runs after queue admission without holding a global slot; the actual Agent start then uses the shared token-bucket gate and slot. Both lanes share one 429 cooldown. An Iroh lease lasts through upstream SSE reading and is released before final chat persistence.
 
 | Environment variable               | Default |
 | ---------------------------------- | ------: |

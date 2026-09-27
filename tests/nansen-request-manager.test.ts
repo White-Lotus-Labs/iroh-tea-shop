@@ -88,6 +88,27 @@ describe('NansenRequestManager', () => {
     later.release();
   });
 
+  it('does not occupy an upstream slot while admitted Iroh work prepares', async () => {
+    const manager = new NansenRequestManager({
+      globalMaxConcurrent: 2,
+      irohMaxConcurrent: 1,
+      startsPerSecond: 100,
+      startBurst: 100,
+    });
+    const gate = deferred<void>();
+    let preparing = false;
+    const pending = manager.acquireIroh(undefined, async () => {
+      preparing = true;
+      await gate.promise;
+    });
+    await tick();
+    expect(preparing).toBe(true);
+    expect(await manager.runNormal('normal', async () => 'ok')).toBe('ok');
+    gate.resolve();
+    const lease = await pending;
+    lease.release();
+  });
+
   it('rejects full queues and expires queued jobs without calling upstream', async () => {
     const manager = new NansenRequestManager({
       globalMaxConcurrent: 2,
