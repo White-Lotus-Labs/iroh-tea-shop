@@ -93,8 +93,10 @@ export function WaitingRoom({
           href={REPO_URL}
           target="_blank"
           rel="noreferrer"
+          aria-label="Source on GitHub"
         >
-          Source on GitHub <span aria-hidden="true">↗</span>
+          <span className="waiting-repo-lead">Source on </span>GitHub{' '}
+          <span aria-hidden="true">↗</span>
         </a>
       </header>
       <div className="waiting-stage">{children}</div>
