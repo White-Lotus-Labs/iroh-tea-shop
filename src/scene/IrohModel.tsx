@@ -572,6 +572,9 @@ export function IrohModel({
     index: 0,
     action: actionAt(activity, 0) as ActionName,
     start: -1,
+    // His own clock: r3f zeroes clock.elapsedTime on every setFrameloop, and
+    // the waiting room toggles it, which left start/nextBlink hours ahead.
+    clock: 0,
     yaw: 0,
     pitch: 0,
     gaze: new Vector2(),
@@ -598,7 +601,7 @@ export function IrohModel({
     [],
   );
 
-  useFrame(({ clock, camera: view }, delta) => {
+  useFrame(({ camera: view }, delta) => {
     const m = state.current;
     const s = scratch;
     const { bones } = rig;
@@ -614,7 +617,7 @@ export function IrohModel({
       return;
     }
 
-    const now = clock.elapsedTime;
+    const now = (m.clock += delta);
     if (m.start < 0) m.start = now;
     if (activity !== m.activity) m.pending = activity;
     if (

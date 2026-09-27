@@ -106,14 +106,17 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
     setOn(true);
   }, []);
 
-  // A saved "on" waits for the guest's first gesture anywhere on the page.
+  // Browsers hold sound until a gesture, so "on" starts at the guest's first
+  // click, key or page drag anywhere.
   useEffect(() => {
     if (!on || player.current) return;
     const onGesture = () => start();
     window.addEventListener('click', onGesture);
+    window.addEventListener('pointerup', onGesture);
     window.addEventListener('keydown', onGesture);
     return () => {
       window.removeEventListener('click', onGesture);
+      window.removeEventListener('pointerup', onGesture);
       window.removeEventListener('keydown', onGesture);
     };
   }, [on, start]);
@@ -136,10 +139,10 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
     [],
   );
 
-  const [mounted, setMounted] = useState(false);
+  const [slot, setSlot] = useState<Element | null>(null);
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setSlot(floating ? document.querySelector('.waiting-brand') : null);
+  }, [floating]);
 
   const button = (
     <button
@@ -149,15 +152,18 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
       aria-label="Background music"
       onClick={() => setEnabled(!on)}
     >
-      <svg viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M6.2 3.2v6.1a2.1 2.1 0 1 1-1.2-1.9V4.4l6-1.3v5.1a2.1 2.1 0 1 1-1.2-1.9V3.2L6.2 4.5V3.2Z" />
-        {!on && <path fill="none" d="M2.2 2.2 13.8 13.8" />}
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+        {!on && <path d="M3 3l18 18" />}
       </svg>
     </button>
   );
 
-  // The top bar's backdrop-filter traps a fixed descendant under the waiting
-  // room. Portal only after mount so the server and first client render match.
-  if (floating && mounted) return createPortal(button, document.body);
+  // The waiting room covers the top bar, so the toggle sits in its header row
+  // beside the GitHub link. Portal only after mount so the server and first
+  // client render match.
+  if (floating && slot) return createPortal(button, slot);
   return button;
 }

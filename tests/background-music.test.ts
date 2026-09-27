@@ -21,14 +21,14 @@ function memory() {
 }
 
 describe('background music preference', () => {
-  it('stays off until the guest turns it on', () => {
+  it('is on until the guest turns it off', () => {
     const storage = memory();
-    expect(readBackgroundMusic(storage)).toBe(false);
-    writeBackgroundMusic(storage, true);
-    expect(storage.getItem(BACKGROUND_MUSIC_KEY)).toBe('on');
     expect(readBackgroundMusic(storage)).toBe(true);
     writeBackgroundMusic(storage, false);
+    expect(storage.getItem(BACKGROUND_MUSIC_KEY)).toBe('off');
     expect(readBackgroundMusic(storage)).toBe(false);
+    writeBackgroundMusic(storage, true);
+    expect(readBackgroundMusic(storage)).toBe(true);
   });
 
   it('ignores storage that throws', () => {
@@ -40,7 +40,7 @@ describe('background music preference', () => {
         throw new Error('blocked');
       },
     };
-    expect(readBackgroundMusic(storage)).toBe(false);
+    expect(readBackgroundMusic(storage)).toBe(true);
     expect(() => writeBackgroundMusic(storage, true)).not.toThrow();
   });
 });

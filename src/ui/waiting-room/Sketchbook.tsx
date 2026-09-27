@@ -29,6 +29,7 @@ import {
   SPREAD_TITLES,
   sketchPreloadUrl,
 } from './sketchbookPages';
+import { noteBook, releaseBook } from './bookMotion';
 import { bakePageShot, getPageShot, idle, pageShotKey } from './pageSnapshot';
 import { usePetalCanvas } from './usePetalCanvas';
 import './Sketchbook.css';
@@ -401,6 +402,9 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     else stage.current?.style.setProperty('--shade', '0');
   }, [turn, mode, paint]);
 
+  useEffect(() => noteBook('turn', Boolean(turn)), [turn]);
+  useEffect(() => releaseBook, []);
+
   useLayoutEffect(() => {
     if (phase !== 'open') paintCover();
   }, [phase, paintCover]);
@@ -448,6 +452,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     if (phase === 'shut' || pageW < 8 || !pages) return;
     let cancel = false;
     bakeDone.current = false;
+    noteBook('bake', true);
     void (async () => {
       for (const [n, page] of [...pages].entries()) {
         const index = Number(page.dataset.index);
@@ -461,6 +466,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
         root.current?.setAttribute('data-bake', String(n + 1));
       }
       bakeDone.current = true;
+      noteBook('bake', false);
     })();
     return () => {
       cancel = true;
@@ -712,7 +718,11 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     if (window.matchMedia(skip).matches) return;
     let cancel = false;
     const el = root.current;
-    const end = () => el?.removeAttribute('data-riffle');
+    noteBook('riffle', true);
+    const end = () => {
+      el?.removeAttribute('data-riffle');
+      noteBook('riffle', false);
+    };
     const shown = el?.innerHTML ?? '';
     const pictures = Promise.all(
       SKETCH_IMAGES.filter((src) => !shown.includes(src)).map((src) => {
@@ -738,7 +748,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
         }),
         new Promise<void>((resolve) => window.setTimeout(resolve, 4000)),
       ]);
-      if (cancel || !auto.current || live.current.turn) return;
+      if (cancel || !auto.current || live.current.turn) return end();
       const steps =
         live.current.mode === 'spread'
           ? SKETCH_PAGES.length / 2

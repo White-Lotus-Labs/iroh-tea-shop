@@ -2,11 +2,26 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { PerformanceMonitor } from '@react-three/drei';
 import {
+  ACESFilmicToneMapping,
+  AgXToneMapping,
+  CineonToneMapping,
+  ColorManagement,
+  CustomToneMapping,
   HalfFloatType,
+  LinearToneMapping,
+  Material,
+  Mesh,
+  OrthographicCamera,
+  NeutralToneMapping,
+  PlaneGeometry,
+  ReinhardToneMapping,
+  Scene,
+  SRGBTransfer,
   Vector2,
   WebGLRenderTarget,
-  type Material,
   type Object3D,
+  type ToneMapping,
+  type WebGLRenderer,
 } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -68,6 +83,79 @@ class SceneAOPass extends GTAOPass {
   }
 }
 
+/**
+ * Links every pass shader off the main thread. A pass that first compiles in
+ * `render` blocks until the driver links it: seconds for the bloom and AO
+ * loops on ANGLE/D3D11. Disabled passes (AO) are included so turning them on
+ * later is free too. `screen` is the last pass, which draws to the canvas and
+ * so needs the on-screen variant as well.
+ */
+function compilePasses(
+  gl: WebGLRenderer,
+  composer: EffectComposer,
+  output: OutputPass,
+  screen: Material,
+) {
+  primeOutput(output, gl);
+  const materials = new Set<Material>();
+  const visit = (value: unknown) => {
+    if (value instanceof Material) materials.add(value);
+    else if (Array.isArray(value)) value.forEach(visit);
+  };
+  for (const pass of [...composer.passes, composer.copyPass])
+    Object.values(pass).forEach(visit);
+  const quad = new PlaneGeometry(2, 2);
+  const sceneOf = (list: Iterable<Material>) => {
+    const scene = new Scene();
+    for (const material of list) scene.add(new Mesh(quad, material));
+    return scene;
+  };
+  const camera = new OrthographicCamera();
+  // Passes draw into half-float targets, so compile that variant.
+  const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType }),
+    previous = gl.getRenderTarget();
+  gl.setRenderTarget(target);
+  const offscreen = gl.compileAsync(sceneOf(materials), camera);
+  gl.setRenderTarget(null);
+  const onscreen = gl.compileAsync(sceneOf([screen]), camera);
+  gl.setRenderTarget(previous);
+  return Promise.all([offscreen, onscreen])
+    .catch(() => {})
+    .finally(() => {
+      target.dispose();
+      quad.dispose();
+    });
+}
+
+const TONE_DEFINES: Partial<Record<ToneMapping, string>> = {
+  [LinearToneMapping]: 'LINEAR_TONE_MAPPING',
+  [ReinhardToneMapping]: 'REINHARD_TONE_MAPPING',
+  [CineonToneMapping]: 'CINEON_TONE_MAPPING',
+  [ACESFilmicToneMapping]: 'ACES_FILMIC_TONE_MAPPING',
+  [AgXToneMapping]: 'AGX_TONE_MAPPING',
+  [NeutralToneMapping]: 'NEUTRAL_TONE_MAPPING',
+  [CustomToneMapping]: 'CUSTOM_TONE_MAPPING',
+};
+
+/**
+ * OutputPass picks its defines on its first render, which would build a new
+ * program right then. Set them up front, as its render does, so the program
+ * compiled here is the one it uses.
+ */
+function primeOutput(pass: OutputPass, gl: WebGLRenderer) {
+  const defines: Record<string, string> = {};
+  if (ColorManagement.getTransfer(gl.outputColorSpace) === SRGBTransfer)
+    defines.SRGB_TRANSFER = '';
+  const tone = TONE_DEFINES[gl.toneMapping];
+  if (tone) defines[tone] = '';
+  pass.material.defines = defines;
+  pass.material.needsUpdate = true;
+  Object.assign(pass, {
+    _outputColorSpace: gl.outputColorSpace,
+    _toneMapping: gl.toneMapping,
+  });
+}
+
 function Composer({
   reduced,
   ao,
@@ -107,11 +195,24 @@ function Composer({
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(occlusion);
     composer.addPass(bloom);
-    composer.addPass(new OutputPass());
+    const output = new OutputPass();
+    composer.addPass(output);
     composer.addPass(grade);
-    return { composer, occlusion, grade, bloom };
+    return { composer, occlusion, grade, bloom, output };
   }, [gl, scene, camera]);
   useEffect(() => () => pipeline.composer.dispose(), [pipeline]);
+  const linked = useRef(false);
+  useEffect(() => {
+    let live = true;
+    linked.current = false;
+    const { composer, output, grade } = pipeline;
+    void compilePasses(gl, composer, output, grade.material).then(() => {
+      if (live) linked.current = true;
+    });
+    return () => {
+      live = false;
+    };
+  }, [gl, pipeline]);
   useEffect(() => {
     const { composer, occlusion, grade } = pipeline;
     composer.setPixelRatio(dpr);
@@ -137,6 +238,8 @@ function Composer({
   const skipped = useRef(false);
   useFrame((_, delta) => {
     if (!reduced) pipeline.grade.uniforms.time.value += delta;
+    // Until the passes link, keep the last frame rather than block on them.
+    if (!linked.current) return;
     skipped.current = covered && !skipped.current;
     if (!skipped.current) pipeline.composer.render(delta);
   }, 1);
@@ -167,6 +270,9 @@ export function ScenePolish({
   covered: boolean;
 }) {
   const setDpr = useThree((state) => state.setDpr);
+  // Behind the waiting room the room draws a few frames a second on purpose;
+  // measuring that would read as a slow GPU and drop the quality for good.
+  const measuring = useThree((state) => state.frameloop === 'always');
   const [tier, setTier] = useState(openingTier);
   const capped = lightExperience();
   const ceiling = capped ? 2 : LADDER.length - 1;
@@ -176,15 +282,17 @@ export function ScenePolish({
   }, [rung, setDpr]);
   return (
     <>
-      <PerformanceMonitor
-        flipflops={3}
-        onDecline={() => setTier((current) => Math.max(0, current - 1))}
-        // Skipped draws inflate the measured fps, so no climbing while covered.
-        onIncline={() =>
-          covered || setTier((current) => Math.min(ceiling, current + 1))
-        }
-        onFallback={() => setTier(0)}
-      />
+      {measuring && (
+        <PerformanceMonitor
+          flipflops={3}
+          onDecline={() => setTier((current) => Math.max(0, current - 1))}
+          // Skipped draws inflate the measured fps, so no climbing while covered.
+          onIncline={() =>
+            covered || setTier((current) => Math.min(ceiling, current + 1))
+          }
+          onFallback={() => setTier(0)}
+        />
+      )}
       <Composer
         reduced={reduced}
         ao={rung.ao}
