@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MotionPreference, Station } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import type { IrohActivity } from '../scene/TeaHost3D';
-import { RECENTER_EVENT, STATIONS } from '../scene/stations';
+import { OBSERVATORIUM_URL, RECENTER_EVENT, STATIONS } from '../scene/stations';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
 import { SmartWalletShelf } from './SmartWalletShelf';
@@ -99,6 +99,8 @@ export default function TeaRoomShell({
   const [systemReduced, setSystemReduced] = useState<boolean | null>(null);
   const [resetKey] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [observatoriumZoomKey, setObservatoriumZoomKey] = useState(0);
+  const [openingObservatorium, setOpeningObservatorium] = useState(false);
   const [pour, setPour] = useState<{ key: string | null; mood: SceneMood }>({
     key: null,
     mood: 'waiting',
@@ -160,6 +162,7 @@ export default function TeaRoomShell({
   }, [revealed]);
   const panel = useRef<HTMLElement>(null);
   const openHint = useRef<HTMLButtonElement>(null);
+  const observatoriumOpening = useRef(false);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
   const focusHintOnArrive = useRef(false);
@@ -219,6 +222,7 @@ export default function TeaRoomShell({
   );
   const navigate = useCallback(
     (next: Station) => {
+      if (observatoriumOpening.current) return;
       // Re-clicking Counter closes the desk and returns this camera pose.
       // cameraAt stays set so the open hint does not wait for a new arrival.
       if (next === station) {
@@ -293,6 +297,28 @@ export default function TeaRoomShell({
   }, [reduced]);
   const onCameraArrive = useCallback((at: Station) => {
     setCameraAt(at);
+  }, []);
+  const openObservatorium = useCallback(() => {
+    if (observatoriumOpening.current) return;
+    // If WebGL is unavailable, retain the action instead of leaving a blank tab
+    // waiting for an animation that cannot run.
+    if (!sceneAvailable || sceneFailed) {
+      const popup = window.open(OBSERVATORIUM_URL, '_blank');
+      if (popup) popup.opener = null;
+      return;
+    }
+    observatoriumOpening.current = true;
+    setOpeningObservatorium(true);
+    setObservatoriumZoomKey((key) => key + 1);
+  }, [sceneAvailable, sceneFailed]);
+  const finishObservatoriumOpen = useCallback(() => {
+    observatoriumOpening.current = false;
+    setOpeningObservatorium(false);
+    // Open only after the camera settles, keeping the complete push-in visible.
+    // Setting opener manually preserves a usable Window return value so we do
+    // not mistake a successful `noopener` tab for a blocked popup.
+    const popup = window.open(OBSERVATORIUM_URL, '_blank');
+    if (popup) popup.opener = null;
   }, []);
   const onSceneAvailability = useCallback((available: boolean) => {
     setSceneAvailable(available);
@@ -413,6 +439,8 @@ export default function TeaRoomShell({
   useEffect(() => {
     if (shelfOpen) panel.current?.focus({ preventScroll: true });
   }, [shelfOpen]);
+  const showObservatoriumHint =
+    station === 'TeaTable' && !isEntrance && cameraSettled;
   const showPanel =
     !isEntrance &&
     panelOpen &&
@@ -540,6 +568,9 @@ export default function TeaRoomShell({
             onMenuOpen={openPanel}
             onThesisPick={pickThesis}
             onNavigate={navigate}
+            onObservatoriumOpen={openObservatorium}
+            observatoriumZoomKey={observatoriumZoomKey}
+            onObservatoriumZoomEnd={finishObservatoriumOpen}
             onStaged={onStaged}
             hostModel={revealed}
           />
@@ -599,6 +630,35 @@ export default function TeaRoomShell({
                 />
               </span>
               <span id="panel-open-teaser" className="sr-only">
+                {teaser.text}
+              </span>
+            </button>
+          )}
+
+          {showObservatoriumHint && teaser?.cta && (
+            <button
+              key="observatorium-model"
+              type="button"
+              className="panel-open-hint"
+              aria-label={teaser.cta.join(' ')}
+              aria-describedby="observatorium-model-teaser"
+              aria-busy={openingObservatorium || undefined}
+              disabled={openingObservatorium}
+              onClick={openObservatorium}
+            >
+              <span className="panel-open-hint-seal" aria-hidden="true">
+                {teaser.glyph}
+              </span>
+              <span className="panel-open-hint-body" aria-hidden="true">
+                <span className="panel-open-hint-title">
+                  {teaser.cta[0]} <em>{teaser.cta[1]}</em>
+                </span>
+                <InkLine
+                  text={teaser.text}
+                  className="panel-open-hint-teaser"
+                />
+              </span>
+              <span id="observatorium-model-teaser" className="sr-only">
                 {teaser.text}
               </span>
             </button>

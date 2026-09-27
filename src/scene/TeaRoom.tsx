@@ -51,6 +51,7 @@ function RoomGeometry({
   onMenuOpen,
   onThesisPick,
   onNavigate,
+  onObservatoriumOpen,
   onStaged,
   hostModel,
 }: {
@@ -65,11 +66,11 @@ function RoomGeometry({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
+  onObservatoriumOpen: () => void;
   onStaged?: () => void;
   hostModel: boolean;
 }) {
   const [hostHalo, setHostHalo] = useState(false);
-  const [orreryHot, setOrreryHot] = useState(false);
   const posters = station !== 'Entrance';
   // The shell's shelf callback changes on every station move. Read it through
   // a ref so the memo below (and its ContactShadows) survives the move.
@@ -94,7 +95,7 @@ function RoomGeometry({
           frames={1}
           color="#25180f"
         />
-        <MechanicalPlanetarySystem reduced={reduced} onHover={setOrreryHot} />
+        <MechanicalPlanetarySystem reduced={reduced} />
         <TeaShelf
           onSelect={selectShelf}
           revealed={shelfRevealed}
@@ -159,7 +160,7 @@ function RoomGeometry({
           onMenuOpen={onMenuOpen}
           onShelfSelect={onShelfSelect}
           onHostHover={setHostHalo}
-          orreryHot={orreryHot}
+          onObservatoriumOpen={onObservatoriumOpen}
         />
         {finish}
       </Staged>
@@ -318,6 +319,9 @@ export default function TeaRoom({
   onMenuOpen,
   onThesisPick,
   onNavigate,
+  onObservatoriumOpen,
+  observatoriumZoomKey,
+  onObservatoriumZoomEnd,
   onStaged,
   hostModel,
 }: {
@@ -340,6 +344,9 @@ export default function TeaRoom({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
+  onObservatoriumOpen: () => void;
+  observatoriumZoomKey: number;
+  onObservatoriumZoomEnd: () => void;
   onStaged?: () => void;
   hostModel: boolean;
 }) {
@@ -402,6 +409,7 @@ export default function TeaRoom({
                   onMenuOpen={onMenuOpen}
                   onThesisPick={onThesisPick}
                   onNavigate={onNavigate}
+                  onObservatoriumOpen={onObservatoriumOpen}
                   onStaged={onStaged}
                   hostModel={hostModel}
                 />
@@ -416,7 +424,9 @@ export default function TeaRoom({
             typing={typing}
             reading={reading}
             allowTravelWhileTyping={allowTravelWhileTyping}
+            observatoriumZoomKey={observatoriumZoomKey}
             onArrive={onArrive}
+            onObservatoriumZoomEnd={onObservatoriumZoomEnd}
           />
           <DevShotCamera />
           <HiddenFrames hidden={station === 'Entrance'} />

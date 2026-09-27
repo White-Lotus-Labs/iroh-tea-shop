@@ -408,7 +408,6 @@ const OUTLINES: Partial<Record<HaloStation, OutlineTarget>> = {
       [-0.4, 1.95, 6.8],
     ],
   },
-  TeaTable: { name: 'mechanical-planetary-system' },
 };
 
 /** One ember per place worth opening. Another station's ember flies there; the current one opens it. */
@@ -420,7 +419,7 @@ export function StationHalos({
   onMenuOpen,
   onShelfSelect,
   onHostHover,
-  orreryHot = false,
+  onObservatoriumOpen,
 }: {
   station: Station;
   menuClosed: boolean;
@@ -429,13 +428,11 @@ export function StationHalos({
   onMenuOpen: () => void;
   onShelfSelect: () => void;
   onHostHover?: (on: boolean) => void;
-  /** The pointer is on the machine, not only its seal. */
-  orreryHot?: boolean;
+  onObservatoriumOpen: () => void;
 }) {
   const [hovered, setHovered] = useState<HaloStation | null>(null);
   if (station === 'Entrance') return null;
-  const rim =
-    (hovered && OUTLINES[hovered]) || (orreryHot ? OUTLINES.TeaTable : null);
+  const rim = hovered && OUTLINES[hovered];
   return (
     <>
       {HALO_STATIONS.map((id) => {
@@ -445,13 +442,13 @@ export function StationHalos({
         const stays =
           current && (id === 'Counter' || id === 'Shelf' || id === 'TeaTable');
         const anchor = STATIONS.find((place) => place.id === id)!;
-        // The Observatorium has no panel: its ember points at the orrery's own click-to-wind.
+        // The Observatorium halo opens the external planetary model once the camera arrives.
         const open = !current
           ? () => onNavigate(id)
           : id === 'Shelf'
             ? onShelfSelect
             : id === 'TeaTable'
-              ? undefined
+              ? onObservatoriumOpen
               : onMenuOpen;
         return (
           <HaloMarker

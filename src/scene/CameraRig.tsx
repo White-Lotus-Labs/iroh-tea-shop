@@ -15,6 +15,7 @@ import type { Station } from '../shared/contracts';
 import {
   keepInRoom,
   LOOK,
+  OBSERVATORIUM_FOCUS,
   RECENTER_EVENT,
   roomOf,
   SHELF_APPROACH,
@@ -69,7 +70,9 @@ export function CameraRig({
   reading = false,
   allowTravelWhileTyping = false,
   shelfFocused = false,
+  observatoriumZoomKey = 0,
   onArrive,
+  onObservatoriumZoomEnd,
 }: {
   station: Station;
   reduced: boolean;
@@ -78,7 +81,10 @@ export function CameraRig({
   reading?: boolean;
   allowTravelWhileTyping?: boolean;
   shelfFocused?: boolean;
+  /** Changes when the live planetary model should open after a close camera push-in. */
+  observatoriumZoomKey?: number;
   onArrive?: (station: Station) => void;
+  onObservatoriumZoomEnd?: () => void;
 }) {
   const { camera, size, gl, scene, events } = useThree();
   const controls = useRef<OrbitImpl>(null);
@@ -97,6 +103,8 @@ export function CameraRig({
   const priorStation = useRef<Station | null>(null);
   const priorShelfFocused = useRef(false);
   const shelfApproachLeg = useRef(false);
+  const latestObservatoriumZoomKey = useRef(observatoriumZoomKey);
+  const zoomingObservatorium = useRef(false);
   useEffect(() => {
     const again = () => setRecenter((n) => n + 1);
     window.addEventListener(RECENTER_EVENT, again);
@@ -163,7 +171,7 @@ export function CameraRig({
           : mobile && station === 'AvatarSeat'
             ? ([0.0, 0.72, -3.55] as const)
             : mobile && station === 'TeaTable'
-              ? ([-2.85, 0.85, -3.15] as const)
+              ? ([-3.28, 0.85, -3.15] as const)
               : travelPose.target;
     const to = new Vector3(...position),
       target = new Vector3(...look),
@@ -207,6 +215,24 @@ export function CameraRig({
       onArrive?.(station);
     }
   }, [station, shelfFocused, resetKey, recenter, camera, size.width, onArrive]);
+  useEffect(() => {
+    if (observatoriumZoomKey === latestObservatoriumZoomKey.current) return;
+    latestObservatoriumZoomKey.current = observatoriumZoomKey;
+    if (station !== 'TeaTable') return;
+    const c = controls.current;
+    if (!c) return;
+    if (!travel.current)
+      travel.current = new CameraTravel(camera.position, c.target);
+    const position = new Vector3(...OBSERVATORIUM_FOCUS.position);
+    const target = new Vector3(...OBSERVATORIUM_FOCUS.target);
+    angles.current = orbitOf(position.clone().sub(target));
+    travel.current.position.copy(camera.position);
+    travel.current.target.copy(c.target);
+    travel.current.retarget(position, target, 2.2);
+    zoomingObservatorium.current = true;
+    c.enabled = false;
+    c.enableDamping = false;
+  }, [observatoriumZoomKey, station, camera, onObservatoriumZoomEnd]);
   useEffect(() => {
     const canvas = gl.domElement,
       stage: HTMLElement = events.connected ?? canvas,
@@ -295,11 +321,22 @@ export function CameraRig({
       i = idle.current,
       z = zoom.current;
     if (t.active) {
-      if (reduced) t.finish();
+      // An explicit Observatorium action is intentional motion, so it still
+      // shows its short push-in even when the rest of the room is reduced.
+      if (reduced && !zoomingObservatorium.current) t.finish();
       else if ((!typing && !reading) || allowTravelWhileTyping) t.step(delta);
       camera.position.copy(t.position);
       c.target.copy(t.target);
       if (!t.active) {
+        if (zoomingObservatorium.current) {
+          zoomingObservatorium.current = false;
+          lookAround(c, a, reduced);
+          z.goal = z.last = a.distance;
+          c.enabled = !typing && !reading;
+          onObservatoriumZoomEnd?.();
+          camera.lookAt(c.target);
+          return;
+        }
         if (shelfApproachLeg.current) {
           shelfApproachLeg.current = false;
           t.retarget(
