@@ -839,7 +839,7 @@ input {
   color: var(--ink);
   margin-bottom: 8px;
 }
-.iroh-greeting > p:last-child {
+.iroh-greeting-title + p {
   font-size: 13px;
 }
 .iroh-message {
@@ -1263,7 +1263,7 @@ body:has(.auth-shell) {
 .shelf-approach.panel-open-hint {
   left: auto;
   right: clamp(28px, 5vw, 82px);
-  bottom: 134px;
+  bottom: 132px;
   z-index: 3;
   transform: none;
 }
@@ -1274,10 +1274,20 @@ body:has(.auth-shell) {
   .shelf-approach.panel-open-hint:active:not(:disabled) {
   transform: none;
 }
+/* Small screens: centered on the same baseline as Open Counter and Open Host. */
 @media (max-width: 760px) {
   .shelf-approach.panel-open-hint {
-    right: 16px;
-    bottom: 96px;
+    left: 50%;
+    right: auto;
+    bottom: 112px;
+    transform: translateX(-50%);
+  }
+  .shelf-approach.panel-open-hint:active:not(:disabled) {
+    transform: translateX(-50%) translateY(2px) scale(0.985);
+  }
+  .app-shell[data-motion='reduce']
+    .shelf-approach.panel-open-hint:active:not(:disabled) {
+    transform: translateX(-50%);
   }
 }
 
@@ -1285,7 +1295,8 @@ body:has(.auth-shell) {
 .app-shell[data-station='Shelf'] .reading-panel {
   position: fixed;
   top: 88px;
-  bottom: 106px;
+  /* Leaves a clear gap above the dock's top rod. */
+  bottom: 120px;
   left: 50%;
   right: auto;
   width: min(790px, calc(100vw - 330px));
@@ -1713,6 +1724,7 @@ body:has(.auth-shell) {
   text-align: center;
 }
 .wallet-list-head > span:nth-child(4) {
+  justify-self: end;
   text-align: right;
   white-space: nowrap;
 }
@@ -1879,9 +1891,19 @@ body:has(.auth-shell) {
 .leaderboard-message {
   margin: auto;
   padding: 36px 20px;
-  color: var(--scroll-muted);
-  font: 16px/1.5 var(--font-display);
+  color: var(--scroll-ink);
+  font: italic 500 clamp(20px, 1.9vw, 24px) / 1.35 var(--font-display);
   text-align: center;
+  text-wrap: balance;
+}
+/* A short gilt rule, like the hero's, marks the empty scroll as intentional. */
+.leaderboard-message::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 1px;
+  margin: 0 auto 18px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 .leaderboard-message p {
   margin: 0;
@@ -1957,7 +1979,8 @@ body:has(.auth-shell) {
 @media (max-width: 760px) {
   .app-shell[data-station='Shelf'] .reading-panel {
     top: 85px;
-    bottom: 80px;
+    /* Same visual floor as the Counter and Host rollers, above the dock. */
+    bottom: 86px;
     left: 12px;
     right: 12px;
     width: auto;
@@ -2158,7 +2181,9 @@ body:has(.auth-shell) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 13.5px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(212, 175, 120, 0.25);
   background: rgba(255, 255, 255, 0.03);
@@ -2285,13 +2310,13 @@ body:has(.auth-shell) {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
-  padding: 0 14px 0 6px;
+  height: 44px;
+  padding: 0 16px 0 8px;
   border-radius: 999px;
   border: 1px solid rgba(212, 175, 120, 0.25);
   background: rgba(255, 255, 255, 0.03);
   color: #f3ead9;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   list-style: none;
@@ -2314,12 +2339,12 @@ body:has(.auth-shell) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: rgba(212, 175, 120, 0.15);
   color: #d4af78;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .account-name {
@@ -2551,9 +2576,6 @@ body:has(.auth-shell) {
 }
 .entrance-hero-cta:active {
   transform: translateY(0) scale(0.98);
-}
-.entrance-hero-cta:focus-visible {
-  outline-color: #e6bd84;
 }
 
 .entrance-hero-cta-arrow {
@@ -2971,8 +2993,8 @@ body:has(.auth-shell) {
   transform: rotate(-4deg);
   opacity: 0.93;
 }
-/* Close: a lacquered knob on the paper corner. */
-.app-shell:not([data-station='Shelf']) .panel-close {
+/* Close: a lacquered knob on the paper corner of every scroll, Shelf included. */
+.app-shell .panel-close {
   top: 10px;
   right: 12px;
   z-index: 4;
@@ -2987,15 +3009,30 @@ body:has(.auth-shell) {
     0 2px 6px rgba(20, 10, 5, 0.35),
     inset 0 1px rgba(255, 230, 180, 0.25);
 }
-.app-shell:not([data-station='Shelf']) .panel-close > span[aria-hidden] {
+.app-shell .panel-close > span[aria-hidden] {
   transition: transform 260ms var(--ease-lift);
 }
-.app-shell:not([data-station='Shelf']) .panel-close:hover {
+.app-shell .panel-close:hover {
   border-color: var(--gold-bright);
   background: radial-gradient(circle at 35% 30%, #5b412c, #241810 70%);
 }
-.app-shell:not([data-station='Shelf']) .panel-close:hover > span[aria-hidden] {
+.app-shell .panel-close:hover > span[aria-hidden] {
   transform: rotate(90deg);
+}
+.app-shell .panel-close:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 3px;
+}
+/* The Shelf rod sits inside its box, so the knob drops below the rod. */
+.app-shell[data-station='Shelf'] .panel-close {
+  top: 32px;
+  right: 22px;
+}
+@media (max-width: 760px) {
+  .app-shell[data-station='Shelf'] .panel-close {
+    top: 24px;
+    right: 13px;
+  }
 }
 
 /* Typography on paper: display serif titles, small-caps labels, readable sans body. */
@@ -3220,6 +3257,14 @@ body:has(.auth-shell) {
 .app-shell:not([data-station='Shelf']) .iroh-transcript {
   padding: 22px clamp(20px, 2.8vw, 40px);
   scrollbar-color: rgba(107, 42, 33, 0.45) transparent;
+  /* Scrolled text fades under the head and compose rules instead of cutting. */
+  -webkit-mask-image: linear-gradient(
+    #0000,
+    #000 16px,
+    #000 calc(100% - 12px),
+    #0000
+  );
+  mask-image: linear-gradient(#0000, #000 16px, #000 calc(100% - 12px), #0000);
 }
 .app-shell:not([data-station='Shelf']) .iroh-greeting {
   margin: 18px auto 22px;
@@ -3249,7 +3294,7 @@ body:has(.auth-shell) {
   font: italic 500 clamp(22px, 2vw, 27px) / 1.25 var(--font-display);
   color: var(--scroll-ink);
 }
-.app-shell:not([data-station='Shelf']) .iroh-greeting > p:last-child {
+.app-shell:not([data-station='Shelf']) .iroh-greeting-title + p {
   font-size: 14px;
   line-height: 1.6;
 }
@@ -3329,6 +3374,18 @@ body:has(.auth-shell) {
 .app-shell:not([data-station='Shelf']) .iroh-compose-bottom span:first-child {
   font-size: 11.5px;
   color: var(--scroll-muted);
+}
+/* Empty draft: an outlined paper tag, not a faded lacquer slab. */
+.app-shell:not([data-station='Shelf']) .iroh-compose .primary:disabled {
+  opacity: 1;
+  cursor: default;
+  border-color: rgba(74, 47, 29, 0.28);
+  background: rgba(255, 252, 243, 0.45);
+  color: var(--scroll-muted);
+  box-shadow: none;
+}
+.app-shell:not([data-station='Shelf']) .iroh-chat-actions button {
+  white-space: nowrap;
 }
 
 /* ---------- Motion ---------- */
@@ -3591,7 +3648,7 @@ body:has(.auth-shell) {
   align-items: center;
   gap: 10px;
   width: max-content;
-  max-width: min(400px, 70vw);
+  max-width: min(460px, 70vw);
   padding: 7px 14px 8px 8px;
   border: 1px solid rgba(233, 201, 131, 0.55);
   border-radius: 2px;
@@ -3646,6 +3703,7 @@ body:has(.auth-shell) {
   font: italic 500 17px / 1.25 var(--font-display);
   letter-spacing: 0.01em;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  text-wrap: balance;
 }
 @keyframes halo-label-rise {
   from {
@@ -3694,14 +3752,88 @@ body:has(.auth-shell) {
   .app-shell:not([data-station='Shelf']) .reading-panel h1 {
     font-size: 30px;
   }
+  /* Eyebrow, then title beside actions, then the status line at full width.
+     Rows one and two keep 40px clear of the close knob. */
   .app-shell:not([data-station='Shelf']) .iroh-chat-head {
-    padding: 12px 56px 10px 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'eyebrow eyebrow'
+      'title actions'
+      'status status';
+    align-items: center;
+    gap: 2px 10px;
+    padding: 12px 16px 11px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-chat-head::after {
+    left: 16px;
+    right: 16px;
+  }
+  .iroh-chat-title {
+    display: contents;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-chat-head .eyebrow {
+    grid-area: eyebrow;
+    margin: 0 40px 2px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .app-shell[data-station='AvatarSeat'] .reading-panel .iroh-chat-head h1 {
+    grid-area: title;
+    margin: 0;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-chat-head p {
+    grid-area: status;
+    margin-top: 4px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-chat-actions {
+    grid-area: actions;
+    align-items: stretch;
+    gap: 4px;
+    margin-right: 40px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-chat-actions button {
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 11.5px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-history button {
+    min-height: 34px;
+    padding: 7px 10px;
   }
   .app-shell:not([data-station='Shelf']) .iroh-transcript {
     padding: 14px 16px;
   }
+  .app-shell:not([data-station='Shelf']) .iroh-greeting {
+    margin: 4px auto 8px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-seal {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+    font-size: 21px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-greeting-title {
+    font-size: 21px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-greeting-title + p {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  /* Send sits beside the field; touch keyboards have no Shift+Enter habit. */
   .app-shell:not([data-station='Shelf']) .iroh-compose {
-    padding: 10px 16px 11px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 10px;
+    padding: 10px 16px 12px;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-compose-bottom {
+    margin: 0;
+  }
+  .app-shell:not([data-station='Shelf']) .iroh-compose-bottom span:first-child {
+    display: none;
   }
   .app-shell:not([data-station='Shelf']) .scroll-ornament::after {
     width: 28px;
@@ -3830,11 +3962,17 @@ body:has(.auth-shell) {
   animation: slip-unroll 320ms var(--ease-unroll) both;
 }
 .account-popover-name {
+  padding: 2px 0 10px;
+  overflow: hidden;
   color: var(--scroll-ink);
   font: 600 17px / 1.2 var(--font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border-bottom: 1px solid var(--scroll-line);
 }
 .account-popover button {
+  min-height: 40px;
+  padding: 0 12px;
   border: 1px solid rgba(74, 47, 29, 0.3);
   border-radius: 3px;
   background: rgba(255, 252, 243, 0.7);
@@ -3853,11 +3991,37 @@ body:has(.auth-shell) {
 .account-popover [role='alert'] {
   color: var(--seal);
 }
+/* Focus on dark chrome is gold; focus on paper is seal red. */
+.brand:focus-visible,
 .status-icon:focus-visible,
 .account-entry:focus-visible,
 .account-menu summary:focus-visible {
   outline: 2px solid var(--gold-bright);
   outline-offset: 3px;
+}
+.entrance-hero-cta:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 5px;
+}
+@media (max-width: 760px) {
+  .topbar-right {
+    gap: 10px;
+  }
+  /* Anchor the slip to the top bar so it never runs off the left edge. */
+  .status-indicator {
+    position: static;
+  }
+  .status-popup {
+    right: 16px;
+    max-width: calc(100vw - 32px);
+  }
+  /* The summary's aria-label and the popover still carry the nickname. */
+  .account-name {
+    display: none;
+  }
+  .account-menu summary {
+    padding: 0 12px 0 8px;
+  }
 }
 @keyframes slip-unroll {
   from {

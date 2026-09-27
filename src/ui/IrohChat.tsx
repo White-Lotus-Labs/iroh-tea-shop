@@ -175,7 +175,7 @@ export function IrohChat({
   return (
     <div className="iroh-chat">
       <header className="iroh-chat-head">
-        <div>
+        <div className="iroh-chat-title">
           <div className="eyebrow">03 / THE HOST · RESEARCH</div>
           <h1>
             Ask <em>Uncle</em>
@@ -203,7 +203,7 @@ export function IrohChat({
             disabled={historyLoading}
             aria-label={user ? 'Start new chat' : 'New conversation'}
           >
-            {user ? 'New Chat' : 'New conversation'}
+            {user ? 'New chat' : 'New conversation'}
           </button>
         </div>
       </header>
@@ -259,28 +259,31 @@ export function IrohChat({
               )}
             </div>
           )}
-          {chat.messages.map((message) => (
-            <article
-              className={`iroh-message is-${message.role}`}
-              key={message.id}
-            >
-              <div className="iroh-speaker">
-                {message.role === 'user' ? 'You' : 'Uncle'}
-              </div>
-              {message.content ? (
-                <IrohMessage content={message.content} />
-              ) : message.status === 'streaming' ? (
-                <p className="iroh-waiting">
-                  {nansen === 'configured'
-                    ? 'Waiting for Nansen…'
-                    : 'Nansen research is offline · demo voice only'}
-                </p>
-              ) : null}
-              {message.status === 'stopped' && (
-                <small>Stopped · partial answer</small>
-              )}
-            </article>
-          ))}
+          {chat.messages
+            // A failed reply with no text would render as an empty card.
+            .filter((message) => message.content || message.status !== 'error')
+            .map((message) => (
+              <article
+                className={`iroh-message is-${message.role}`}
+                key={message.id}
+              >
+                <div className="iroh-speaker">
+                  {message.role === 'user' ? 'You' : 'Uncle'}
+                </div>
+                {message.content ? (
+                  <IrohMessage content={message.content} />
+                ) : message.status === 'streaming' ? (
+                  <p className="iroh-waiting">
+                    {nansen === 'configured'
+                      ? 'Waiting for Nansen…'
+                      : 'Nansen research is offline · demo voice only'}
+                  </p>
+                ) : null}
+                {message.status === 'stopped' && (
+                  <small>Stopped · partial answer</small>
+                )}
+              </article>
+            ))}
           {chat.isStreaming && (
             <p className="iroh-activity" role="status">
               {nansen === 'unavailable'
