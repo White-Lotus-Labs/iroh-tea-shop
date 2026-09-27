@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PROJECT, REPO_URL } from './content';
+import { TeaPourButton } from './TeaPourButton';
 import './WaitingRoom.css';
 
 const PetalCanvas = dynamic(
@@ -116,14 +117,13 @@ export function WaitingRoom({
             <span style={{ transform: `scaleX(${percent / 100})` }} />
           </div>
         </div>
-        <button
-          type="button"
-          className="waiting-enter"
+        <TeaPourButton
+          fill={percent / 100}
+          ready={ready}
           disabled={!ready || !open}
+          reduced={reduced}
           onClick={onEnter}
-        >
-          Step inside <span aria-hidden="true">→</span>
-        </button>
+        />
       </footer>
     </div>
   );
