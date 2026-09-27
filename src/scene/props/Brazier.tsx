@@ -14,8 +14,9 @@ import { createRandom } from '../motion/dynamics';
 import { Solid } from '../Surfaces';
 import type { Point } from '../stations';
 
-const AT: Point = [1.56, 0.052, -1.9];
-const BOX = { width: 0.44, height: 0.3, wall: 0.03 };
+// Rim clears the table's breadboard end (x 1.29) by 6 cm; the box stays on the tatami (x < 1.795).
+const AT: Point = [1.575, 0.052, -1.9];
+const BOX = { width: 0.4, height: 0.3, wall: 0.03 };
 const KETTLE_Y = BOX.height + 0.035;
 const SPOUT_TIP: Point = [-0.178, 0.118, 0];
 

@@ -238,8 +238,9 @@ function RoomGeometry({
         color="#ffb877"
         intensity={2.1}
         castShadow
-        shadow-bias={-0.00035}
-        shadow-normalBias={0.025}
+        // About one texel of normal bias: more lifts contact shadows and props look afloat.
+        shadow-bias={-0.0003}
+        shadow-normalBias={0.011}
         shadow-mapSize={[2048, 2048]}
         shadow-radius={3}
         shadow-camera-left={-10}

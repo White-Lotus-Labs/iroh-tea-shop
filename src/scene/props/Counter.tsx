@@ -22,6 +22,7 @@ import {
   boxUv,
   canvasTexture,
   brushText,
+  Hanger,
   merge,
   paint,
   paper,
@@ -503,17 +504,15 @@ export function Counter() {
             clearcoatRoughness={0.3}
           />
         </mesh>
-        {[-1, 1].map((side) => (
-          <mesh
-            key={side}
-            position={[side * 0.36, 0.3, -0.01]}
-            rotation={[0, 0, side * 0.5]}
-          >
-            <cylinderGeometry args={[0.003, 0.003, 0.3, 5]} />
-            <meshStandardMaterial color="#6b5a3a" roughness={0.9} />
-          </mesh>
-        ))}
       </group>
+      {/* Screw eyes under the doorway beam (bottom at 2.42 m). */}
+      {[-1, 1].map((side) => (
+        <Hanger
+          key={side}
+          hook={[-2.2 + side * 0.3, 2.414, 3.415]}
+          ends={[[-2.2 + side * 0.36, 2.09, 3.452]]}
+        />
+      ))}
       <mesh geometry={built.top} castShadow receiveShadow>
         <WoodMaterial clearcoat={0.55} />
       </mesh>

@@ -6,6 +6,7 @@ import {
   CircleGeometry,
   Color,
   DoubleSide,
+  Euler,
   ExtrudeGeometry,
   IcosahedronGeometry,
   InstancedMesh,
@@ -18,6 +19,7 @@ import {
   TorusGeometry,
   Vector2,
   Vector3,
+  type Curve,
 } from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Point } from '../stations';
@@ -26,6 +28,7 @@ import { useSurfaceMaps } from '../Surfaces';
 import {
   block,
   canvasTexture,
+  cord,
   merge,
   paint,
   place,
@@ -474,6 +477,48 @@ function leafGeometry() {
   geometry.setIndex(index);
   geometry.computeVertexNormals();
   return geometry;
+}
+
+const Z = new Vector3(0, 0, 1);
+/**
+ * Leaves on stalks along `stem`, as one vertex-coloured geometry: each stalk starts on
+ * the stem and each blade's base overlaps its stalk, so no leaf floats beside the branch.
+ * `turn` swings a leaf about the stem's heading; `rise` lifts it above horizontal.
+ */
+export function stemLeaves(
+  stem: Curve<Vector3>,
+  leaves: { t: number; turn: number; rise?: number }[],
+  { length = 0.06, width = 0.028, stalk = 0.012, color = '#1f3322' } = {},
+) {
+  const blade = leafGeometry()
+    .scale(length / 0.14, 0.35, width / 0.019)
+    .rotateY(-Math.PI / 2)
+    .translate(0, 0, stalk - 0.002);
+  const rotation = new Quaternion(),
+    euler = new Euler(0, 0, 0, 'YXZ');
+  const parts = leaves.flatMap(({ t, turn, rise = 0.25 }) => {
+    const at = stem.getPointAt(t),
+      tangent = stem.getTangentAt(t);
+    rotation.setFromEuler(
+      euler.set(
+        -rise,
+        Math.atan2(tangent.x, tangent.z) + turn,
+        0.3 * Math.sign(turn),
+      ),
+    );
+    const tip = at
+      .clone()
+      .addScaledVector(Z.clone().applyQuaternion(rotation), stalk);
+    return [
+      paint(cord(at.toArray(), tip.toArray(), 0.0016), '#3b3a1e'),
+      paint(
+        blade.clone().applyQuaternion(rotation).translate(at.x, at.y, at.z),
+        color,
+      ),
+    ];
+  });
+  blade.dispose();
+  return merge(parts);
 }
 
 function drawLeaf(ctx: CanvasRenderingContext2D) {

@@ -155,7 +155,7 @@ function RoomEnvironment() {
         form="circle"
         color="#ffc070"
         intensity={9}
-        position={[2.35, 2.72, -3.15]}
+        position={[2.3, 2.72, -3.1]}
         scale={0.5}
       />
       <Lightformer

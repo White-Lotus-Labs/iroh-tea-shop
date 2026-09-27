@@ -1,15 +1,6 @@
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { useTexture } from '@react-three/drei';
-import {
-  CatmullRomCurve3,
-  DoubleSide,
-  Matrix4,
-  Quaternion,
-  Vector2,
-  Vector3,
-  Euler,
-  type InstancedMesh,
-} from 'three';
+import { CatmullRomCurve3, DoubleSide, Vector2, Vector3 } from 'three';
 import {
   Boxes,
   Solid,
@@ -19,7 +10,8 @@ import {
 } from '../Surfaces';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { brushText, Timber } from './craft';
+import { brushText, Hanger, merge, Timber, useBuilt } from './craft';
+import { stemLeaves } from './Plants';
 import { ShojiWindow } from './Shoji';
 
 const timber = '#3a2419';
@@ -376,31 +368,27 @@ function Kakejiku({ position }: { position: Point }) {
         <meshStandardMaterial color="#1e140d" roughness={0.4} />
       </mesh>
       {[-1, 1].map((side) => (
-        <group key={side}>
-          <mesh
-            position={[side * 0.3, -0.76, 0.014]}
-            rotation={[0, 0, Math.PI / 2]}
-          >
-            <cylinderGeometry args={[0.021, 0.019, 0.04, 16]} />
-            <meshPhysicalMaterial
-              color="#120b07"
-              roughness={0.25}
-              clearcoat={1}
-            />
-          </mesh>
-          <mesh
-            position={[side * 0.12, 0.86, 0.008]}
-            rotation={[0, 0, side * -1.05]}
-          >
-            <cylinderGeometry args={[0.002, 0.002, 0.27, 5]} />
-            <meshStandardMaterial color="#6b5a3a" roughness={0.9} />
-          </mesh>
-        </group>
+        <mesh
+          key={side}
+          position={[side * 0.3, -0.76, 0.014]}
+          rotation={[0, 0, Math.PI / 2]}
+        >
+          <cylinderGeometry args={[0.021, 0.019, 0.04, 16]} />
+          <meshPhysicalMaterial
+            color="#120b07"
+            roughness={0.25}
+            clearcoat={1}
+          />
+        </mesh>
       ))}
-      <mesh position={[0, 0.93, 0.006]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.03, 8]} />
-        <meshStandardMaterial color="#2a2018" roughness={0.4} metalness={0.6} />
-      </mesh>
+      <Hanger
+        hook={[0, 0.9, 0.012]}
+        into={[0, 0, -1]}
+        ends={[
+          [-0.2, 0.762, 0.009],
+          [0.2, 0.762, 0.009],
+        ]}
+      />
     </group>
   );
 }
@@ -435,39 +423,23 @@ const twigCurve = new CatmullRomCurve3(
     [0.1, 0.7, 0.05],
   ].map(([x, y, z]) => new Vector3(x, y, z)),
 );
-const LEAVES: { t: number; curve: 'branch' | 'twig'; turn: number }[] = [
-  { t: 0.42, curve: 'branch', turn: 0.9 },
-  { t: 0.55, curve: 'branch', turn: -0.8 },
-  { t: 0.68, curve: 'branch', turn: 1.1 },
-  { t: 0.82, curve: 'branch', turn: -1 },
-  { t: 0.95, curve: 'branch', turn: 0.6 },
-  { t: 0.7, curve: 'twig', turn: -0.9 },
-  { t: 0.95, curve: 'twig', turn: 0.8 },
-];
-
 /** Chabana: a glazed vase on a thin board holding a single camellia branch. */
 export function Chabana({ position }: { position: Point }) {
-  const leaves = useRef<InstancedMesh>(null);
-  useLayoutEffect(() => {
-    const mesh = leaves.current!,
-      matrix = new Matrix4(),
-      rotation = new Quaternion(),
-      scale = new Vector3(0.028, 0.006, 0.06);
-    LEAVES.forEach(({ t, curve, turn }, i) => {
-      const path = curve === 'branch' ? branchCurve : twigCurve;
-      const at = path.getPointAt(t),
-        tangent = path.getTangentAt(t);
-      const yaw = Math.atan2(tangent.x, tangent.z) + turn;
-      rotation.setFromEuler(new Euler(0.5 * Math.sign(turn), yaw, 0.3));
-      const offset = new Vector3(0, 0, 0.05).applyQuaternion(rotation);
-      mesh.setMatrixAt(
-        i,
-        matrix.compose(at.clone().add(offset), rotation, scale),
-      );
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingSphere();
-  }, []);
+  const leaves = useBuilt(() =>
+    merge([
+      stemLeaves(branchCurve, [
+        { t: 0.42, turn: 0.9 },
+        { t: 0.55, turn: -0.8 },
+        { t: 0.68, turn: 1.1 },
+        { t: 0.82, turn: -1 },
+        { t: 0.93, turn: 0.6 },
+      ]),
+      stemLeaves(twigCurve, [
+        { t: 0.7, turn: -0.9 },
+        { t: 0.92, turn: 0.8 },
+      ]),
+    ]),
+  );
   const bloom = branchCurve.getPointAt(1);
   const bud = twigCurve.getPointAt(1);
   return (
@@ -498,18 +470,14 @@ export function Chabana({ position }: { position: Point }) {
           <tubeGeometry args={[twigCurve, 16, 0.0035, 5, false]} />
           <meshStandardMaterial color="#3b2a1c" roughness={0.85} />
         </mesh>
-        <instancedMesh
-          ref={leaves}
-          args={[undefined, undefined, LEAVES.length]}
-          castShadow
-        >
-          <sphereGeometry args={[1, 12, 8]} />
+        <mesh geometry={leaves} castShadow>
           <meshPhysicalMaterial
-            color="#1f3322"
+            vertexColors
             roughness={0.35}
             clearcoat={0.6}
+            side={DoubleSide}
           />
-        </instancedMesh>
+        </mesh>
         <group position={bloom}>
           {Array.from({ length: 5 }, (_, i) => (
             <mesh
@@ -636,11 +604,12 @@ function Tokonoma() {
         surface="plaster"
         cast={false}
       />
+      {/* Jambs stop at the posts' backs, so no plaster face is coplanar with a post face. */}
       {[toko.x0 - 0.05, toko.x1 + 0.05].map((x) => (
         <Solid
           key={x}
-          position={[x, toko.top / 2, midZ]}
-          size={[0.1, toko.top, depth + 0.02]}
+          position={[x, toko.top / 2, (toko.back - 0.01 + face - 0.1) / 2]}
+          size={[0.1, toko.top, face - 0.1 - (toko.back - 0.01)]}
           color={plaster}
           surface="plaster"
           cast={false}
@@ -667,13 +636,14 @@ function Tokonoma() {
         <SurfaceMaterial color="#7a5638" clearcoat={0.35} />
       </mesh>
       <Solid
-        position={[toko.x1 + 0.06, toko.top / 2, face - 0.04]}
-        size={[0.12, toko.top, 0.12]}
+        position={[toko.x1 + 0.0575, toko.top / 2, face - 0.04]}
+        size={[0.125, toko.top, 0.12]}
         color={timber}
         cast={false}
       />
+      {/* Hidden low behind the lintel: a wash on the scroll, not a hot spot on the ceiling. */}
       <pointLight
-        position={[midX, toko.top - 0.12, midZ + 0.05]}
+        position={[midX, toko.top - 0.34, face - 0.2]}
         color="#ffc488"
         intensity={4.2}
         distance={2.8}
@@ -685,6 +655,7 @@ function Tokonoma() {
   );
 }
 
+// The room is at z > face: the transom stands proud of the plaster, never inside or flush with it.
 const RANMA = { y0: 3.075, y1: 3.262 };
 const ranmaSpans = [
   [veranda.x0 + 0.02, -1.9],
@@ -694,12 +665,12 @@ const ranmaBars: [Point, Point][] = ranmaSpans.flatMap(([x0, x1]) => [
   ...Array.from(
     { length: Math.floor((x1 - x0) / 0.055) },
     (_, i): [Point, Point] => [
-      [x0 + 0.03 + i * 0.055, (RANMA.y0 + RANMA.y1) / 2, face - 0.03],
+      [x0 + 0.03 + i * 0.055, (RANMA.y0 + RANMA.y1) / 2, face + 0.013],
       [0.008, RANMA.y1 - RANMA.y0, 0.014],
     ],
   ),
   ...[0.33, 0.67].map((f): [Point, Point] => [
-    [(x0 + x1) / 2, RANMA.y0 + (RANMA.y1 - RANMA.y0) * f, face - 0.028],
+    [(x0 + x1) / 2, RANMA.y0 + (RANMA.y1 - RANMA.y0) * f, face + 0.014],
     [x1 - x0, 0.007, 0.012],
   ]),
 ]);
@@ -711,7 +682,7 @@ function Ranma() {
       {ranmaSpans.map(([x0, x1]) => (
         <group key={x0}>
           <Solid
-            position={[(x0 + x1) / 2, (RANMA.y0 + RANMA.y1) / 2, face - 0.012]}
+            position={[(x0 + x1) / 2, (RANMA.y0 + RANMA.y1) / 2, face + 0.004]}
             size={[x1 - x0, RANMA.y1 - RANMA.y0, 0.01]}
             color="#e8c896"
             surface="shoji"
@@ -720,7 +691,7 @@ function Ranma() {
           {[RANMA.y0, RANMA.y1].map((y) => (
             <Solid
               key={y}
-              position={[(x0 + x1) / 2, y, face - 0.035]}
+              position={[(x0 + x1) / 2, y, face + 0.02]}
               size={[x1 - x0 + 0.02, 0.022, 0.03]}
               color={timber}
               cast={false}
@@ -768,7 +739,8 @@ export function BackWall() {
             [4.915, 0.14, 0.22],
             timber,
           ],
-          [[0, 3.3, face - 0.035], [8.01, 0.07, 0.07], timber],
+          // Butts the side walls' 3.3 m rails instead of overlapping them.
+          [[0, 3.3, face + 0.03], [7.87, 0.07, 0.07], timber],
           [[-1.775, 1.86, face - 0.02], [0.25, 3.72, 0.22], timber],
           [[0.785, 1.86, face - 0.02], [0.25, 3.72, 0.22], timber],
           [

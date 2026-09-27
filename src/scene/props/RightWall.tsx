@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
-import { CatmullRomCurve3, Vector2, Vector3 } from 'three';
+import { CatmullRomCurve3, DoubleSide, Vector2, Vector3 } from 'three';
 import { Solid } from '../Surfaces';
 import type { Point } from '../stations';
-import { Timber, type TimberBox } from './craft';
+import { Timber, type TimberBox, useBuilt } from './craft';
+import { stemLeaves } from './Plants';
 import { ShojiWindow } from './Shoji';
 import { WallTrim } from './WallDetail';
 
@@ -26,36 +26,26 @@ const TUBE = [
   [0, 0.02],
 ].map(([r, y]) => new Vector2(r, y));
 
-const LEAVES: [Point, Point][] = [
-  [
-    [-0.05, 0.3, 0.02],
-    [0.3, 0.2, 0.9],
-  ],
-  [
-    [-0.07, 0.36, -0.03],
-    [-0.4, 0.5, -0.7],
-  ],
-  [
-    [-0.1, 0.4, 0.03],
-    [0.5, -0.3, 1.1],
-  ],
-  [
-    [-0.03, 0.27, -0.02],
-    [-0.2, 0.1, -1.2],
-  ],
-];
+const STEM = new CatmullRomCurve3([
+  new Vector3(0, 0.15, 0),
+  new Vector3(-0.03, 0.3, 0.01),
+  new Vector3(-0.1, 0.4, 0.02),
+  new Vector3(-0.14, 0.43, 0.03),
+]);
 
 /** A hanging bamboo vase (kakehanaire) with a single camellia, hung on the window jamb. */
 function Kakehanaire({ position }: { position: Point }) {
-  const stem = useMemo(
-    () =>
-      new CatmullRomCurve3([
-        new Vector3(0, 0.15, 0),
-        new Vector3(-0.03, 0.3, 0.01),
-        new Vector3(-0.1, 0.4, 0.02),
-        new Vector3(-0.14, 0.43, 0.03),
-      ]),
-    [],
+  const leaves = useBuilt(() =>
+    stemLeaves(
+      STEM,
+      [
+        { t: 0.42, turn: 1.2, rise: 0.1 },
+        { t: 0.56, turn: -1.1 },
+        { t: 0.7, turn: 1.3, rise: 0.4 },
+        { t: 0.84, turn: -1.2, rise: 0.2 },
+      ],
+      { length: 0.07, width: 0.03, color: '#1f3a1c' },
+    ),
   );
   const bloom: Point = [-0.145, 0.435, 0.03];
   return (
@@ -83,25 +73,17 @@ function Kakehanaire({ position }: { position: Point }) {
         <meshStandardMaterial color="#2a2622" metalness={0.7} roughness={0.5} />
       </mesh>
       <mesh castShadow>
-        <tubeGeometry args={[stem, 16, 0.0035, 5, false]} />
+        <tubeGeometry args={[STEM, 16, 0.0035, 5, false]} />
         <meshStandardMaterial color="#3a2e1c" roughness={0.8} />
       </mesh>
-      {LEAVES.map(([at, turn], i) => (
-        <mesh
-          key={i}
-          position={at}
-          rotation={turn}
-          scale={[0.05, 0.006, 0.024]}
-          castShadow
-        >
-          <sphereGeometry args={[1, 10, 6]} />
-          <meshPhysicalMaterial
-            color="#1f3a1c"
-            roughness={0.35}
-            clearcoat={0.6}
-          />
-        </mesh>
-      ))}
+      <mesh geometry={leaves} castShadow>
+        <meshPhysicalMaterial
+          vertexColors
+          roughness={0.35}
+          clearcoat={0.6}
+          side={DoubleSide}
+        />
+      </mesh>
       <group position={bloom} rotation={[0.3, 0, 0.9]}>
         {Array.from({ length: 6 }, (_, i) => {
           const a = (i / 6) * Math.PI * 2;

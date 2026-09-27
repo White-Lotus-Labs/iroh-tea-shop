@@ -4,10 +4,12 @@ import {
   BufferGeometry,
   CanvasTexture,
   Color,
+  CylinderGeometry,
   Euler,
   Matrix4,
   Quaternion,
   SRGBColorSpace,
+  TorusGeometry,
   TubeGeometry,
   Vector3,
   type Curve,
@@ -266,6 +268,70 @@ export function paper(
       0.6 + random(),
     );
   }
+}
+
+const Y = new Vector3(0, 1, 0);
+/** A straight cord between two points, so it always meets what it hangs from. */
+export function cord(from: Point, to: Point, radius = 0.0018) {
+  const a = new Vector3(...from),
+    d = new Vector3(...to).sub(a),
+    geometry = new CylinderGeometry(radius, radius, d.length(), 5);
+  geometry.applyQuaternion(
+    quaternion.setFromUnitVectors(Y, d.clone().normalize()),
+  );
+  return geometry.translate(a.x + d.x / 2, a.y + d.y / 2, a.z + d.z / 2);
+}
+
+/**
+ * Cords from each of `ends` up to one brass screw eye; `hook` is the bottom of its ring
+ * and `into` points from the ring into the timber or wall that holds it.
+ */
+export function Hanger({
+  hook,
+  ends,
+  into = [0, 1, 0],
+  color = '#6b5a3a',
+}: {
+  hook: Point;
+  ends: Point[];
+  into?: Point;
+  color?: string;
+}) {
+  const built = useBuilt(() => {
+    const [x, y, z] = hook,
+      top: Point = [x, y + 0.01, z],
+      cords = merge(ends.map((end) => cord(end, hook))),
+      eye = merge([
+        place(new TorusGeometry(0.005, 0.0013, 6, 16), [x, y + 0.005, z]),
+        cord(
+          top,
+          [x + into[0] * 0.02, top[1] + into[1] * 0.02, z + into[2] * 0.02],
+          0.0015,
+        ),
+      ]);
+    return {
+      cords,
+      eye,
+      dispose() {
+        cords.dispose();
+        eye.dispose();
+      },
+    };
+  });
+  return (
+    <group>
+      <mesh geometry={built.cords}>
+        <meshStandardMaterial color={color} roughness={0.9} />
+      </mesh>
+      <mesh geometry={built.eye}>
+        <meshStandardMaterial
+          color="#8a6a34"
+          metalness={0.85}
+          roughness={0.4}
+        />
+      </mesh>
+    </group>
+  );
 }
 
 export type TimberBox = [position: Point, size: Point, color?: string];
