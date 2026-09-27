@@ -34,6 +34,7 @@ import {
   xIntentUrl,
   type DeckState,
 } from './deckModel';
+import { useMotionBudget } from './motionBudget';
 import { ThesisLeaf } from './ThesisLeaf';
 import './styles/deck.css';
 
@@ -64,11 +65,11 @@ const OWN_THESIS_DRAFT =
 let deepLinkConsumed = false;
 
 function withViewTransition(
-  reduced: boolean,
+  instant: boolean,
   update: () => void,
   done?: () => void,
 ) {
-  if (reduced || typeof document.startViewTransition !== 'function') {
+  if (instant || typeof document.startViewTransition !== 'function') {
     update();
     done?.();
     return;
@@ -102,6 +103,8 @@ export function ThesisDeck({
   onCloseThesis,
   onTalkToUncle,
 }: ThesisDeckProps) {
+  const budget = useMotionBudget();
+  const instantMotion = reduced || budget === 'light';
   const [deck, setDeck] = useState<DeckState>({ status: 'loading' });
   const [readingId, setReadingId] = useState<ThesisId | null>(selectedThesis);
   const [followed, setFollowed] = useState<ThesisId[]>([]);
@@ -185,21 +188,21 @@ export function ThesisDeck({
     (id: ThesisId, moveFocus: boolean) => {
       if (readingRef.current === id) return;
       focusTitle.current = moveFocus;
-      withViewTransition(reduced, () => setReadingId(id));
+      withViewTransition(instantMotion, () => setReadingId(id));
     },
-    [reduced],
+    [instantMotion],
   );
 
   const close = useCallback(() => {
     const id = readingRef.current;
     if (!id) return;
     reported.current = null;
-    withViewTransition(reduced, () => {
+    withViewTransition(instantMotion, () => {
       setReadingId(null);
       books.current[id]?.focus({ preventScroll: true });
     });
     onCloseThesis();
-  }, [onCloseThesis, reduced]);
+  }, [onCloseThesis, instantMotion]);
 
   useEffect(() => {
     if (selectedThesis === lastPick.current) return;
@@ -244,6 +247,7 @@ export function ThesisDeck({
       className="thesis-deck"
       data-layout={reading ? 'reading' : 'deck'}
       data-reduced={reduced ? 'true' : 'false'}
+      data-budget={budget}
     >
       <header className="deck-head">
         <h1 className="deck-title">
@@ -284,6 +288,7 @@ export function ThesisDeck({
                 summary={summaryFor(deck, thesis.id)}
                 followed={followed.includes(thesis.id)}
                 reduced={reduced}
+                light={budget === 'light'}
                 current={readingId === thesis.id}
                 buttonRef={(node) => {
                   books.current[thesis.id] = node;
@@ -353,6 +358,7 @@ function ThesisBook({
   summary,
   followed,
   reduced,
+  light,
   current,
   buttonRef,
   onOpen,
@@ -362,25 +368,32 @@ function ThesisBook({
   summary: ThesisSummary | null;
   followed: boolean;
   reduced: boolean;
+  light: boolean;
   current: boolean;
   buttonRef: (node: HTMLButtonElement | null) => void;
   onOpen: () => void;
 }) {
   const frame = useRef(0);
+  const box = useRef<DOMRect | null>(null);
+  const onPointerEnter = (event: PointerEvent<HTMLButtonElement>) => {
+    if (reduced || light || event.pointerType === 'touch') return;
+    box.current = event.currentTarget.getBoundingClientRect();
+  };
   const onPointerMove = (event: PointerEvent<HTMLButtonElement>) => {
-    if (reduced || event.pointerType === 'touch') return;
+    if (reduced || light || event.pointerType === 'touch') return;
     const el = event.currentTarget;
     const { clientX, clientY } = event;
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
-      const box = el.getBoundingClientRect();
+      const cached = box.current;
+      if (!cached?.width || !cached.height) return;
       const px = Math.min(
         0.5,
-        Math.max(-0.5, (clientX - box.left) / box.width - 0.5),
+        Math.max(-0.5, (clientX - cached.left) / cached.width - 0.5),
       );
       const py = Math.min(
         0.5,
-        Math.max(-0.5, (clientY - box.top) / box.height - 0.5),
+        Math.max(-0.5, (clientY - cached.top) / cached.height - 0.5),
       );
       el.style.setProperty('--px', px.toFixed(3));
       el.style.setProperty('--py', py.toFixed(3));
@@ -410,6 +423,7 @@ function ThesisBook({
       style={style}
       aria-label={`Open ${thesis.title}. Scroll ${thesis.numeral}: ${thesis.subtitle}. ${sealWords(thesis, deck, summary)}${followed ? ' Following.' : ''}`}
       onClick={onOpen}
+      onPointerEnter={onPointerEnter}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
     >
@@ -418,7 +432,8 @@ function ThesisBook({
         aria-hidden="true"
         // The name pairs this book with its tab across the layout switch.
         style={{
-          viewTransitionName: reduced ? undefined : `thesis-book-${thesis.id}`,
+          viewTransitionName:
+            reduced || light ? undefined : `thesis-book-${thesis.id}`,
         }}
       >
         <span className="book-contact" />
