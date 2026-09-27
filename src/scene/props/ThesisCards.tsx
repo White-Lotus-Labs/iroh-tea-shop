@@ -139,6 +139,8 @@ function ThesisCard({
       new MeshBasicMaterial({
         map: shared.blobMap,
         transparent: true,
+        // The rest value: Staged snapshots it before the first frame and restores it.
+        opacity: 0.55,
         depthWrite: false,
         polygonOffset: true,
         polygonOffsetFactor: -2,
