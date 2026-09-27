@@ -43,6 +43,8 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   await mockNansen(page);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // A saved chat makes the Host restore it; the hand-off prefill must survive.
+  await page.request.post('/api/iroh/chats');
   await openCounter(page);
 
   const books = page.locator('.deck-book');
@@ -93,6 +95,8 @@ test('Counter deck opens a thesis in the panel, expands a leaf, and hands off to
   const composer = page.getByRole('textbox', {
     name: 'Ask an onchain research question',
   });
+  // Enabled means the saved-chat restore ran, so the prefill survived it.
+  await expect(composer).toBeEnabled();
   await expect(composer).toHaveValue(
     'Uncle, conviction on “AI Taking Over the World” is weak. What could disprove it?',
   );

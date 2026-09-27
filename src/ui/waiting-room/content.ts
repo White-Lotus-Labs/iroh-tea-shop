@@ -54,7 +54,7 @@ export const PROJECT = {
     {
       label: 'Counter',
       caption: 'Thesis Desk',
-      text: 'Choose one of three theses. Read its live conviction signal, then open the four assets behind it.',
+      text: 'Choose one of three theses. Read its conviction signal, then open the four assets behind it.',
     },
     {
       label: 'Host',

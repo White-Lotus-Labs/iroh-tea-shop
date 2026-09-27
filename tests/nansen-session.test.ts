@@ -251,6 +251,48 @@ describe('Iroh client session', () => {
     expect(session.getSnapshot().messages.at(-1)?.status).toBe('error');
   });
 
+  it('retries the failed question without a second copy of it', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({ error: 'Bad gateway.' }, { status: 502 }),
+      )
+      .mockResolvedValueOnce(
+        sse([
+          'data: {"type":"delta","text":"Answer"}\n\ndata: {"type":"finish","conversation_id":"c1"}\n\ndata: [DONE]\n\n',
+        ]),
+      );
+    const session = new IrohSession(fetcher);
+    await session.send('question');
+    await session.retry();
+    const { messages, error } = session.getSnapshot();
+    expect(messages.map((m) => [m.role, m.content, m.status])).toEqual([
+      ['user', 'question', 'complete'],
+      ['assistant', 'Answer', 'complete'],
+    ]);
+    expect(error).toBe(null);
+  });
+
+  it('keeps partial answer text when a retry resends the question', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(sse(['data: {"type":"delta","text":"Kept"}\n\n']))
+      .mockResolvedValueOnce(
+        Response.json({ error: 'Daily cap.' }, { status: 429 }),
+      );
+    const session = new IrohSession(fetcher);
+    await session.send('question');
+    await session.retry();
+    const { messages, error } = session.getSnapshot();
+    expect(messages.map((m) => [m.role, m.content])).toEqual([
+      ['user', 'question'],
+      ['assistant', 'Kept'],
+      ['user', 'question'],
+      ['assistant', ''],
+    ]);
+    expect(error).toBe('Daily cap.');
+  });
+
   it('shows a safe error for a browser network failure', async () => {
     const session = new IrohSession(async () => {
       throw new Error('internal stack and secret details');

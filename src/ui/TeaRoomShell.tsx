@@ -226,6 +226,7 @@ export default function TeaRoomShell({
       setShelfFocused(false);
       setStation(next);
       setPanelOpen(false);
+      setUncleDraft(null);
     },
     [station],
   );
@@ -264,7 +265,11 @@ export default function TeaRoomShell({
       const active = document.activeElement;
       const refocus =
         !active || active === document.body || Boolean(paper?.contains(active));
-      flushSync(() => setPanelOpen(false));
+      // The Uncle prefill is a one-shot hand-off; do not replay it on reopen.
+      flushSync(() => {
+        setPanelOpen(false);
+        setUncleDraft(null);
+      });
       if (refocus) openHint.current?.focus();
     };
     if (reduced || !paper || paper.classList.contains('is-rolling-up'))
