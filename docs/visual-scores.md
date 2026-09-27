@@ -230,9 +230,17 @@ A per-frame WebGL draw-call counter showed about 2,600 calls on the wide views. 
 
 Changes: paper labels with real tea names on the six paulownia boxes on the counter shelves, as one merged mesh with one atlas. A new `counter-shelves` review shot frames the shelves from behind the counter. A full-motion wide shot confirms the incense wisp above the flower stand.
 
+## Round 15: hengaku
+
+Changes: a framed calligraphy board (hengaku) reading 茶禅一味 ("tea and Zen are one taste"), right to left, hangs above the left-wall nageshi with its top tilted into the room. It fills the calmest band in the wide view and adds two meshes.
+
+Frame rate: the capture after round 15 ran at a load average of 72 to 97. `host-face` fell from 82.8 fps to 52.3 fps, and round 15 did not change that view, so the whole run was CPU and GPU starved. Mean 53.5 fps; `shelf` 39.3 fps and `counter` 43.1 fps fell below the floor in that run. The round 14 capture below is the representative number for the final build.
+
+One `npm test` run during this load spike showed 6 failures. Three reruns on the same commit passed 93 of 93, so the failures were timeouts, not regressions.
+
 ## Final summary
 
-Final shots: `_scratch/shots/final` (12 shots, headless Metal, 1600×900 at 2x), captured after round 14. Build: `npm run typecheck`, `npm test` (93 tests) and `npm run build` pass. There are no console errors on any station.
+Final shots: `_scratch/shots/final` (12 shots, headless Metal, 1600×900 at 2x), captured after round 15. The frame-rate numbers below come from the paired run and the round 14 recapture, which ran at lower load. Build: `npm run typecheck`, `npm test` (93 tests) and `npm run build` pass. There are no console errors on any station.
 
 ### Final scores
 
