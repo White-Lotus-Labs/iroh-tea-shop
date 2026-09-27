@@ -556,6 +556,14 @@ const DOCK: DockEntry[] = [
   },
 ];
 
+export function DockPaints() {
+  return PAINTS;
+}
+
+export function stationGlyph(label: string) {
+  return DOCK.find((entry) => entry.label === label)?.glyph ?? null;
+}
+
 export function StationDock({
   station,
   reduced,

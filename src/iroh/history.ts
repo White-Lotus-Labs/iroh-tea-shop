@@ -99,3 +99,44 @@ export async function prepareResearchRequest(
   await appendUserMessage(db, userId, chatId, question);
   return { text, conversationId: chat.nansenConversationId };
 }
+
+/** Called only after Iroh admission, with the per-chat turn guard held. */
+export async function prepareAdmittedResearchRequest(
+  db: PrismaClient,
+  userId: string,
+  chatId: string,
+  question: string,
+  signal: AbortSignal,
+) {
+  const chat = await getChat(db, userId, chatId);
+  if (!chat) throw new ChatNotFoundError();
+  const text = chat.nansenConversationId
+    ? question
+    : contextualQuestion(question, chat.messages);
+  if (signal.aborted) throw new DOMException('Cancelled', 'AbortError');
+  const message = await appendUserMessage(db, userId, chatId, question);
+  return {
+    text,
+    conversationId: chat.nansenConversationId,
+    userMessageId: message.id,
+    previousTitle: chat.title,
+  };
+}
+
+/** Undo the narrow cancellation window between the user write and fetch start. */
+export async function rollbackUnstartedResearchRequest(
+  db: PrismaClient,
+  userId: string,
+  chatId: string,
+  userMessageId: number,
+  previousTitle: string,
+) {
+  await ownedChat(db, userId, chatId);
+  await db.$transaction([
+    db.message.delete({ where: { id: userMessageId, chatId } }),
+    db.chat.update({
+      where: { id: chatId, userId },
+      data: { title: previousTitle },
+    }),
+  ]);
+}

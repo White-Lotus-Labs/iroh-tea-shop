@@ -76,6 +76,13 @@ export function declarations(
   return body;
 }
 
+/** Ids named by `url(#id)` paints, such as a gradient kept in another svg. */
+export function paintRefs(markup: string): string[] {
+  return [
+    ...new Set([...markup.matchAll(/url\(#([^)'"\s]+)\)/g)].map((m) => m[1])),
+  ];
+}
+
 /** True when a `unicode-range` descriptor covers any of `codes`. */
 export function coversAny(range: string, codes: Iterable<number>): boolean {
   if (!range.trim()) return true;
@@ -276,6 +283,14 @@ export async function bakePageShot(
   const css = document.createElementNS(XHTML, 'style');
   css.textContent = fonts + pageCss(el);
   wrap.append(css, clone);
+  // The SVG image cannot see the page, so bring outside paints along.
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  defs.setAttribute('style', 'position:absolute;width:0;height:0');
+  for (const id of paintRefs(clone.innerHTML)) {
+    const paint = document.getElementById(id);
+    if (paint && !el.contains(paint)) defs.append(paint.cloneNode(true));
+  }
+  if (defs.childElementCount) wrap.append(defs);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width * dpr}" height="${height * dpr}" viewBox="0 0 ${width} ${height}">` +
     `<foreignObject width="${width}" height="${height}">${new XMLSerializer().serializeToString(wrap)}</foreignObject></svg>`;

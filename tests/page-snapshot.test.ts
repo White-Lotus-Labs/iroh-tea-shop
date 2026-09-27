@@ -4,6 +4,7 @@ import {
   declarations,
   matchableSelector,
   pageShotKey,
+  paintRefs,
 } from '../src/ui/waiting-room/pageSnapshot';
 
 /** A CSSOM rule whose `background` shorthand holds `var()`. */
@@ -60,5 +61,15 @@ describe('pageSnapshot', () => {
     expect(coversAny(latin, [0x0416])).toBe(false);
     expect(coversAny('U+04??', [0x0416])).toBe(true);
     expect(coversAny('', [0x0416])).toBe(true);
+  });
+
+  it('finds each outside paint an svg needs, once', () => {
+    expect(
+      paintRefs(
+        '<rect fill="url(#dock-gold)"/><path stroke="url(#dock-bronze)"/>' +
+          '<circle fill="url(#dock-gold)"/>',
+      ),
+    ).toEqual(['dock-gold', 'dock-bronze']);
+    expect(paintRefs('<path fill="#3a2a1d"/>')).toEqual([]);
   });
 });

@@ -1,4 +1,6 @@
-import { nansenPost, NansenError } from '../nansen/client';
+import { NansenError } from '../nansen/client';
+import { managedNansenPost } from '../nansen/managed-client';
+import { NansenManagerError } from '../nansen/request-manager';
 import {
   normalizeLeaderboard,
   type SmartWalletLeaderboardEntry,
@@ -24,9 +26,16 @@ export async function fetchNansenLeaderboard(
     order_by: [{ field: 'total_pnl', direction: 'DESC' }],
   };
   try {
-    const payload = await nansenPost('perp-leaderboard', body, key, fetcher);
+    const payload = await managedNansenPost(
+      'perp-leaderboard',
+      body,
+      key,
+      fetcher,
+    );
     return normalizeLeaderboard(payload);
   } catch (error) {
+    if (error instanceof NansenManagerError)
+      throw new LeaderboardError(error.message, error.status);
     if (error instanceof NansenError) {
       throw new LeaderboardError(
         error.status === 502
