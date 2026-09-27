@@ -261,7 +261,7 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   await expect(
     page.getByText('Fund and Smart Trader wallets · last 30 days').first(),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'Mem Traders' }).click();
+  await page.getByRole('tab', { name: 'Meme Traders' }).click();
   await expect(
     page.getByText('Token Millionaire wallets · last 30 days').first(),
   ).toBeVisible();

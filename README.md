@@ -58,7 +58,7 @@ A full background save makes **94 Nansen requests**:
 | ------------------ | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                           |
 | Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book (2 requests). |
-| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Mem Traders) and five sorts. Account holdings reuses the account-value row.                                                           |
+| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Meme Traders) and five sorts. Account holdings reuses the account-value row.                                                          |
 
 12 + 67 + 15 = 94. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
 
