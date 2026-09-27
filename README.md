@@ -58,7 +58,7 @@ A full background save makes **94 Nansen requests**:
 | ------------------ | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                           |
 | Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book (2 requests). |
-| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Meme Traders) and five sorts. Account holdings reuses the account-value row.                                                          |
+| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Whales) and five sorts. Account holdings reuses the account-value row.                                                                |
 
 12 + 67 + 15 = 94. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
 
@@ -73,7 +73,7 @@ Conviction, in plain words: a thesis looks at its four assets. An asset "counts"
 1. **Waiting room.** A sketchbook. Enter the tea room when you want the stations.
 2. **Counter.** Three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. Each book has a conviction seal from the saved readings. Open a book, then open an asset, to see buyers and sellers, holders, supply that is not circulating yet, and perp positioning. You can ask Uncle about it, share it on X, or follow it in this browser.
 3. **Host.** Talk to Uncle. Guests keep the conversation until they leave the page. Signed-in people get a list of old chats.
-4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. A rank opens that wallet in Nansen's profiler.
+4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. Rank 1 is open by default. Click another rank to open it in place with realized and unrealized PnL, 30-day volume, trade count, and its largest open positions. Each rank links to that wallet in Nansen's profiler.
 5. **Observatorium.** Wind the orrery. No market data.
 
 Sign-in is optional. It is a nickname and a password, stored in the same SQLite file as chats and saved readings. Guests can use the room without an account.
