@@ -156,6 +156,9 @@ export default function TeaRoomShell({
   }, [revealed]);
   const panel = useRef<HTMLElement>(null);
   const openHint = useRef<HTMLButtonElement>(null);
+  // Escape stashes a half-typed Uncle question; close applies it once.
+  const draftOnClose = useRef<{ text: string; key: number } | null>(null);
+  const closeApplied = useRef(false);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
   const focusHintOnArrive = useRef(false);
@@ -270,14 +273,19 @@ export default function TeaRoomShell({
   const closePanel = useCallback(() => {
     const paper = panel.current;
     const finish = () => {
+      // The roll-up timer and a second close must not drop a stashed question.
+      if (closeApplied.current) return;
+      closeApplied.current = true;
       // Keep focus where the user moved it (e.g. a dock click mid roll-up).
       const active = document.activeElement;
       const refocus =
         !active || active === document.body || Boolean(paper?.contains(active));
-      // The Uncle prefill is a one-shot hand-off; do not replay it on reopen.
+      const kept = draftOnClose.current;
+      draftOnClose.current = null;
+      // × drops the one-shot prefill. Escape leaves a stashed question in `kept`.
       flushSync(() => {
         setPanelOpen(false);
-        setUncleDraft(null);
+        setUncleDraft(kept);
       });
       if (refocus) openHint.current?.focus();
     };
@@ -314,13 +322,18 @@ export default function TeaRoomShell({
   }, [sceneSettled, sceneReady]);
   const loaderProgress = sceneAvailable ? 15 + assetProgress * 0.85 : 6;
   useEffect(() => {
+    if (panelOpen) closeApplied.current = false;
+  }, [panelOpen]);
+  useEffect(() => {
     if (!panelOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      // Keep a half-typed question to Uncle, wherever focus is.
       const box =
         panel.current?.querySelector<HTMLTextAreaElement>('#iroh-question');
-      if (box?.value) return;
+      // Close even when the question field is focused. Keep whatever was typed.
+      draftOnClose.current = box?.value
+        ? { text: box.value, key: Date.now() }
+        : null;
       event.preventDefault();
       closePanel();
     };

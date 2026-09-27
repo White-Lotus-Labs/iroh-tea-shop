@@ -186,23 +186,28 @@ test('mobile layout remains readable and the WebGL fallback preserves the journe
   await expect(page.getByTestId('leaderboard-parchment')).toHaveCount(0);
   await expect(approach).toBeFocused();
 
-  // Escape keeps a half-typed question to Uncle; an empty composer closes.
+  // Escape with the Uncle field focused closes Host and keeps the draft.
   await page
     .getByRole('navigation', { name: 'Tea room stations' })
     .getByRole('button', { name: /Host/ })
     .click();
-  await page.getByRole('button', { name: 'Ask Uncle', exact: true }).click();
+  const askUncle = page.getByRole('button', { name: 'Ask Uncle', exact: true });
+  await askUncle.click();
   const box = page.getByRole('textbox', {
     name: 'Ask an onchain research question',
   });
   await box.fill('Is SOL');
+  await expect(box).toBeFocused();
   await box.press('Escape');
+  await expect(box).toHaveCount(0);
+  await askUncle.click();
   await expect(box).toHaveValue('Is SOL');
-  // Focus off the composer still keeps the draft.
-  await box.blur();
-  await page.keyboard.press('Escape');
-  await expect(box).toHaveValue('Is SOL');
+  // × still closes. An empty focused composer closes too.
+  await page.getByRole('button', { name: 'Close Host menu' }).click();
+  await expect(box).toHaveCount(0);
+  await askUncle.click();
   await box.fill('');
+  await expect(box).toBeFocused();
   await box.press('Escape');
   await expect(box).toHaveCount(0);
 });
