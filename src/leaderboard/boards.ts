@@ -19,7 +19,7 @@ export type StoredLeaderboardMetric = Exclude<LeaderboardMetric, 'holdings'>;
 export const BOARD_LABELS: Record<LeaderboardBoard, string> = {
   perps: 'Perps Traders',
   'smart-money': 'Smart Wallets',
-  meme: 'Mem Traders',
+  meme: 'Meme Traders',
 };
 
 export const BOARD_BLURB: Record<LeaderboardBoard, string> = {

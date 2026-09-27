@@ -38,7 +38,7 @@ npm run dev
 
 Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101`.
 
-`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL`. The default is `file:./dev.db`, which Prisma stores as `prisma/dev.db` (git ignores it). Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
+`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL` in `.env` (not `.env.local`, because the Prisma CLI reads only `.env`). Copy the line from `.env.example`: `file:./dev.db`, which Prisma stores as `prisma/dev.db` (git ignores it). Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
 
 Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env.local`. The default is 1.
 
@@ -58,7 +58,7 @@ A full background save makes **94 Nansen requests**:
 | ------------------ | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                           |
 | Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book (2 requests). |
-| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Mem Traders) and five sorts. Account holdings reuses the account-value row.                                                           |
+| Shelf              |       15 | Three boards (Perps Traders, Smart Wallets, Meme Traders) and five sorts. Account holdings reuses the account-value row.                                                          |
 
 12 + 67 + 15 = 94. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
 
