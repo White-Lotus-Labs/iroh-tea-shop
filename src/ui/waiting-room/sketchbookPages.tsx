@@ -164,10 +164,12 @@ export const SKETCH_PAGES: SketchPage[] = [
         <p className="sb-tagline">{PROJECT.tagline}</p>
         <span className="sb-rule" aria-hidden="true" />
         <p className="sb-body">{PROJECT.summary}</p>
-        <p className="sb-fine">{PROJECT.honesty}</p>
-        <span className="sb-seal" aria-hidden="true">
-          白蓮
-        </span>
+        <div className="sb-sign">
+          <p className="sb-fine">{PROJECT.honesty}</p>
+          <span className="sb-seal" aria-hidden="true">
+            白蓮
+          </span>
+        </div>
         <p className="sb-turn-hint" aria-hidden="true">
           turn the page →
         </p>

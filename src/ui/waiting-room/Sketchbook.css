@@ -57,7 +57,7 @@
   transform-style: preserve-3d;
 }
 .sb[data-mode='single'] .sb-3d {
-  width: min(92vw, 460px, calc((100svh - 250px) * 0.75));
+  width: min(92vw, 600px, calc((100svh - 250px) * 0.75));
 }
 .sb[data-mode='single'] .sb-book {
   --pw: var(--bw, 360px);
@@ -490,9 +490,6 @@
   font: italic max(11px, 2.7cqi) var(--wr-serif);
   color: var(--sb-earth);
 }
-.sb-title .sb-seal {
-  bottom: 14cqi;
-}
 .sb-room-art {
   width: calc(100% + 12cqi);
   margin: -2cqi -6cqi 3cqi;
@@ -541,6 +538,27 @@
   line-height: 1.5;
   color: var(--sb-ink-soft);
   text-wrap: pretty;
+}
+/* Small spreads hit the px floors, so the busiest page tightens its rhythm
+   to keep the closing line clear of the folio. */
+@container (max-width: 400px) {
+  .sb-stations {
+    padding-top: 6.5cqi;
+  }
+  .sb-stations ol {
+    gap: 2.6cqi;
+  }
+  .sb-stations h3 {
+    margin-bottom: 0.5cqi;
+  }
+  .sb-stations p {
+    line-height: 1.38;
+  }
+  .sb-stations .sb-caption-hand {
+    padding-top: 2cqi;
+    font-size: max(11.5px, 3cqi);
+    line-height: 1.3;
+  }
 }
 .sb-figure {
   position: relative;
