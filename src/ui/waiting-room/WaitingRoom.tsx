@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PROJECT, REPO_URL } from './content';
 import { TeaPourButton } from './TeaPourButton';
+import { usePetalCanvas } from './usePetalCanvas';
 import './WaitingRoom.css';
 
 const PetalCanvas = dynamic(
@@ -37,6 +38,7 @@ export function WaitingRoom({
   children?: ReactNode;
 }) {
   const [mounted, setMounted] = useState(open);
+  const petals = usePetalCanvas();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (open) {
@@ -73,14 +75,23 @@ export function WaitingRoom({
       aria-hidden={!open || undefined}
     >
       <div className="waiting-backdrop" aria-hidden="true">
-        <img src="/images/waiting-room/exterior.jpg" alt="" />
+        <img
+          src="/images/waiting-room/exterior.webp"
+          srcSet="/images/waiting-room/exterior-780w.webp 780w, /images/waiting-room/exterior.webp 1280w"
+          sizes="100vw"
+          alt=""
+          fetchPriority="high"
+          decoding="async"
+        />
       </div>
-      <PetalCanvas
-        className="waiting-petals"
-        count={110}
-        size={2.1}
-        reduced={reduced}
-      />
+      {petals && (
+        <PetalCanvas
+          className="waiting-petals"
+          count={48}
+          size={2.1}
+          reduced={reduced}
+        />
+      )}
       <header className="waiting-brand">
         <span className="waiting-brand-mark" aria-hidden="true">
           ◒

@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
 } from 'react';
+import dynamic from 'next/dynamic';
 import { Canvas, type RootState } from '@react-three/fiber';
 import { ContactShadows, useProgress } from '@react-three/drei';
 import { WebGLRenderTarget } from 'three';
@@ -26,11 +27,18 @@ import {
 import { STATIONS } from './stations';
 import { Surfaces } from './Surfaces';
 import { DevShotCamera } from './DevShotCamera';
-import { SceneEffects, SceneLighting, Staged } from './SceneEffects';
+import { SceneLighting, Staged } from './SceneEffects';
+import { lightExperience } from './lightExperience';
 import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
 import type { ThesisId } from '../thesis/types';
+
+// AO, bloom, and the room environment stay out of the entrance download.
+const ScenePolish = dynamic(
+  () => import('./ScenePolish').then((mod) => ({ default: mod.ScenePolish })),
+  { ssr: false, loading: () => null },
+);
 
 function RoomGeometry({
   mood,
@@ -44,6 +52,7 @@ function RoomGeometry({
   onMenuOpen,
   onThesisPick,
   onNavigate,
+  polish,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -56,6 +65,7 @@ function RoomGeometry({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
+  polish: boolean;
 }) {
   return (
     <>
@@ -69,7 +79,7 @@ function RoomGeometry({
         // About one texel of normal bias: more lifts contact shadows and props look afloat.
         shadow-bias={-0.0003}
         shadow-normalBias={0.011}
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={lightExperience() ? [1024, 1024] : [2048, 2048]}
         shadow-radius={3}
         shadow-camera-left={-10}
         shadow-camera-right={10}
@@ -116,6 +126,7 @@ function RoomGeometry({
           onSelect={onShelfSelect}
           revealed={shelfRevealed}
           reduced={reduced}
+          posters={station !== 'Entrance'}
         />
         <ThesisCards
           halos={station === 'Counter' && menuClosed}
@@ -130,7 +141,7 @@ function RoomGeometry({
           onMenuOpen={onMenuOpen}
           onShelfSelect={onShelfSelect}
         />
-        <SceneEffects reduced={reduced} />
+        {polish && <ScenePolish reduced={reduced} />}
       </Staged>
       <TeaChamber>
         <LanternLight mood={mood} reduced={reduced} />
@@ -192,6 +203,7 @@ export default function TeaRoom({
   onMenuOpen,
   onThesisPick,
   onNavigate,
+  polish,
 }: {
   station: Station;
   reduced: boolean;
@@ -212,6 +224,7 @@ export default function TeaRoom({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
+  polish: boolean;
 }) {
   const [lost, setLost] = useState(false);
   // Textures load through three's default manager, which useProgress observes.
@@ -219,8 +232,7 @@ export default function TeaRoom({
   useEffect(() => {
     onLoadProgress?.(active, progress);
   }, [active, progress, onLoadProgress]);
-  const initialMobile =
-    typeof window !== 'undefined' && window.innerWidth < 760;
+  const light = lightExperience();
   const counterPosition = STATIONS.find(
     (place) => place.id === 'Counter',
   )!.position;
@@ -239,9 +251,9 @@ export default function TeaRoom({
     >
       <Canvas
         shadows="percentage"
-        dpr={[1, 1.5]}
+        dpr={light ? [1, 1] : [1, 1.25]}
         camera={{
-          position: initialMobile ? [0.05, 1.66, 7.82] : counterPosition,
+          position: light ? [0.05, 1.66, 7.82] : counterPosition,
           fov: 58,
           near: 0.08,
           far: 45,
@@ -274,6 +286,7 @@ export default function TeaRoom({
             onMenuOpen={onMenuOpen}
             onThesisPick={onThesisPick}
             onNavigate={onNavigate}
+            polish={polish}
           />
         </Surfaces>
         <CameraRig

@@ -12,7 +12,13 @@ import {
 import dynamic from 'next/dynamic';
 import { LotusMark } from './LotusMark';
 import type { PetalArea } from './SakuraPetals';
-import { SKETCH_IMAGES, SKETCH_PAGES, SPREAD_TITLES } from './sketchbookPages';
+import {
+  SKETCH_IMAGES,
+  SKETCH_PAGES,
+  SPREAD_TITLES,
+  sketchPreloadUrl,
+} from './sketchbookPages';
+import { usePetalCanvas } from './usePetalCanvas';
 import './Sketchbook.css';
 
 // Page curl after the Meng To sketchbook: a leaf is a chain of nested strips
@@ -207,6 +213,7 @@ function Cover({
 
 export function Sketchbook({ reduced }: { reduced: boolean }) {
   const [mode, setMode] = useState<Mode>('spread');
+  const petals = usePetalCanvas();
   const [view, setView] = useState(0);
   const [turn, setTurn] = useState<Turn | null>(null);
   const [turned, setTurned] = useState(false);
@@ -509,10 +516,11 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     let cancel = false;
     const el = root.current;
     const end = () => el?.removeAttribute('data-riffle');
+    const shown = el?.innerHTML ?? '';
     const pictures = Promise.all(
-      SKETCH_IMAGES.map((src) => {
+      SKETCH_IMAGES.filter((src) => !shown.includes(src)).map((src) => {
         const img = new Image();
-        img.src = src;
+        img.src = sketchPreloadUrl(src);
         return img.decode().catch(() => {});
       }),
     );
@@ -770,14 +778,16 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
           );
         })}
       </nav>
-      <PetalCanvas
-        className="sb-front-petals"
-        count={9}
-        size={1.4}
-        seed={0x2c1f}
-        area={NEAR_PETALS}
-        reduced={reduced}
-      />
+      {petals && (
+        <PetalCanvas
+          className="sb-front-petals"
+          count={9}
+          size={1.4}
+          seed={0x2c1f}
+          area={NEAR_PETALS}
+          reduced={reduced}
+        />
+      )}
       <p className={`sb-hint${turned ? ' is-gone' : ''}`} aria-hidden="true">
         <span className="on-mouse">Drag a page to turn · or use ← →</span>
         <span className="on-touch">Swipe the page to turn</span>

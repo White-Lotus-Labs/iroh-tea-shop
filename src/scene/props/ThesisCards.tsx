@@ -16,6 +16,7 @@ import { THESES } from '../../thesis/deck';
 import type { Thesis, ThesisId } from '../../thesis/types';
 import type { Point } from '../stations';
 import { canvasTexture, useBuilt } from './craft';
+import { lightExperience } from '../lightExperience';
 
 // Must match TOP_Y in Counter.tsx: the cards rest on that slab.
 const TOP_Y = 1.33;
@@ -90,7 +91,8 @@ function useCover(image: string) {
       loaded = texture;
       setCover(texture);
     };
-    loader.load(image.replace(/\.webp$/, '-600w.webp'), done, undefined, () =>
+    const width = lightExperience() ? '-360w.webp' : '-600w.webp';
+    loader.load(image.replace(/\.webp$/, width), done, undefined, () =>
       loader.load(image, done),
     );
     return () => {

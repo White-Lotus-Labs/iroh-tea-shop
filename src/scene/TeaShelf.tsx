@@ -7,7 +7,7 @@ import {
   Vector3,
 } from 'three';
 import { HangingPaper } from './HangingPaper';
-import { Solid, SurfaceMaterial } from './Surfaces';
+import { SurfaceMaterial } from './Surfaces';
 import type { Point } from './stations';
 import {
   block,
@@ -174,45 +174,6 @@ function buildGoods() {
   };
 }
 
-/** The paper rests rolled in the middle bay until the Shelf is approached. */
-function LeaderboardScroll({ revealed }: { revealed: boolean }) {
-  return (
-    <group position={[-0.69, 1.66, 0]}>
-      <Solid
-        position={[0.44, 0, 0]}
-        size={[0.075, 2.12, 1.75]}
-        color="#382619"
-      />
-      {revealed ? (
-        <>
-          <Solid
-            position={[-0.02, 0, 0]}
-            size={[0.025, 1.88, 1.55]}
-            color="#eedfba"
-            surface="paper"
-          />
-          {[-0.98, 0.98].map((y) => (
-            <mesh
-              key={y}
-              position={[-0.075, y, 0]}
-              rotation={[Math.PI / 2, 0, 0]}
-              castShadow
-            >
-              <cylinderGeometry args={[0.075, 0.075, 1.7, 18]} />
-              <meshStandardMaterial color="#80562e" roughness={0.65} />
-            </mesh>
-          ))}
-        </>
-      ) : (
-        <mesh position={[0.02, 0, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <cylinderGeometry args={[0.11, 0.11, 1.45, 20]} />
-          <SurfaceMaterial surface="paper" color="#dcc899" />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
 /** The shelf lantern's light, mounted with the room's lights so the light count never changes. */
 export function ShelfLanternLight() {
   return (
@@ -230,10 +191,12 @@ export function TeaShelf({
   onSelect,
   revealed,
   reduced,
+  posters,
 }: {
   onSelect: () => void;
   revealed: boolean;
   reduced: boolean;
+  posters: boolean;
 }) {
   const goods = useBuilt(buildGoods);
   return (
@@ -245,7 +208,13 @@ export function TeaShelf({
         onSelect();
       }}
     >
-      <HangingPaper reduced={reduced} />
+      {posters && (
+        <HangingPaper
+          reduced={reduced}
+          emphasized={revealed}
+          onSelect={onSelect}
+        />
+      )}
       <group scale={[0.82, 0.86, 0.76]}>
         <Timber items={TIMBER} />
         <mesh geometry={goods.glaze} castShadow receiveShadow>
@@ -291,7 +260,6 @@ export function TeaShelf({
           <cylinderGeometry args={[0.11, 0.11, 0.38, 4]} />
           <SurfaceMaterial surface="paper" color="#f5d7a0" />
         </mesh>
-        <LeaderboardScroll revealed={revealed} />
       </group>
     </group>
   );

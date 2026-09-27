@@ -41,13 +41,6 @@ export default function RootLayout({
       lang="en"
       className={`${display.variable} ${body.variable} ${cjk.variable}`}
     >
-      <head>
-        <link
-          rel="preload"
-          as="image"
-          href="/images/tea-back-wall.bbdb12.webp"
-        />
-      </head>
       <body>{children}</body>
     </html>
   );
