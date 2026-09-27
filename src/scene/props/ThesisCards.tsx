@@ -12,7 +12,7 @@ import {
   type Texture,
 } from 'three';
 import { THESES } from '../../thesis/deck';
-import type { Thesis } from '../../thesis/types';
+import type { Thesis, ThesisId } from '../../thesis/types';
 import { canvasTexture, useBuilt } from './craft';
 import { lightExperience } from '../lightExperience';
 
@@ -112,7 +112,7 @@ function ThesisCard({
   index: number;
   shared: ReturnType<typeof buildShared>;
   reduced: boolean;
-  onPick?: () => void;
+  onPick?: (id: ThesisId) => void;
 }) {
   const cover = useCover(thesis.image);
   const card = useRef<Group>(null);
@@ -200,7 +200,7 @@ function ThesisCard({
           event.stopPropagation();
           // A camera orbit that ends on a card is not a pick.
           if (event.delta > DRAG_PX) return;
-          onPick();
+          onPick(thesis.id);
         },
       }
     : {};
@@ -260,7 +260,7 @@ export function ThesisCards({
   onPick,
 }: {
   reduced: boolean;
-  onPick?: () => void;
+  onPick?: (id: ThesisId) => void;
 }) {
   const shared = useBuilt(buildShared);
   return (

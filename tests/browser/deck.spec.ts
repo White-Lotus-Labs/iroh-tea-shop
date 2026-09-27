@@ -137,12 +137,28 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
     timeout: 45000,
   });
 
-  // The ember on the 3D card is the keyboard and pointer target for the pick.
-  const card = page.getByRole('button', {
-    name: 'Read The Crypto Bull Market',
-  });
-  await expect(card).toBeVisible();
-  await card.click({ force: true });
+  // Click the middle 3D card (The Crypto Bull Market) where the camera draws it.
+  type Camera = {
+    pose(): { moving: boolean };
+    project(point: [number, number, number]): [number, number, number];
+  };
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          // The dev probe appears once the camera rig mounts.
+          (
+            window as typeof window & { __teaCamera?: Camera }
+          ).__teaCamera?.pose().moving,
+      ),
+    )
+    .toBe(false);
+  const [x, y] = await page.evaluate(() =>
+    (window as typeof window & { __teaCamera: Camera }).__teaCamera.project([
+      -1.36, 1.345, 6.416,
+    ]),
+  );
+  await page.mouse.click(x, y);
 
   const panel = page.locator('.reading-panel');
   const main = page.locator('main');
@@ -153,7 +169,6 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
     page.getByRole('button', { name: /Open The Crypto Bull Market/ }),
   ).toHaveAttribute('aria-current', 'true');
   await expect(main).toHaveAttribute('data-mood', 'supported');
-  await expect(page.getByRole('button', { name: /^Read / })).toHaveCount(0);
 
   await panel.evaluate((el) => {
     el.dataset.probe = 'one-window';

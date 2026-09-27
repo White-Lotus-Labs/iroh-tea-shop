@@ -34,6 +34,7 @@ import { lightExperience } from './lightExperience';
 import { ThesisCards } from './props/ThesisCards';
 import type { SceneMood } from './motion/dynamics';
 import type { Station } from '../shared/contracts';
+import type { ThesisId } from '../thesis/types';
 import { bookResting } from '../ui/waiting-room/bookMotion';
 
 function RoomGeometry({
@@ -60,7 +61,7 @@ function RoomGeometry({
   station: Station;
   menuClosed: boolean;
   onMenuOpen: () => void;
-  onThesisPick?: () => void;
+  onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
   hostModel: boolean;
@@ -340,7 +341,7 @@ export default function TeaRoom({
   shelfRevealed: boolean;
   menuClosed: boolean;
   onMenuOpen: () => void;
-  onThesisPick?: () => void;
+  onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
   onStaged?: () => void;
   hostModel: boolean;
