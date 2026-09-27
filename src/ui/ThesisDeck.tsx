@@ -453,6 +453,8 @@ function ThesisBook({
               <img
                 className="book-art"
                 src={thesis.image}
+                srcSet={`${thesis.image.replace(/\.webp$/, '-360w.webp')} 360w, ${thesis.image.replace(/\.webp$/, '-600w.webp')} 600w, ${thesis.image} 900w`}
+                sizes="(max-width: 760px) 236px, 300px"
                 alt=""
                 width={900}
                 height={1200}
@@ -701,6 +703,8 @@ function ThesisReading({
         >
           <img
             src={thesis.image}
+            srcSet={`${thesis.image.replace(/\.webp$/, '-360w.webp')} 360w, ${thesis.image.replace(/\.webp$/, '-600w.webp')} 600w, ${thesis.image} 900w`}
+            sizes="(max-width: 760px) 190px, 280px"
             alt={`${thesis.spirit}, the spirit of this thesis`}
             width={900}
             height={1200}

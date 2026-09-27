@@ -1,7 +1,7 @@
 /* Thesis Desk: three bound scrolls on a lacquer stage. Reading a thesis
    shrinks them into a tab strip inside the same panel.
    Colours, fonts, and motion come from tokens.css. */
-/* Lane P: books use theses/*-600w.webp; opened scroll keeps the 900w thesis.image. */
+/* Books and the opened scroll pick theses/*-360w/-600w.webp through srcset; the 900w file is the fallback. */
 
 .thesis-deck {
   --leaf-up: #1f6a47;
