@@ -20,5 +20,7 @@ describe('Shelf wallet labels', () => {
     expect(shelfLabel('0x1234', '0x1234')).toBeNull();
     expect(shelfLabel('0x1234...abcd', '0x1234ffffabcd')).toBeNull();
     expect(shelfLabel('', '0x1234')).toBeNull();
+    const solana = 'Gz3jNBsWMHNydXFRrJj3wzSCi22pLvL5TYpzwkGBKu6i';
+    expect(shelfLabel('Gz3jNB...Ku6i', solana)).toBeNull();
   });
 });

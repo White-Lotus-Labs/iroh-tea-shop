@@ -70,6 +70,17 @@ test('dock navigation keeps panels closed until Open is used', async ({
     await expect(
       nav.getByRole('button', { name: new RegExp(name) }),
     ).toHaveAttribute('aria-current', 'step');
+    if (name === 'Observatorium') {
+      const modelButton = page.getByRole('button', {
+        name: 'Open the planetary model',
+      });
+      await expect(modelButton).toBeVisible({ timeout: 45000 });
+      // The camera-settled halo adds its own label, but must not remove the
+      // explanatory line from the persistent dock button.
+      await expect(modelButton.locator('.panel-open-hint-teaser')).toBeVisible({
+        timeout: 45000,
+      });
+    }
   }
   await expect(page.getByRole('heading', { name: 'Thesis Desk' })).toHaveCount(
     0,

@@ -1,15 +1,27 @@
 import type { PrismaClient } from '@prisma/client';
 
-/** How often the background loop saves fresh readings. */
+/** How often the background loop runs, and how often fast readings refresh. */
 export const NANSEN_REFRESH_MS = 60 * 60 * 1000;
+/** Slow readings (Shelf boards, token holders and supply) refresh this often. */
+export const SLOW_REFRESH_MS = 4 * NANSEN_REFRESH_MS;
+/** A run starts about an hour after the last one; this keeps it from skipping a due row. */
+export const REFRESH_SLACK_MS = 5 * 60 * 1000;
 /**
- * A saved row keeps its run's start time, so it is an hour old when the next
- * run starts. The grace covers that run, so readers do not see a false Stale.
+ * A saved row keeps its run's start time, so it is one interval old when the
+ * next due run starts. The grace covers that run, so readers do not see a
+ * false Stale.
  */
-const STALE_AFTER_MS = NANSEN_REFRESH_MS + 15 * 60 * 1000;
+const STALE_GRACE_MS = 15 * 60 * 1000;
+
+/** The Shelf boards read 30-day windows, so they move slowly. Everything else is hourly. */
+export function refreshIntervalMs(key: string): number {
+  return key.startsWith('smart-wallet-leaderboard:')
+    ? SLOW_REFRESH_MS
+    : NANSEN_REFRESH_MS;
+}
 
 export const NANSEN_WARMING_MESSAGE =
-  'Market readings are still being saved. The shop updates them about once an hour.';
+  'Market readings are still being saved. The shop saves them in the background after it starts.';
 
 export type SnapshotMeta = {
   fetchedAt: string;
@@ -52,14 +64,18 @@ export async function readNansenSnapshot<T extends object>(
     return null;
   }
   const fetchedAtMs = row.fetchedAt.getTime();
-  const overdue = now >= fetchedAtMs + STALE_AFTER_MS;
+  const interval = refreshIntervalMs(key);
+  const staleAfter = fetchedAtMs + interval + STALE_GRACE_MS;
+  const overdue = now >= staleAfter;
   const refreshError =
     row.refreshError ??
-    (overdue ? 'This reading is older than an hour.' : undefined);
+    (overdue
+      ? `This reading is older than ${interval === NANSEN_REFRESH_MS ? 'an hour' : `${interval / NANSEN_REFRESH_MS} hours`}.`
+      : undefined);
   return {
     ...payload,
     fetchedAt: row.fetchedAt.toISOString(),
-    expiresAt: new Date(fetchedAtMs + STALE_AFTER_MS).toISOString(),
+    expiresAt: new Date(staleAfter).toISOString(),
     source: 'nansen',
     stale: row.stale || overdue,
     ...(refreshError ? { refreshError } : {}),

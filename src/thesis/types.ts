@@ -131,6 +131,8 @@ export interface TickerDetail {
   holders: Section<{ totalHolders: number | null; smartMoney: HolderRow[] }>;
   supply: Section<SupplyGap>;
   perps: Section<PerpBook>;
+  /** When holders and supply were last asked for; they refresh every 4 hours. */
+  metaFetchedAt?: string;
 }
 
 /** Error body for every /api/theses response that is not 200. */

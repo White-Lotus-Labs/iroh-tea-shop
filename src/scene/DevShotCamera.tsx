@@ -34,8 +34,8 @@ export const SHOTS: Record<string, Shot> = {
   },
   'tea-set': { position: [0.85, 1.2, -1.2], target: [0, 0.78, -2.4], fov: 40 },
   observatorium: {
-    position: [-1.55, 1.42, -1.55],
-    target: [-2.85, 0.92, -3.15],
+    position: [-1.98, 1.42, -1.55],
+    target: [-3.28, 0.92, -3.15],
     fov: 46,
   },
   shelf: stationShot('Shelf'),

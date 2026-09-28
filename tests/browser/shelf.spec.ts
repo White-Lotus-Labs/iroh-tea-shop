@@ -52,6 +52,46 @@ const snapshot = {
   stale: false,
 };
 
+const solanaWallet = 'AEtL29wgARtujVynpgoDtUMLvM7NmZ6WALcjD2NjU8Dk';
+// Rank 1 is a combined entity, rank 2 a Solana wallet, the rest EVM wallets.
+const memeSnapshot = {
+  ...snapshot,
+  entries: Array.from({ length: 10 }, (_, i) => ({
+    rank: i + 1,
+    address: i === 1 ? solanaWallet : address(i + 1),
+    displayName:
+      i === 0 ? 'ogle' : i === 1 ? '"AEtL29" on pump.fun' : `Trader ${i + 1}`,
+    pnl: 3_000_000 - i * 100_000,
+    roi: 0.64,
+    accountValue: null,
+    realizedPnl: 3_000_000 - i * 100_000,
+    unrealizedPnl: 20_000,
+    volume: null,
+    trades: 390,
+    positions: [],
+    chains:
+      i === 0
+        ? ['robinhood', 'solana']
+        : i === 1
+          ? ['solana']
+          : ['bsc', 'robinhood'],
+    winRate: 0.53,
+    tokens: 12,
+    topTokens: [{ symbol: 'PONS', chain: 'robinhood', pnl: 2_336_425 }],
+    ...(i === 0
+      ? {
+          entity: 'ogle',
+          entityTotal: {
+            realizedPnl: 2_381_278,
+            trades: 3787,
+            tokens: 163,
+            topTokens: [{ symbol: 'STONK', chain: 'solana', pnl: 101_000 }],
+          },
+        }
+      : {}),
+  })),
+};
+
 async function focusShelf(page: Page) {
   await beginVisit(page);
   await page
@@ -192,7 +232,28 @@ test('clicking the Shelf in the room starts the focus journey', async ({
   await expect(
     page.getByRole('button', { name: 'See the top traders' }),
   ).toBeVisible();
-  await page.mouse.click(1000, 450);
+  // Click the middle of the shelf where the camera draws it; a fixed pixel
+  // can fall in a gap between the uprights and the tins.
+  type Camera = {
+    pose(): { moving: boolean };
+    project(point: [number, number, number]): [number, number, number];
+  };
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (
+            window as typeof window & { __teaCamera?: Camera }
+          ).__teaCamera?.pose().moving,
+      ),
+    )
+    .toBe(false);
+  const [x, y] = await page.evaluate(() =>
+    (window as typeof window & { __teaCamera: Camera }).__teaCamera.project([
+      3.6, 1.7, -4.55,
+    ]),
+  );
+  await page.mouse.click(x, y);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-shelf-view',
     'open',
@@ -346,6 +407,79 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
   expect(errors).toEqual([]);
 });
 
+test('Meme Traders has its own sorts, win rate, chains and profiler links', async ({
+  page,
+}) => {
+  test.setTimeout(45_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/api/smart-wallet-leaderboard*', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        route.request().url().includes('board=meme') ? memeSnapshot : snapshot,
+      ),
+    }),
+  );
+  await page.goto('/');
+  await focusShelf(page);
+  const rankBy = page.getByLabel('Rank by');
+  await rankBy.selectOption('account');
+  await page.getByRole('tab', { name: 'Meme Traders' }).click();
+  await expect(rankBy).toHaveValue('wins');
+  await expect(rankBy.locator('option')).toHaveCount(2);
+  await expect(
+    page
+      .getByText(
+        'Smart Money wallets trading mostly memecoins · realized PnL · last 30 days',
+      )
+      .first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /Top Meme Traders by 30-Day PnL/ }),
+  ).toBeVisible();
+  await expect(page.locator('.wallet-list-head')).toContainText('Win rate');
+  const top = page.getByTestId('top-wallet');
+  await expect(top).toContainText('Win rate');
+  await expect(top.locator('.wallet-chain')).toHaveText([
+    'Robinhood',
+    'Solana',
+    /^Entity that trades on Solana and EVM/,
+  ]);
+  await expect(top).toContainText('Top tokens traded');
+  await expect(top).toContainText('PONS');
+  // The row ranks on the wallet; the card adds the entity's cross-chain total.
+  await expect(top).toContainText('53%');
+  await expect(top).toContainText('ogle · all wallets and chains');
+  await expect(top).toContainText('+$2.38M');
+  await expect(top).toContainText('STONK');
+  const research = { name: 'Research this wallet in Nansen (new tab)' };
+  await expect(top.getByRole('link', research)).toHaveAttribute(
+    'href',
+    `https://app.nansen.ai/profiler?address=${address(1)}&chain=all`,
+  );
+  const second = page.locator('[data-rank="2"]');
+  await expect(second.locator('.wallet-value')).toContainText('53%');
+  await expect(second.getByRole('link', research)).toHaveAttribute(
+    'href',
+    `https://app.nansen.ai/profiler?address=${solanaWallet}&chain=solana`,
+  );
+  await second.getByRole('button', { expanded: false }).click();
+  await expect(
+    page.getByTestId('top-wallet').locator('.wallet-chain'),
+  ).toHaveText(['Solana']);
+  await expect(page.locator('[data-rank="3"]')).toBeVisible();
+  await rankBy.selectOption('roi');
+  await expect(
+    page.getByRole('heading', { name: /Highest ROI/ }),
+  ).toBeVisible();
+  await expect(page.getByText(/ROI ranks only the top 100/)).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('Shelf keeps its parchment for a safe error and exposes a keyboard retry', async ({
   page,
 }) => {
@@ -446,7 +580,9 @@ test('a stale real snapshot is labelled and small screens keep values readable',
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        ...snapshot,
+        ...(route.request().url().includes('board=meme')
+          ? memeSnapshot
+          : snapshot),
         stale: true,
         refreshError: 'Provider unavailable.',
       }),
@@ -467,4 +603,17 @@ test('a stale real snapshot is labelled and small screens keep values readable',
   const rank = await page.locator('[data-rank="10"]').boundingBox();
   const footer = await page.locator('.leaderboard-foot').boundingBox();
   expect(rank!.y + rank!.height).toBeLessThanOrEqual(footer!.y);
+
+  // Four tabs, the chain chips and the top tokens still fit at phone width.
+  await page.getByRole('tab', { name: 'Meme Traders' }).click();
+  const chains = page.getByTestId('top-wallet').locator('.wallet-chains');
+  await expect(chains).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  const card = await page.getByTestId('top-wallet').boundingBox();
+  const chips = await chains.boundingBox();
+  expect(chips!.x + chips!.width).toBeLessThanOrEqual(card!.x + card!.width);
 });

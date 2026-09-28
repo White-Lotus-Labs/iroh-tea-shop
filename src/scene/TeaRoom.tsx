@@ -51,8 +51,8 @@ function RoomGeometry({
   onMenuOpen,
   onThesisPick,
   onNavigate,
+  onObservatoriumOpen,
   onStaged,
-  hostModel,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -65,12 +65,10 @@ function RoomGeometry({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
+  onObservatoriumOpen: () => void;
   onStaged?: () => void;
-  hostModel: boolean;
 }) {
   const [hostHalo, setHostHalo] = useState(false);
-  const [orreryHot, setOrreryHot] = useState(false);
-  const [shelfHot, setShelfHot] = useState(false);
   const posters = station !== 'Entrance';
   // The shell's shelf callback changes on every station move. Read it through
   // a ref so the memo below (and its ContactShadows) survives the move.
@@ -95,13 +93,12 @@ function RoomGeometry({
           frames={1}
           color="#25180f"
         />
-        <MechanicalPlanetarySystem reduced={reduced} onHover={setOrreryHot} />
+        <MechanicalPlanetarySystem reduced={reduced} />
         <TeaShelf
           onSelect={selectShelf}
           revealed={shelfRevealed}
           reduced={reduced}
           posters={posters}
-          onHover={setShelfHot}
         />
       </>
     ),
@@ -161,25 +158,21 @@ function RoomGeometry({
           onMenuOpen={onMenuOpen}
           onShelfSelect={onShelfSelect}
           onHostHover={setHostHalo}
-          orreryHot={orreryHot}
-          shelfHot={shelfHot}
+          onObservatoriumOpen={onObservatoriumOpen}
         />
         {finish}
       </Staged>
       <TeaChamber>
         <LanternLight mood={mood} reduced={reduced} />
         <TeaRitual mood={mood} reduced={reduced} requestKey={requestKey} />
-        <Suspense fallback={null}>
-          <TeaHost3D
-            reduced={reduced}
-            activity={irohActivity}
-            model={hostModel}
-            lit={hostHalo}
-            onActivate={() =>
-              station === 'AvatarSeat' ? onMenuOpen() : onNavigate('AvatarSeat')
-            }
-          />
-        </Suspense>
+        <TeaHost3D
+          reduced={reduced}
+          activity={irohActivity}
+          lit={hostHalo}
+          onActivate={() =>
+            station === 'AvatarSeat' ? onMenuOpen() : onNavigate('AvatarSeat')
+          }
+        />
       </TeaChamber>
     </>
   );
@@ -323,8 +316,10 @@ export default function TeaRoom({
   onMenuOpen,
   onThesisPick,
   onNavigate,
+  onObservatoriumOpen,
+  observatoriumZoomKey,
+  onObservatoriumZoomEnd,
   onStaged,
-  hostModel,
 }: {
   station: Station;
   reduced: boolean;
@@ -345,8 +340,10 @@ export default function TeaRoom({
   onMenuOpen: () => void;
   onThesisPick?: (id: ThesisId) => void;
   onNavigate: (station: Station) => void;
+  onObservatoriumOpen: () => void;
+  observatoriumZoomKey: number;
+  onObservatoriumZoomEnd: () => void;
   onStaged?: () => void;
-  hostModel: boolean;
 }) {
   const [lost, setLost] = useState(false);
   const light = lightExperience();
@@ -407,8 +404,8 @@ export default function TeaRoom({
                   onMenuOpen={onMenuOpen}
                   onThesisPick={onThesisPick}
                   onNavigate={onNavigate}
+                  onObservatoriumOpen={onObservatoriumOpen}
                   onStaged={onStaged}
-                  hostModel={hostModel}
                 />
               </InTransition>
             </Surfaces>
@@ -421,7 +418,9 @@ export default function TeaRoom({
             typing={typing}
             reading={reading}
             allowTravelWhileTyping={allowTravelWhileTyping}
+            observatoriumZoomKey={observatoriumZoomKey}
             onArrive={onArrive}
+            onObservatoriumZoomEnd={onObservatoriumZoomEnd}
           />
           <DevShotCamera />
           <HiddenFrames hidden={station === 'Entrance'} />

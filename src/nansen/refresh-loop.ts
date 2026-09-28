@@ -12,11 +12,11 @@ function logReport(
     return;
   }
   console.info(
-    `Nansen refresh saved ${report.saved.length}, kept ${report.kept.length}, missing ${report.missing.length}.`,
+    `Nansen refresh saved ${report.saved.length}, kept ${report.kept.length}, missing ${report.missing.length}, still fresh ${report.fresh.length}.`,
   );
 }
 
-/** Fill SQLite now, then again about once an hour. One loop per process. */
+/** Fill SQLite now, then check every hour for rows that are due. One loop per process. */
 export function startHourlyNansenRefresh(): void {
   if (process.env.NEXT_PHASE === 'phase-production-build') return;
   if (globalForRefresh.nansenHourlyRefresh) return;

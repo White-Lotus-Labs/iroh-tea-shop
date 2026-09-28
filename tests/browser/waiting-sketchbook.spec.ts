@@ -132,6 +132,11 @@ test('the sketchbook starts open, riffles forward once, and lands on the first s
     () => (window as unknown as { __spreads: number[] }).__spreads,
   );
   expect(spreads).toEqual([2, 3, 4, 5, 6, 1]);
+  // The last leaf lands over the live page, then lifts once its pictures decode.
+  await expect(page.locator('.curl')).toHaveCount(0);
+  await expect(
+    page.getByRole('img', { name: /tea shop front at dusk/ }),
+  ).toBeVisible();
   await context.close();
 });
 

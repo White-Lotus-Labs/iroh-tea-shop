@@ -359,6 +359,11 @@
 .face-page.as-left {
   left: calc((var(--i) + 1) * var(--sw) - var(--pw));
 }
+/* A back face mirrors about its own centre, and .face is 1.1px wider than
+   its strip, so a landed leaf would show its page 1.1px off the flat page. */
+.face.back .face-page {
+  margin-left: 1.1px;
+}
 /* The face-page is already shifted with `left` so overflow clips one
    strip. Pin the JPEG to that box — a second background-position shift
    showed empty paper on the curling leaf. */

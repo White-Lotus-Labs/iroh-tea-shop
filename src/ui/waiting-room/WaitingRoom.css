@@ -260,11 +260,13 @@
   height: 160%;
   pointer-events: none;
 }
+/* One word per row, so the label stays inside the bowl at every size. */
 .waiting-enter-label {
   position: relative;
-  font: 600 18px/1 var(--wr-serif);
+  width: min-content;
+  font: 600 18px/1.1 var(--wr-serif);
   letter-spacing: 0.01em;
-  white-space: nowrap;
+  text-align: center;
   color: rgba(246, 236, 216, 0.82);
   text-shadow:
     0 1px 2px rgba(4, 6, 3, 0.9),
@@ -293,8 +295,10 @@
   opacity: 1;
   transition-duration: 0.4s;
 }
+/* The gold ring pings while the tea is ready; with reduced motion it rests on the rim. */
 .waiting-room[data-ready] .waiting-enter::after {
-  animation: waiting-bloom 1.8s var(--wr-ease-out) 0.6s both;
+  opacity: 0.7;
+  animation: waiting-bloom 3.2s var(--wr-ease-out) 0.6s infinite both;
 }
 .waiting-room[data-ready] .waiting-enter-label {
   color: var(--wr-cream);
@@ -337,12 +341,18 @@
     opacity: 0;
   }
 }
+/* A 1.8 s bloom, then a rest before the next one. */
 @keyframes waiting-bloom {
-  from {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  6% {
     opacity: 0.9;
     transform: scale(1);
   }
-  to {
+  56%,
+  100% {
     opacity: 0;
     transform: scale(1.5);
   }

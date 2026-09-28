@@ -1,5 +1,14 @@
 import type { Station } from '../shared/contracts';
+export const OBSERVATORIUM_URL =
+  'https://chains-planetary-system.up.railway.app';
+
 export type Point = [number, number, number];
+/** Close camera pose for the planetary model before handing visitors to its live view. */
+export const OBSERVATORIUM_FOCUS = {
+  position: [-2.33, 1.23, -2.2] as Point,
+  target: [-3.28, 0.8, -3.15] as Point,
+};
+
 export const STATIONS: {
   id: Station;
   label: string;
@@ -28,9 +37,10 @@ export const STATIONS: {
     id: 'TeaTable',
     label: 'Observatorium',
     purpose: 'Wind the orrery',
+    // x stays at -1.2 when the orrery moves: the straight Counter trip must clear the doorway jamb (x ±1.3).
     position: [-1.2, 1.45, -1.4],
-    target: [-2.85, 0.8, -3.15],
-    hotspot: [-2.85, 1.3, -3.15],
+    target: [-3.28, 0.8, -3.15],
+    hotspot: [-3.28, 1.3, -3.15],
   },
   {
     id: 'AvatarSeat',

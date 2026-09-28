@@ -580,25 +580,6 @@
     0 0 0 6px #a1583f;
 }
 
-.book-stamp {
-  position: absolute;
-  right: 8%;
-  bottom: 9%;
-  display: grid;
-  place-items: center;
-  width: calc(var(--w) * 0.2);
-  height: calc(var(--w) * 0.2);
-  border-radius: 6px;
-  background: var(--seal);
-  box-shadow: inset 0 0 0 2px rgba(255, 236, 224, 0.35);
-  color: #fbeee0;
-  font-family: var(--font-cjk);
-  font-size: calc(var(--w) * 0.12);
-  mix-blend-mode: multiply;
-  transform: rotate(-8deg);
-  animation: seal-stamp 460ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
-}
-
 /* Conviction plaque under each book. */
 .book-plaque {
   display: grid;
@@ -880,7 +861,6 @@
 .thesis-deck[data-layout='reading'] .deck-word,
 .thesis-deck[data-layout='reading'] .book-contact,
 .thesis-deck[data-layout='reading'] .book-copy,
-.thesis-deck[data-layout='reading'] .book-stamp,
 .thesis-deck[data-layout='reading'] .book-spine > *,
 .thesis-deck[data-layout='reading'] .book-plaque {
   display: none;
@@ -1040,25 +1020,6 @@
   font-size: 17px;
   font-style: italic;
   text-align: center;
-}
-
-.scroll-stamp {
-  position: absolute;
-  top: 60%;
-  right: -12px;
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
-  background: var(--seal);
-  box-shadow: inset 0 0 0 3px rgba(255, 236, 224, 0.32);
-  color: #fbeee0;
-  font-family: var(--font-cjk);
-  font-size: 36px;
-  mix-blend-mode: multiply;
-  transform: rotate(-8deg);
-  animation: seal-stamp 460ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
 }
 
 .scroll-text {
@@ -1599,7 +1560,7 @@
   letter-spacing: 0.04em;
 }
 
-/* Three groups in DOM order, so focus order matches: talk, share (x3), follow. */
+/* Thesis actions on one row, a quieter share row below; DOM order matches. */
 .scroll-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1607,17 +1568,28 @@
   padding-top: 16px;
 }
 
-.scroll-actions
-  > .scroll-action:not(.scroll-action--primary, .scroll-action--seal) {
+.scroll-share {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.scroll-share-label {
+  margin-inline-end: 4px;
+  color: var(--scroll-muted);
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scroll-share .scroll-action {
+  min-height: 40px;
   padding: 0 14px;
-}
-
-.scroll-action--primary {
-  margin-inline-end: 10px;
-}
-
-.scroll-action--seal {
-  margin-inline-start: auto;
+  background: transparent;
+  font-size: 12.5px;
 }
 
 .scroll-action {
@@ -1664,16 +1636,6 @@
   font-size: 13px;
 }
 
-.scroll-action--seal[aria-pressed='true'] {
-  border-color: var(--seal);
-  color: var(--seal);
-}
-
-.scroll-action--seal[aria-pressed='true'] .scroll-action-seal {
-  background: var(--seal);
-  color: #fbeee0;
-}
-
 .scroll-toast {
   min-height: 20px;
   margin: 10px 0 0;
@@ -1681,6 +1643,135 @@
   font-size: 12.5px;
 }
 
+.trade-sheet::backdrop {
+  background: rgba(24, 15, 9, 0.46);
+  backdrop-filter: blur(5px);
+}
+.trade-sheet {
+  width: min(calc(100% - 32px), 500px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: auto;
+  padding: 28px;
+  border: 1px solid rgba(184, 145, 63, 0.58);
+  border-radius: 6px;
+  background: #fffaf0;
+  box-shadow: 0 24px 70px rgba(26, 15, 7, 0.32);
+  color: var(--scroll-ink);
+}
+.trade-sheet-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+.trade-sheet h3 {
+  margin: 0;
+  font: 700 30px/1.08 var(--font-display);
+}
+.trade-sheet-heading p {
+  margin: 8px 0 0;
+  color: var(--scroll-muted);
+  font-size: 13px;
+}
+.trade-sheet-close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(74, 47, 29, 0.25);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--scroll-ink);
+  font-size: 22px;
+  cursor: pointer;
+}
+.trade-platform-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 24px;
+}
+.trade-platform {
+  position: relative;
+  display: flex;
+  min-height: 64px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid rgba(74, 47, 29, 0.22);
+  border-radius: 4px;
+  color: var(--scroll-ink);
+  text-decoration: none;
+}
+.trade-platform:hover {
+  border-color: var(--seal);
+  background: #fffdf7;
+  box-shadow: 0 5px 14px rgba(64, 38, 17, 0.08);
+}
+.trade-platform-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--scroll-ink);
+}
+.trade-platform-logo img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.trade-platform-logo--wordmark {
+  flex-basis: auto;
+  width: min(114px, calc(100% - 28px));
+  height: 28px;
+  background: transparent;
+  justify-items: start;
+}
+.trade-platform-logo--wordmark img {
+  width: 114px;
+  max-width: 100%;
+  height: 30px;
+}
+.trade-platform-logo--dark {
+  box-sizing: border-box;
+  padding: 6px;
+  border-radius: 7px;
+  background: #060510;
+}
+.trade-platform-logo--large {
+  width: min(150px, calc(100% - 28px));
+  height: 34px;
+}
+.trade-platform-logo--large img {
+  width: 150px;
+  height: 34px;
+}
+.trade-platform-logo--ink img {
+  filter: brightness(0) saturate(100%);
+}
+.trade-platform-logo--flush img {
+  transform: translateX(-8px);
+}
+.trade-platform-wordmark {
+  width: 64px;
+  height: auto;
+  object-fit: contain;
+}
+.trade-platform-wordmark--ink {
+  filter: brightness(0) saturate(100%);
+}
+.trade-platform-arrow {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--seal);
+  font-size: 18px;
+}
 /* Staggered ink: each block settles onto the paper as the books reach their tabs. */
 .thesis-reading .ink {
   animation: scroll-ink var(--dur-ink) ease both;
@@ -1816,6 +1907,42 @@ html.thesis-vt::view-transition-group(root) {
   .scroll-action {
     flex: 1 1 auto;
     justify-content: center;
+  }
+
+  .trade-sheet {
+    padding: 22px;
+  }
+
+  .trade-sheet h3 {
+    font-size: 26px;
+  }
+
+  .trade-platform-list {
+    margin-top: 20px;
+  }
+
+  .trade-platform {
+    min-height: 64px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 440px) {
+  .trade-platform-list {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-platform {
+    min-height: 64px;
+  }
+
+  .trade-platform-arrow {
+    position: static;
+    margin-left: auto;
+  }
+
+  .trade-platform-logo--wordmark {
+    width: 160px;
   }
 }
 

@@ -17,7 +17,8 @@ test('the open hint keeps its name, describes the teaser, and gets focus back af
     'Choose a thesis. See whether smart money supports it.',
   );
   await expect(page.locator('.halo-label')).toBeAttached({ timeout: 15000 });
-  await expect(page.locator('.panel-open-hint-teaser')).toBeHidden();
+  // The teaser stays in the hint while the in-world label shows (e2d8f8b).
+  await expect(page.locator('.panel-open-hint-teaser')).toBeVisible();
   await hint.click();
   await expect(
     page.getByRole('heading', { name: 'Thesis Desk' }),

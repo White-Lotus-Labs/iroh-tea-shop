@@ -9,9 +9,9 @@ export async function waitForRoomReady(page: Page) {
     .poll(
       async () => {
         const station = await page.locator('main').getAttribute('data-station');
-        // Deep links leave Entrance without enabling Enter the tea room.
+        // Deep links leave Entrance without enabling Enter Teashop.
         if (station && station !== 'Entrance') return 'inside';
-        const enter = page.getByRole('button', { name: 'Enter the tea room' });
+        const enter = page.getByRole('button', { name: 'Enter Teashop' });
         if ((await enter.count()) === 0) return 'gone';
         if (await enter.isEnabled()) return 'ready';
         return 'loading';
@@ -46,7 +46,7 @@ export async function waitForDockReady(page: Page) {
 /** Leave the waiting room and show the station dock. */
 export async function beginVisit(page: Page) {
   await waitForRoomReady(page);
-  const enter = page.getByRole('button', { name: 'Enter the tea room' });
+  const enter = page.getByRole('button', { name: 'Enter Teashop' });
   const station = await page.locator('main').getAttribute('data-station');
   if (station === 'Entrance' && (await enter.count())) {
     await expect(enter).toBeEnabled({ timeout: 90_000 });

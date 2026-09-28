@@ -1,11 +1,18 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { flushSync } from 'react-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  startTransition,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { MotionPreference, Station } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import type { IrohActivity } from '../scene/TeaHost3D';
-import { RECENTER_EVENT, STATIONS } from '../scene/stations';
+import { OBSERVATORIUM_URL, RECENTER_EVENT, STATIONS } from '../scene/stations';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
 import { SmartWalletShelf } from './SmartWalletShelf';
@@ -60,12 +67,10 @@ const TeaRoom = dynamic(
     loading: () => <div className="scene-fallback" />,
   },
 );
-const ThesisDeck = dynamic(loadThesisDeck, {
-  loading: () => null,
-});
-const IrohChat = dynamic(loadIrohChat, {
-  loading: () => null,
-});
+// No `loading`: the panel's own Suspense waits for them, so the scroll mounts
+// once with its content and final size instead of growing mid-unroll.
+const ThesisDeck = dynamic(loadThesisDeck);
+const IrohChat = dynamic(loadIrohChat);
 
 function idlePreload(load: () => Promise<unknown>) {
   if (typeof window.requestIdleCallback === 'function') {
@@ -99,6 +104,8 @@ export default function TeaRoomShell({
   const [systemReduced, setSystemReduced] = useState<boolean | null>(null);
   const [resetKey] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [observatoriumZoomKey, setObservatoriumZoomKey] = useState(0);
+  const [openingObservatorium, setOpeningObservatorium] = useState(false);
   const [pour, setPour] = useState<{ key: string | null; mood: SceneMood }>({
     key: null,
     mood: 'waiting',
@@ -116,8 +123,12 @@ export default function TeaRoomShell({
   const [sceneReady, setSceneReady] = useState(false);
   const [staged, setStaged] = useState(false);
   const onStaged = useCallback(() => setStaged(true), []);
+  // Latches once the guest leaves Entrance by any path (Enter, deep link,
+  // dock), so the thesis pictures prefetch only for guests inside.
   const [revealed, setRevealed] = useState(false);
-  const onReveal = useCallback(() => setRevealed(true), []);
+  useEffect(() => {
+    if (station !== 'Entrance') setRevealed(true);
+  }, [station]);
   // Warm the 3D room behind the sketchbook once it rests.
   useEffect(() => void whenBookRests().then(warmTeaRoom), []);
   // Warm the shelf posters and the Counter / Host panels once the room is ready to enter.
@@ -155,10 +166,16 @@ export default function TeaRoomShell({
     return () => window.clearTimeout(timer);
   }, [revealed]);
   const panel = useRef<HTMLElement>(null);
+  // Openers commit the panel in a transition, so focus it as it mounts.
+  const panelRef = useCallback((node: HTMLElement | null) => {
+    panel.current = node;
+    node?.focus({ preventScroll: true });
+  }, []);
   const openHint = useRef<HTMLButtonElement>(null);
   // Escape stashes a half-typed Uncle question; close applies it once.
   const draftOnClose = useRef<{ text: string; key: number } | null>(null);
   const closeApplied = useRef(false);
+  const observatoriumOpening = useRef(false);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
   const focusHintOnArrive = useRef(false);
@@ -218,6 +235,7 @@ export default function TeaRoomShell({
   );
   const navigate = useCallback(
     (next: Station) => {
+      if (observatoriumOpening.current) return;
       // Re-clicking Counter closes the desk and returns this camera pose.
       // cameraAt stays set so the open hint does not wait for a new arrival.
       if (next === station) {
@@ -228,11 +246,12 @@ export default function TeaRoomShell({
         return;
       }
       // Back from asking Uncle: reopen the thesis the guest was reading.
+      // Leave returnThesis set so the open effect can apply it after the
+      // desk's unmount cleanup, which clears the selection.
       if (next === 'Counter' && returnThesis.current) {
-        const back = returnThesis.current;
-        returnThesis.current = null;
-        setSelectedThesis(back);
         deepLinkOpenOnce.current = true;
+      } else {
+        returnThesis.current = null;
       }
       setCameraAt(null);
       setShelfFocused(false);
@@ -256,11 +275,14 @@ export default function TeaRoomShell({
     setPanelOpen(true);
   }, [shelfFocused, station, cameraAt, sceneFailed]);
   const openPanel = useCallback(() => {
-    if (station === 'Shelf') {
-      if (cameraAt !== 'Shelf' && !sceneFailed) setCameraAt(null);
-      setShelfFocused(true);
-    }
-    setPanelOpen(true);
+    // A transition keeps the panel unmounted until its lazy content is ready.
+    startTransition(() => {
+      if (station === 'Shelf') {
+        if (cameraAt !== 'Shelf' && !sceneFailed) setCameraAt(null);
+        setShelfFocused(true);
+      }
+      setPanelOpen(true);
+    });
     queueMicrotask(() => panel.current?.focus());
   }, [station, cameraAt, sceneFailed]);
   useEffect(() => {
@@ -268,7 +290,13 @@ export default function TeaRoomShell({
     if (station !== 'Counter') return;
     if (cameraAt !== 'Counter' && !sceneFailed) return;
     deepLinkOpenOnce.current = false;
-    setPanelOpen(true);
+    const back = returnThesis.current;
+    returnThesis.current = null;
+    // After the leaving desk's unmount clear, so the restored thesis sticks.
+    startTransition(() => {
+      if (back) setSelectedThesis(back);
+      setPanelOpen(true);
+    });
   }, [station, cameraAt, sceneFailed]);
   const closePanel = useCallback(() => {
     const paper = panel.current;
@@ -297,6 +325,28 @@ export default function TeaRoomShell({
   }, [reduced]);
   const onCameraArrive = useCallback((at: Station) => {
     setCameraAt(at);
+  }, []);
+  const openObservatorium = useCallback(() => {
+    if (observatoriumOpening.current) return;
+    // If WebGL is unavailable, retain the action instead of leaving a blank tab
+    // waiting for an animation that cannot run.
+    if (!sceneAvailable || sceneFailed) {
+      const popup = window.open(OBSERVATORIUM_URL, '_blank');
+      if (popup) popup.opener = null;
+      return;
+    }
+    observatoriumOpening.current = true;
+    setOpeningObservatorium(true);
+    setObservatoriumZoomKey((key) => key + 1);
+  }, [sceneAvailable, sceneFailed]);
+  const finishObservatoriumOpen = useCallback(() => {
+    observatoriumOpening.current = false;
+    setOpeningObservatorium(false);
+    // Open only after the camera settles, keeping the complete push-in visible.
+    // Setting opener manually preserves a usable Window return value so we do
+    // not mistake a successful `noopener` tab for a blocked popup.
+    const popup = window.open(OBSERVATORIUM_URL, '_blank');
+    if (popup) popup.opener = null;
   }, []);
   const onSceneAvailability = useCallback((available: boolean) => {
     setSceneAvailable(available);
@@ -354,26 +404,24 @@ export default function TeaRoomShell({
     setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
-  const pickThesis = useCallback(
-    (id: ThesisId) => {
-      // An explicit pick wins over the thesis saved before asking Uncle.
-      returnThesis.current = null;
-      setSelectedThesis(id);
-      if (station === 'Counter') return setPanelOpen(true);
-      navigate('Counter');
-      deepLinkOpenOnce.current = true;
-    },
-    [station, navigate],
-  );
+  // A counter card opens the desk on all three scrolls, not on its own thesis.
+  const openDesk = useCallback(() => {
+    // An explicit click wins over the thesis saved before asking Uncle.
+    returnThesis.current = null;
+    if (station === 'Counter') return openPanel();
+    navigate('Counter');
+    deepLinkOpenOnce.current = true;
+  }, [station, navigate, openPanel]);
   const onTalkToUncle = useCallback(
     (text: string) => {
       returnThesis.current = selectedThesis;
+      // Urgent, not a transition: a pending one could land after the guest
+      // closes the desk. The panel's Suspense still mounts it once, with the chat.
       setUncleDraft({ text, key: Date.now() });
       setCameraAt(null);
       setShelfFocused(false);
       setStation('AvatarSeat');
       setPanelOpen(true);
-      queueMicrotask(() => panel.current?.focus());
     },
     [selectedThesis],
   );
@@ -422,6 +470,8 @@ export default function TeaRoomShell({
   useEffect(() => {
     if (shelfOpen) panel.current?.focus({ preventScroll: true });
   }, [shelfOpen]);
+  const showObservatoriumHint =
+    station === 'TeaTable' && !isEntrance && cameraSettled;
   const showPanel =
     !isEntrance &&
     panelOpen &&
@@ -446,7 +496,6 @@ export default function TeaRoomShell({
         progress={loaderProgress}
         reduced={reduced}
         onEnter={() => {
-          onReveal();
           focusHintOnArrive.current = true;
           navigate('Counter');
         }}
@@ -548,10 +597,12 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
-            onThesisPick={pickThesis}
+            onThesisPick={openDesk}
             onNavigate={navigate}
+            onObservatoriumOpen={openObservatorium}
+            observatoriumZoomKey={observatoriumZoomKey}
+            onObservatoriumZoomEnd={finishObservatoriumOpen}
             onStaged={onStaged}
-            hostModel={revealed}
           />
 
           {!isEntrance && sceneAvailable && (
@@ -613,52 +664,83 @@ export default function TeaRoomShell({
               </span>
             </button>
           )}
+
+          {showObservatoriumHint && teaser?.cta && (
+            <button
+              key="observatorium-model"
+              type="button"
+              className="panel-open-hint"
+              aria-label={teaser.cta.join(' ')}
+              aria-describedby="observatorium-model-teaser"
+              aria-busy={openingObservatorium || undefined}
+              disabled={openingObservatorium}
+              onClick={openObservatorium}
+            >
+              <span className="panel-open-hint-seal" aria-hidden="true">
+                {teaser.glyph}
+              </span>
+              <span className="panel-open-hint-body" aria-hidden="true">
+                <span className="panel-open-hint-title">
+                  {teaser.cta[0]} <em>{teaser.cta[1]}</em>
+                </span>
+                <InkLine
+                  text={teaser.text}
+                  className="panel-open-hint-teaser"
+                />
+              </span>
+              <span id="observatorium-model-teaser" className="sr-only">
+                {teaser.text}
+              </span>
+            </button>
+          )}
         </section>
 
-        {showPanel && (
-          <section
-            key={station}
-            className="reading-panel"
-            id="main-panel"
-            ref={panel}
-            tabIndex={-1}
-            aria-label={active.label}
-          >
-            <button
-              type="button"
-              className="panel-close"
-              aria-label={`Close ${active.label} menu`}
-              onClick={closePanel}
+        <Suspense fallback={null}>
+          {showPanel && (
+            <section
+              key={station}
+              className="reading-panel"
+              id="main-panel"
+              ref={panelRef}
+              tabIndex={-1}
+              aria-label={active.label}
             >
-              <span aria-hidden="true">×</span>
-              <span className="sr-only">Close menu</span>
-            </button>
-            <span
-              className="scroll-ornament"
-              aria-hidden="true"
-              data-seal={teaser?.glyph ?? '茶'}
-            />
-            {station === 'Counter' && (
-              <ThesisDeck
-                reduced={reduced}
-                initialThesis={initialThesis}
-                selectedThesis={selectedThesis}
-                onOpenThesis={onOpenThesis}
-                onCloseThesis={onCloseThesis}
-                onTalkToUncle={onTalkToUncle}
+              <button
+                type="button"
+                className="panel-close"
+                aria-label={`Close ${active.label} menu`}
+                onClick={closePanel}
+              >
+                <span aria-hidden="true">×</span>
+                <span className="sr-only">Close menu</span>
+              </button>
+              <span
+                className="scroll-ornament"
+                aria-hidden="true"
+                data-seal={teaser?.glyph ?? '茶'}
               />
-            )}
-            {station === 'AvatarSeat' && (
-              <IrohChat
-                session={irohSession}
-                user={user}
-                nansen={nansen}
-                draft={uncleDraft}
-              />
-            )}
-            {shelfOpen && <SmartWalletShelf nansen={nansen} />}
-          </section>
-        )}
+              {station === 'Counter' && (
+                <ThesisDeck
+                  reduced={reduced}
+                  initialThesis={initialThesis}
+                  selectedThesis={selectedThesis}
+                  onOpenThesis={onOpenThesis}
+                  onCloseThesis={onCloseThesis}
+                  onTalkToUncle={onTalkToUncle}
+                />
+              )}
+              {station === 'AvatarSeat' && (
+                <IrohChat
+                  session={irohSession}
+                  user={user}
+                  nansen={nansen}
+                  draft={uncleDraft}
+                />
+              )}
+              {shelfOpen && <SmartWalletShelf nansen={nansen} />}
+            </section>
+          )}
+        </Suspense>
       </div>
 
       {!isEntrance && (

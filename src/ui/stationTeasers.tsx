@@ -16,10 +16,14 @@ export const STATION_TEASERS: Partial<
   },
   Shelf: {
     glyph: '卷',
-    text: 'Meet the ten Smart HL Perps Traders leading by 30-day PnL.',
+    text: 'See the top ten perps traders, smart wallets, whales and meme traders.',
     cta: ['See the', 'top traders'],
   },
-  TeaTable: { glyph: '星', text: 'Wind the orrery.' },
+  TeaTable: {
+    glyph: '星',
+    text: 'Open the live planetary model in a new tab.',
+    cta: ['Open the', 'planetary model'],
+  },
 };
 
 /** Decorative ink-typed line. Always pair it with a readable copy for assistive tech. */
