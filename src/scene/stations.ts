@@ -37,7 +37,8 @@ export const STATIONS: {
     id: 'TeaTable',
     label: 'Observatorium',
     purpose: 'Wind the orrery',
-    position: [-1.63, 1.45, -1.4],
+    // x stays at -1.2 when the orrery moves: the straight Counter trip must clear the doorway jamb (x ±1.3).
+    position: [-1.2, 1.45, -1.4],
     target: [-3.28, 0.8, -3.15],
     hotspot: [-3.28, 1.3, -3.15],
   },
