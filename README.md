@@ -22,13 +22,15 @@ You need Node.js 22.12 or newer, npm, and a current browser.
 npm ci
 ```
 
-Create `.env.local` and put your Nansen key in it:
+Create `.env.local` and put a Nansen key in it if you want house-paid Uncle chat and background saves:
 
 ```sh
 NANSEN_API_KEY=your-key
 ```
 
-The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env.local`.
+That house key stays on the server. It pays for saved readings and for the free Uncle question. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env.local`.
+
+You can also run without a house key. Open the Host panel and paste **your own** Nansen API key when Uncle asks. That key stays in the browser (`localStorage`) and is sent only as the `x-user-nansen-api-key` header to `/api/nansen-agent`. It is never used for the thesis desk or the shelf.
 
 Everything else is optional for local development. `.env.example` lists the available settings.
 
@@ -40,9 +42,16 @@ npm run dev
 
 Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101`.
 
-`npm run dev` creates the local database and applies pending migrations before Next.js starts. By default it uses `file:./dev.db`, which Prisma stores as `prisma/dev.db`; git ignores it, and each checkout has its own file. Set `DATABASE_URL` only when you need a different location. You can also run `npm run db:migrate` by itself. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
+`npm run dev` creates the local database and applies pending migrations before Next.js starts (`scripts/migrate-db.mjs`). By default it uses `file:./dev.db`, which Prisma stores as `prisma/dev.db`; git ignores it, and each checkout has its own file. Set `DATABASE_URL` only when you need a different location. You can also run `npm run db:migrate` by itself. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica. The start command runs the same migrate script, then `next start`.
 
-Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env`. The default is 1.
+### Uncle: free cup, then your key
+
+With a house key configured, each IP gets **one** free Uncle message per UTC day (`NANSEN_AGENT_DAILY_LIMIT`, default `1`). After that cup (or when there is no house key), the Host panel offers two choices:
+
+1. **Enter your key** — paste a Nansen API key; it unlocks Ask Uncle and skips the house cup.
+2. **Get a Nansen API key ↗** — opens the referral link [nsn.ai/iroh0x](https://nsn.ai/iroh0x).
+
+Clear the stored key in the Host panel to return to house-key + cup behavior.
 
 When the server starts, it fills the database in the background, then checks again every hour. Rows that are not due yet are skipped, so a restart does not ask Nansen again for readings it just saved. The first minute after boot, the thesis desk and the shelf can say the readings are still being saved. That is the fill running. It is not a visitor waiting on a live call.
 
@@ -57,7 +66,7 @@ Two different things happen with Nansen.
 
 If an update fails, the previous row stays and the screen can mark it stale. A row is marked stale 15 minutes after its next update was due.
 
-**Uncle.** Chat is not a saved dataset. When you send a message, the server calls Nansen's Research Agent right then (`agent/fast`). The reply is streamed back. Signed-in chats are stored so you can reopen them. The Nansen request itself is still live, and it is not part of the hourly save.
+**Uncle.** Chat is not a saved dataset. When you send a message, the server calls Nansen's Research Agent right then (`agent/fast`). The reply is streamed back. Signed-in chats are stored so you can reopen them. The Nansen request itself is still live, and it is not part of the hourly save. The free cup uses the house key. After that, or when the house key is missing, use a browser key or [nsn.ai/iroh0x](https://nsn.ai/iroh0x) as above.
 
 A full background save (on boot, and every 4 hours) makes **up to 103 Nansen requests**:
 
@@ -79,8 +88,8 @@ Conviction, in plain words: a thesis looks at its four assets. An asset "counts"
 ## A walk through the room
 
 1. **Waiting room.** A sketchbook. Press **Enter Teashop** when you want the stations.
-2. **Counter.** Three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. Each book has a conviction seal from the saved readings. Open a book, then open an asset, to see buyers and sellers, holders, supply that is not circulating yet, and perp positioning. You can ask Uncle about it, share it on X, or follow it in this browser.
-3. **Host.** Talk to Uncle. Guests keep the conversation until they leave the page. Signed-in people get a list of old chats.
+2. **Counter.** Three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. A click on a 3D counter card opens the Thesis Desk on all three scrolls (not only that thesis). Each book has a conviction seal from the saved readings. Open a book, then open an asset, to see buyers and sellers, holders, supply that is not circulating yet, and perp positioning. You can ask Uncle about it, share it on X, open trading partners, or follow it in this browser.
+3. **Host.** Talk to Uncle. One free question per day on the house key, then paste your own key or get one at [nsn.ai/iroh0x](https://nsn.ai/iroh0x). Escape closes the panel and keeps a half-typed question. Guests keep the conversation until they leave the page. Signed-in people get a list of old chats.
 4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. Rank 1 is open by default. Click another rank to open it in place with realized and unrealized PnL, 30-day volume, trade count, and its largest open positions. Each rank links to that wallet in Nansen's profiler. The Meme Traders board ranks Smart Money wallets whose biggest wins are mostly memecoins, sorted by realized PnL or by average trade ROI. Its cards show win rate, chains, tokens traded, and top tokens. A row marked Entity is one person's total across Solana and EVM wallets.
 5. **Observatorium.** Wind the orrery. No market data.
 
@@ -91,10 +100,10 @@ Sign-in is optional. It is a nickname and a password, stored in the same SQLite 
 | Folder                                  | What it is                                                                                             |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `src/thesis/`                           | The three theses, how conviction is scored, and the Nansen requests that build a deck or an asset page |
-| `src/nansen/`                           | The Nansen client, Uncle's chat, the hourly save, and the SQLite snapshot store                        |
+| `src/nansen/`                           | The Nansen client, Uncle's chat, browser BYOK helper, the hourly save, and the SQLite snapshot store   |
 | `src/app/api/theses/`                   | Reads the saved deck and the saved asset pages                                                         |
 | `src/app/api/smart-wallet-leaderboard/` | Reads the saved shelf ranking                                                                          |
-| `src/app/api/nansen-agent/`             | Uncle's live chat                                                                                      |
+| `src/app/api/nansen-agent/`             | Uncle's live chat (house key + optional visitor key)                                                   |
 | `src/scene/`                            | The 3D room                                                                                            |
 | `src/ui/`                               | Panels, the thesis books, the shelf scroll, the dock                                                   |
 | `src/leaderboard/`                      | Turns the Nansen leaderboard payload into the ten rows                                                 |
@@ -119,6 +128,7 @@ Unit tests mock Nansen. They do not spend credits. Browser tests mock the app's 
 ## Limits worth knowing
 
 - One Node process, one SQLite file. If you run several copies of the server, each copy has its own database and each copy runs its own refresh schedule. The intended deploy is a single web process with `DATABASE_URL` pointed at a volume.
-- Uncle's daily cap lives in that process. It trusts the proxy's forwarding headers, resets at midnight UTC, and also resets if the process restarts.
+- Uncle's house-key daily cap lives in that process. It trusts the proxy's forwarding headers, resets at midnight UTC, and also resets if the process restarts. A visitor key skips that cup.
+- A visitor key in `localStorage` is plaintext in that browser. The house key never leaves the server.
 - The host's 3D model is still a work in progress. The writing says Uncle. The mesh still looks like the earlier grandfather.
-- The app is deployed on Railway at the link above. Railway runs `prisma migrate deploy` before the server starts, so the snapshot table exists before the first fill.
+- Production is on Railway at the link above. A push or merge to `main` auto-deploys the `web` service. The start command runs `scripts/migrate-db.mjs` (creates the SQLite file if needed, then `prisma migrate deploy`) before `next start`, so the snapshot table exists before the first fill.

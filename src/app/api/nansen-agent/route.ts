@@ -28,6 +28,10 @@ import {
   nansenRequestManager,
   NansenManagerError,
 } from '../../../nansen/request-manager';
+import {
+  USER_NANSEN_API_KEY_HEADER,
+  USER_NANSEN_API_KEY_MAX_LENGTH,
+} from '../../../nansen/user-api-key';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -145,7 +149,13 @@ export async function POST(request: Request) {
   if (question.trim().length > MAX_QUESTION_LENGTH)
     return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
 
-  const key = process.env.NANSEN_API_KEY?.trim();
+  const rawUserKey = request.headers.get(USER_NANSEN_API_KEY_HEADER)?.trim();
+  const userKey =
+    rawUserKey && rawUserKey.length <= USER_NANSEN_API_KEY_MAX_LENGTH
+      ? rawUserKey
+      : '';
+  const houseKey = process.env.NANSEN_API_KEY?.trim() ?? '';
+  const key = userKey || houseKey;
   if (!key) return jsonError(503, 'Nansen Research Agent is not configured.');
 
   let text = value.text.trim();
@@ -175,15 +185,19 @@ export async function POST(request: Request) {
     persisted = { userId: user.id, chatId: value.chatId };
   }
 
-  // Main's daily cup gate stays ahead of the manager and upstream call.
-  const clientIp = clientIpFromRequest(request);
-  const cap = agentDailyCap.claim(clientIp);
-  if (!cap.allowed) {
-    releaseTurn?.();
-    return capError(cap);
+  // House key keeps the daily cup. A visitor key skips it (they pay Nansen).
+  let cap: AgentCapClaim | null = null;
+  let refundCup = () => {};
+  if (!userKey) {
+    const clientIp = clientIpFromRequest(request);
+    cap = agentDailyCap.claim(clientIp);
+    if (!cap.allowed) {
+      releaseTurn?.();
+      return capError(cap);
+    }
+    // Nansen did not answer, so the guest keeps their cup for a retry.
+    refundCup = () => agentDailyCap.refund(clientIp, cap!);
   }
-  // Nansen did not answer, so the guest keeps their cup for a retry.
-  const refundCup = () => agentDailyCap.refund(clientIp, cap);
 
   const preparation: {
     value: Awaited<ReturnType<typeof prepareAdmittedResearchRequest>> | null;
@@ -437,9 +451,13 @@ export async function POST(request: Request) {
       'cache-control': 'no-store, no-transform',
       connection: 'keep-alive',
       'x-accel-buffering': 'no',
-      'x-ratelimit-limit': String(cap.limit),
-      'x-ratelimit-remaining': String(cap.remaining),
-      'x-ratelimit-reset': String(Math.ceil(cap.resetAt / 1000)),
+      ...(cap
+        ? {
+            'x-ratelimit-limit': String(cap.limit),
+            'x-ratelimit-remaining': String(cap.remaining),
+            'x-ratelimit-reset': String(Math.ceil(cap.resetAt / 1000)),
+          }
+        : {}),
     },
   });
 }

@@ -251,7 +251,7 @@ test('Iroh shows a live provider error and Stop ends a pending request', async (
   ).toBe(true);
 });
 
-test('Iroh links daily-capped visitors to more Nansen access', async ({
+test('Iroh offers BYOK after the daily cup and sends the visitor key', async ({
   page,
 }) => {
   test.setTimeout(90_000);
@@ -260,8 +260,19 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
   await page.route('**/api/nansen-status', (route) =>
     route.fulfill({ json: { nansen: 'configured' } }),
   );
-  await page.route('**/api/nansen-agent', (route) =>
-    route.fulfill({
+  let sawUserKeyHeader = false;
+  await page.route('**/api/nansen-agent', async (route) => {
+    const header = route.request().headers()['x-user-nansen-api-key'];
+    if (header === 'visitor-byok-key') {
+      sawUserKeyHeader = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: 'data: {"type":"delta","text":"BYOK answer"}\n\ndata: {"type":"finish","conversation_id":"conv_byok"}\n\ndata: [DONE]\n\n',
+      });
+      return;
+    }
+    await route.fulfill({
       status: 429,
       contentType: 'application/json',
       body: JSON.stringify({
@@ -269,8 +280,8 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
           'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
         code: 'nansen_agent_daily_limit',
       }),
-    }),
-  );
+    });
+  });
   await page.goto('/');
   await openStationPanel(page, 'Host');
   await page
@@ -281,7 +292,7 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
   await expect(page.locator('.iroh-error')).toContainText(
     'One cup for today, my friend. If you’d like to keep exploring, Nansen has more research waiting for you.',
   );
-  const cta = page.getByRole('link', { name: /Keep exploring with Nansen/ });
+  const cta = page.getByRole('link', { name: /Get a Nansen API key/ });
   await expect(cta).toHaveAttribute('href', 'https://nsn.ai/iroh0x');
   await expect(cta).toHaveAttribute('target', '_blank');
   await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
@@ -291,8 +302,21 @@ test('Iroh links daily-capped visitors to more Nansen access', async ({
   await expect(composer).toBeDisabled();
   await expect(composer).toHaveAttribute(
     'placeholder',
-    'Daily limit reached. Come back tomorrow.',
+    'Daily limit reached. Enter your key to continue.',
   );
+
+  await page.getByRole('button', { name: 'Enter your key' }).click();
+  await page
+    .getByPlaceholder('Paste your Nansen API key')
+    .fill('visitor-byok-key');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Using your Nansen key')).toBeVisible();
+  await expect(composer).toBeEnabled();
+
+  await composer.fill('Ask with my key');
+  await page.getByRole('button', { name: 'Ask Uncle', exact: true }).click();
+  await expect(page.getByText('BYOK answer')).toBeVisible();
+  expect(sawUserKeyHeader).toBe(true);
 });
 
 test('Iroh keeps a completed answer when Nansen returns no conversation ID', async ({
