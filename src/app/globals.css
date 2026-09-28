@@ -400,6 +400,12 @@ h2 {
   font-size: 25px;
   line-height: 1;
   cursor: pointer;
+
+  span {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 }
 .panel-close:hover {
   background: #fff9ea;
@@ -2285,8 +2291,8 @@ body:has(.auth-shell) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(212, 175, 120, 0.25);
@@ -3729,14 +3735,14 @@ body:has(.auth-shell) {
   bottom: 26px;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 1px solid rgba(233, 201, 131, 0.42);
   border-radius: 50%;
   background: rgba(24, 15, 9, 0.66);
   color: #f3dcb0;
-  font: 17px / 1 var(--font-body);
+  font: 20px / 1 var(--font-body);
   cursor: pointer;
   transition:
     border-color 160ms,

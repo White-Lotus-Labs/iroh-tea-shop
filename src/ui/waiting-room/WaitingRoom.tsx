@@ -1,6 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { petalCountFor, useMotionBudget } from '../motionBudget';
 import { PROJECT, REPO_URL } from './content';
 import { TeaPourButton } from './TeaPourButton';
@@ -104,8 +104,7 @@ export function WaitingRoom({
           rel="noreferrer"
           aria-label="Source on GitHub"
         >
-          <span className="waiting-repo-lead">Source on </span>GitHub{' '}
-          <span aria-hidden="true">↗</span>
+          <span className="waiting-repo-lead">Source on </span>GitHub
         </a>
       </header>
       <div className="waiting-stage">{children}</div>
