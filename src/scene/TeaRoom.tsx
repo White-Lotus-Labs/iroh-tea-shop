@@ -53,7 +53,6 @@ function RoomGeometry({
   onNavigate,
   onObservatoriumOpen,
   onStaged,
-  hostModel,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -68,7 +67,6 @@ function RoomGeometry({
   onNavigate: (station: Station) => void;
   onObservatoriumOpen: () => void;
   onStaged?: () => void;
-  hostModel: boolean;
 }) {
   const [hostHalo, setHostHalo] = useState(false);
   const posters = station !== 'Entrance';
@@ -170,7 +168,6 @@ function RoomGeometry({
         <TeaHost3D
           reduced={reduced}
           activity={irohActivity}
-          model={hostModel}
           lit={hostHalo}
           onActivate={() =>
             station === 'AvatarSeat' ? onMenuOpen() : onNavigate('AvatarSeat')
@@ -323,7 +320,6 @@ export default function TeaRoom({
   observatoriumZoomKey,
   onObservatoriumZoomEnd,
   onStaged,
-  hostModel,
 }: {
   station: Station;
   reduced: boolean;
@@ -348,7 +344,6 @@ export default function TeaRoom({
   observatoriumZoomKey: number;
   onObservatoriumZoomEnd: () => void;
   onStaged?: () => void;
-  hostModel: boolean;
 }) {
   const [lost, setLost] = useState(false);
   const light = lightExperience();
@@ -411,7 +406,6 @@ export default function TeaRoom({
                   onNavigate={onNavigate}
                   onObservatoriumOpen={onObservatoriumOpen}
                   onStaged={onStaged}
-                  hostModel={hostModel}
                 />
               </InTransition>
             </Surfaces>

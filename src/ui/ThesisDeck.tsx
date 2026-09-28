@@ -763,27 +763,6 @@ function ThesisReading({
             >
               Ask Uncle about this thesis
             </button>
-            <a
-              className="scroll-action"
-              href={origin ? xIntentUrl(thesis, summary, origin) : undefined}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Share this thesis on X
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
-            <button type="button" className="scroll-action" onClick={copyLink}>
-              Copy thesis link
-            </button>
-            {canShare && (
-              <button
-                type="button"
-                className="scroll-action"
-                onClick={nativeShare}
-              >
-                Share…
-              </button>
-            )}
             <button
               type="button"
               className="scroll-action scroll-action--seal"
@@ -795,6 +774,39 @@ function ThesisReading({
               </span>
               {followed ? 'Following the thesis' : 'Follow the thesis'}
             </button>
+            <div
+              className="scroll-share"
+              role="group"
+              aria-label="Share this thesis"
+            >
+              <span className="scroll-share-label" aria-hidden="true">
+                Share
+              </span>
+              <a
+                className="scroll-action"
+                href={origin ? xIntentUrl(thesis, summary, origin) : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Post on X<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+              <button
+                type="button"
+                className="scroll-action"
+                onClick={copyLink}
+              >
+                Copy link
+              </button>
+              {canShare && (
+                <button
+                  type="button"
+                  className="scroll-action"
+                  onClick={nativeShare}
+                >
+                  Other apps…
+                </button>
+              )}
+            </div>
           </div>
           <p className="scroll-toast" role="status" aria-live="polite">
             {toast}

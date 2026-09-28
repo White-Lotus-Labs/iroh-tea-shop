@@ -1599,7 +1599,7 @@
   letter-spacing: 0.04em;
 }
 
-/* Three groups in DOM order, so focus order matches: talk, share (x3), follow. */
+/* Talk and follow on one row, a quieter share row below; DOM order matches. */
 .scroll-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1607,17 +1607,28 @@
   padding-top: 16px;
 }
 
-.scroll-actions
-  > .scroll-action:not(.scroll-action--primary, .scroll-action--seal) {
+.scroll-share {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.scroll-share-label {
+  margin-inline-end: 4px;
+  color: var(--scroll-muted);
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scroll-share .scroll-action {
+  min-height: 40px;
   padding: 0 14px;
-}
-
-.scroll-action--primary {
-  margin-inline-end: 10px;
-}
-
-.scroll-action--seal {
-  margin-inline-start: auto;
+  background: transparent;
+  font-size: 12.5px;
 }
 
 .scroll-action {

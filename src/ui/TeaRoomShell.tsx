@@ -119,7 +119,7 @@ export default function TeaRoomShell({
   const [staged, setStaged] = useState(false);
   const onStaged = useCallback(() => setStaged(true), []);
   // Latches once the guest leaves Entrance by any path (Enter, deep link,
-  // dock), so the 3D host loads and stays mounted after a trip back.
+  // dock), so the thesis pictures prefetch only for guests inside.
   const [revealed, setRevealed] = useState(false);
   useEffect(() => {
     if (station !== 'Entrance') setRevealed(true);
@@ -572,7 +572,6 @@ export default function TeaRoomShell({
             observatoriumZoomKey={observatoriumZoomKey}
             onObservatoriumZoomEnd={finishObservatoriumOpen}
             onStaged={onStaged}
-            hostModel={revealed}
           />
 
           {!isEntrance && sceneAvailable && (

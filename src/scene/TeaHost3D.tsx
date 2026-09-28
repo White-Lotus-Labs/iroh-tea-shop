@@ -24,13 +24,12 @@ class HostBoundary extends Component<
 }
 
 /**
- * Uncle Iroh on his cushion. With `model` the sculpted, rigged host loads and
- * shows once his shaders are compiled; until then the cushion stays empty.
+ * Uncle Iroh on his cushion. He loads with the room behind the waiting room
+ * and shows once his shaders are compiled; until then the cushion stays empty.
  */
 export function TeaHost3D({
   reduced,
   activity = 'idle',
-  model = false,
   position = IROH_DEFAULT_POSITION,
   rotation = IROH_DEFAULT_ROTATION,
   lit = false,
@@ -38,7 +37,6 @@ export function TeaHost3D({
 }: {
   reduced: boolean;
   activity?: IrohActivity;
-  model?: boolean;
   position?: Point;
   rotation?: Point;
   lit?: boolean;
@@ -65,18 +63,16 @@ export function TeaHost3D({
         <cylinderGeometry args={[1, 1, 1, 32]} />
         <meshStandardMaterial color="#555a3c" roughness={0.92} />
       </mesh>
-      {model && (
-        <HostBoundary>
-          <Suspense fallback={null}>
-            <IrohModel
-              reduced={reduced}
-              activity={activity}
-              lit={lit}
-              onActivate={onActivate}
-            />
-          </Suspense>
-        </HostBoundary>
-      )}
+      <HostBoundary>
+        <Suspense fallback={null}>
+          <IrohModel
+            reduced={reduced}
+            activity={activity}
+            lit={lit}
+            onActivate={onActivate}
+          />
+        </Suspense>
+      </HostBoundary>
     </group>
   );
 }
