@@ -20,27 +20,27 @@ You need Node.js 22.12 or newer, npm, and a current browser.
 
 ```sh
 npm ci
-cp .env.example .env
 ```
 
-Put your Nansen key in `.env`:
+Create `.env.local` and put your Nansen key in it:
 
 ```sh
 NANSEN_API_KEY=your-key
 ```
 
-The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env`.
+The key stays on the server. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env.local`.
+
+Everything else is optional for local development. `.env.example` lists the available settings.
 
 `scripts/tripo.mjs` reads `TRIPO_API_KEY` from `.env.local`, not `.env`.
 
 ```sh
-npm run db:migrate
 npm run dev
 ```
 
 Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101`.
 
-`npm run db:migrate` creates the local database file and applies migrations. The path is `DATABASE_URL` in `.env` (`file:./dev.db`, which Prisma stores as `prisma/dev.db`; git ignores it). Keep it in `.env`, because the Prisma CLI does not read `.env.local`. Each checkout has its own file. Skip this and sign-in breaks, because the session table is missing. The same command creates the table that holds saved Nansen readings. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
+`npm run dev` creates the local database and applies pending migrations before Next.js starts. By default it uses `file:./dev.db`, which Prisma stores as `prisma/dev.db`; git ignores it, and each checkout has its own file. Set `DATABASE_URL` only when you need a different location. You can also run `npm run db:migrate` by itself. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica.
 
 Optional. Uncle's live chat is limited to one message per IP address per UTC day. Change that with `NANSEN_AGENT_DAILY_LIMIT` in `.env`. The default is 1.
 
