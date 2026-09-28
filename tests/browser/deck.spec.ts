@@ -128,7 +128,7 @@ test('deck shows an honest offline state when Nansen answers 503', async ({
   ).toContainText('Conviction offline');
 });
 
-test('a counter card opens the one panel on its thesis, and another thesis rearranges it', async ({
+test('a counter card opens the Thesis Desk on all scrolls, and each thesis opens in the same panel', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -169,6 +169,16 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
 
   const panel = page.locator('.reading-panel');
   const main = page.locator('main');
+  await expect(page.locator('.deck-book')).toHaveCount(3);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(main).toHaveAttribute('data-mood', 'waiting');
+
+  await panel.evaluate((el) => {
+    el.dataset.probe = 'one-window';
+  });
+  await page
+    .getByRole('button', { name: /Open The Crypto Bull Market/ })
+    .click();
   await expect(
     page.getByRole('dialog', { name: 'The Crypto Bull Market' }),
   ).toBeVisible();
@@ -177,9 +187,6 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
   ).toHaveAttribute('aria-current', 'true');
   await expect(main).toHaveAttribute('data-mood', 'supported');
 
-  await panel.evaluate((el) => {
-    el.dataset.probe = 'one-window';
-  });
   await page
     .getByRole('button', { name: /Open AI Taking Over the World/ })
     .click();

@@ -371,17 +371,14 @@ export default function TeaRoomShell({
     setSelectedThesis(null);
     setPour((current) => ({ ...current, mood: 'waiting' }));
   }, []);
-  const pickThesis = useCallback(
-    (id: ThesisId) => {
-      // An explicit pick wins over the thesis saved before asking Uncle.
-      returnThesis.current = null;
-      setSelectedThesis(id);
-      if (station === 'Counter') return setPanelOpen(true);
-      navigate('Counter');
-      deepLinkOpenOnce.current = true;
-    },
-    [station, navigate],
-  );
+  // A counter card opens the desk on all three scrolls, not on its own thesis.
+  const openDesk = useCallback(() => {
+    // An explicit click wins over the thesis saved before asking Uncle.
+    returnThesis.current = null;
+    if (station === 'Counter') return openPanel();
+    navigate('Counter');
+    deepLinkOpenOnce.current = true;
+  }, [station, navigate, openPanel]);
   const onTalkToUncle = useCallback(
     (text: string) => {
       returnThesis.current = selectedThesis;
@@ -566,7 +563,7 @@ export default function TeaRoomShell({
             shelfRevealed={shelfOpen}
             menuClosed={!isEntrance && !panelOpen}
             onMenuOpen={openPanel}
-            onThesisPick={pickThesis}
+            onThesisPick={openDesk}
             onNavigate={navigate}
             onObservatoriumOpen={openObservatorium}
             observatoriumZoomKey={observatoriumZoomKey}
