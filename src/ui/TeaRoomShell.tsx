@@ -525,7 +525,7 @@ export default function TeaRoomShell({
               aria-label="Data source status"
               aria-describedby="status-popup"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
                 <circle
                   cx="8"
                   cy="8"
@@ -723,7 +723,21 @@ export default function TeaRoomShell({
                 aria-label={`Close ${active.label} menu`}
                 onClick={closePanel}
               >
-                <span aria-hidden="true">×</span>
+                <span aria-hidden="true">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </span>
                 <span className="sr-only">Close menu</span>
               </button>
               <span

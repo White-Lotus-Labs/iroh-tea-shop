@@ -2244,8 +2244,8 @@ body:has(.auth-shell) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(212, 175, 120, 0.25);
