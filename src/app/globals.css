@@ -656,14 +656,25 @@ input {
 .iroh-error button,
 .iroh-limit-cta,
 .iroh-byok-form button {
-  display: inline-block;
+  /* Button and <a> share one box so Enter key / Get key stay equal height. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   border: 1px solid #b9aa8d;
   background: #f9f2e4;
   color: var(--ink);
   border-radius: 4px;
-  padding: 7px 11px;
+  padding: 8px 12px;
+  min-height: 34px;
+  font: inherit;
   font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
   text-decoration: none;
+  cursor: pointer;
+  appearance: none;
 }
 .iroh-byok {
   display: flex;
@@ -3180,7 +3191,10 @@ body:has(.auth-shell) {
   color: var(--scroll-ink-soft, var(--muted));
 }
 .app-shell:not([data-station='Shelf']) .reading-panel .secondary:active,
-.app-shell:not([data-station='Shelf']) .iroh-chat-actions button:active {
+.app-shell:not([data-station='Shelf']) .iroh-chat-actions button:active,
+.app-shell:not([data-station='Shelf']) .iroh-error button:active,
+.app-shell:not([data-station='Shelf']) .iroh-limit-cta:active,
+.app-shell:not([data-station='Shelf']) .iroh-byok-form button:active {
   box-shadow: inset 0 1px 3px rgba(74, 47, 29, 0.25);
 }
 /* Focus rings: vermilion on paper keeps 3:1 contrast against rice paper. */
@@ -3251,7 +3265,10 @@ body:has(.auth-shell) {
   background: var(--jade);
   box-shadow: 0 0 0 3px rgba(44, 110, 82, 0.16);
 }
-.app-shell:not([data-station='Shelf']) .iroh-chat-actions button {
+.app-shell:not([data-station='Shelf']) .iroh-chat-actions button,
+.app-shell:not([data-station='Shelf']) .iroh-error button,
+.app-shell:not([data-station='Shelf']) .iroh-limit-cta,
+.app-shell:not([data-station='Shelf']) .iroh-byok-form button {
   min-height: 34px;
   padding: 8px 12px;
 }
