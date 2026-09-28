@@ -1,8 +1,19 @@
 'use client';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react';
 import { IrohSession, type ChatMessage } from '../nansen/session';
 import { MAX_QUESTION_LENGTH } from '../nansen/limits';
 import type { NansenAvailability } from '../nansen/availability';
+import {
+  clearUserNansenApiKey,
+  getUserNansenApiKey,
+  setUserNansenApiKey,
+} from '../nansen/user-api-key';
 import type { PublicUser } from '../auth/service';
 import { IrohMessage } from './IrohMessage';
 
@@ -33,6 +44,9 @@ export function IrohChat({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(Boolean(user));
+  const [hasUserKey, setHasUserKey] = useState(false);
+  const [keyDraft, setKeyDraft] = useState('');
+  const [keyFormOpen, setKeyFormOpen] = useState(false);
   const loadGeneration = useRef(0);
   const input = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -100,6 +114,10 @@ export function IrohChat({
   };
 
   useEffect(() => {
+    setHasUserKey(Boolean(getUserNansenApiKey()));
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     let cancelled = false;
     const initialize = async () => {
@@ -151,6 +169,22 @@ export function IrohChat({
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [chat.messages.at(-1)?.content, chat.error]);
   const dailyCap = chat.errorCode === 'nansen_agent_daily_limit';
+  const needsUserKey = !hasUserKey && (dailyCap || nansen === 'unavailable');
+  const composerLockedByCup =
+    (dailyCap || nansen === 'unavailable') && !hasUserKey;
+  const saveUserKey = (event: FormEvent) => {
+    event.preventDefault();
+    if (!setUserNansenApiKey(keyDraft)) return;
+    setHasUserKey(true);
+    setKeyDraft('');
+    setKeyFormOpen(false);
+    input.current?.focus();
+  };
+  const clearStoredKey = () => {
+    clearUserNansenApiKey();
+    setHasUserKey(false);
+    setKeyFormOpen(false);
+  };
   const send = () => {
     const pending = session.send(draft);
     if (pending) {
@@ -158,6 +192,48 @@ export function IrohChat({
       if (user) void pending.then(fetchChats).then(setHistory, () => {});
     }
   };
+  const byokActions = (
+    <div className="iroh-byok">
+      {keyFormOpen ? (
+        <form className="iroh-byok-form" onSubmit={saveUserKey}>
+          <label htmlFor="iroh-user-key" className="sr-only">
+            Your Nansen API key
+          </label>
+          <input
+            id="iroh-user-key"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            value={keyDraft}
+            onChange={(event) => setKeyDraft(event.target.value)}
+            placeholder="Paste your Nansen API key"
+          />
+          <button type="submit" disabled={!keyDraft.trim()}>
+            Save
+          </button>
+          <button type="button" onClick={() => setKeyFormOpen(false)}>
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <button
+          type="button"
+          className="iroh-limit-cta"
+          onClick={() => setKeyFormOpen(true)}
+        >
+          Enter your key
+        </button>
+      )}
+      <a
+        className="iroh-limit-cta"
+        href="https://nsn.ai/iroh0x"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Get a Nansen API key ↗
+      </a>
+    </div>
+  );
   return (
     <div className="iroh-chat">
       <header className="iroh-chat-head">
@@ -167,7 +243,7 @@ export function IrohChat({
             Ask <em>Uncle</em>
           </h1>
           <p>
-            {nansen === 'configured'
+            {nansen === 'configured' || hasUserKey
               ? 'Live Nansen research · Fast mode'
               : 'Nansen research is offline'}
           </p>
@@ -236,11 +312,20 @@ export function IrohChat({
               <p className="iroh-greeting-title">
                 Bring me a token, wallet, or market question.
               </p>
-              {nansen === 'configured' && (
+              {(nansen === 'configured' || hasUserKey) && (
                 <p>
                   I’ll consult Nansen’s Research Agent and bring back the
                   onchain evidence.
                 </p>
+              )}
+              {needsUserKey && !dailyCap && (
+                <>
+                  <p>
+                    The house key is offline. Enter your own Nansen key, or get
+                    one below.
+                  </p>
+                  {byokActions}
+                </>
               )}
               {!user && (
                 <p>
@@ -271,7 +356,7 @@ export function IrohChat({
             ))}
           {chat.isStreaming && (
             <p className="iroh-activity" role="status">
-              {nansen === 'unavailable'
+              {nansen === 'unavailable' && !hasUserKey
                 ? 'Nansen research is offline'
                 : chat.currentTool
                   ? `Researching with Nansen: ${chat.currentTool}`
@@ -285,16 +370,9 @@ export function IrohChat({
             >
               <p>{chat.error}</p>
               {dailyCap ? (
-                <a
-                  className="iroh-limit-cta"
-                  href="https://nsn.ai/iroh0x"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Keep exploring with Nansen ↗
-                </a>
+                !hasUserKey && byokActions
               ) : (
-                nansen === 'configured' && (
+                (nansen === 'configured' || hasUserKey) && (
                   <button type="button" onClick={() => session.retry()}>
                     Try again
                   </button>
@@ -305,6 +383,14 @@ export function IrohChat({
           <div ref={bottom} />
         </div>
       </div>
+      {hasUserKey && (
+        <p className="iroh-byok-using">
+          Using your Nansen key{' '}
+          <button type="button" onClick={clearStoredKey}>
+            Clear
+          </button>
+        </p>
+      )}
       <form
         className="iroh-compose"
         onSubmit={(event) => {
@@ -334,15 +420,17 @@ export function IrohChat({
           placeholder={
             historyLoading
               ? 'Loading your chats…'
-              : dailyCap
-                ? 'Daily limit reached. Come back tomorrow.'
+              : composerLockedByCup
+                ? dailyCap
+                  ? 'Daily limit reached. Enter your key to continue.'
+                  : 'Enter a Nansen API key to ask Uncle.'
                 : 'What is smart money doing with BTC this week?'
           }
           rows={2}
           disabled={
             chat.isStreaming ||
             historyLoading ||
-            dailyCap ||
+            composerLockedByCup ||
             (Boolean(user) && !chat.chatId)
           }
         />
@@ -366,7 +454,7 @@ export function IrohChat({
               disabled={
                 !draft.trim() ||
                 historyLoading ||
-                dailyCap ||
+                composerLockedByCup ||
                 (Boolean(user) && !chat.chatId)
               }
             >

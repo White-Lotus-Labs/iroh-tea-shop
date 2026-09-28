@@ -1,5 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IrohSession } from '../src/nansen/session';
+import {
+  clearUserNansenApiKey,
+  setUserNansenApiKey,
+  USER_NANSEN_API_KEY_HEADER,
+  USER_NANSEN_API_KEY_STORAGE,
+} from '../src/nansen/user-api-key';
 
 function sse(parts: string[]) {
   return new Response(
@@ -14,7 +20,42 @@ function sse(parts: string[]) {
   );
 }
 
+afterEach(() => {
+  clearUserNansenApiKey();
+  try {
+    localStorage?.removeItem(USER_NANSEN_API_KEY_STORAGE);
+  } catch {
+    /* Storage may be missing in this runner. */
+  }
+});
+
 describe('Iroh client session', () => {
+  it('sends the user key header when a browser key is stored', async () => {
+    const memory = new Map<string, string>();
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: (key: string) => memory.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          memory.set(key, value);
+        },
+        removeItem: (key: string) => {
+          memory.delete(key);
+        },
+      },
+    });
+    expect(setUserNansenApiKey('browser-byok')).toBe(true);
+    const fetcher = vi.fn().mockResolvedValue(
+      Response.json({ error: 'capped' }, { status: 429 }),
+    );
+    const session = new IrohSession(fetcher);
+    await session.send('hello');
+    const headers = new Headers(
+      (fetcher.mock.calls[0][1] as RequestInit).headers,
+    );
+    expect(headers.get(USER_NANSEN_API_KEY_HEADER)).toBe('browser-byok');
+  });
+
   it('does not send questions longer than 100 characters', () => {
     const fetcher = vi.fn();
     const session = new IrohSession(fetcher);

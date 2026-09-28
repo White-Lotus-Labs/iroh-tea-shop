@@ -16,9 +16,9 @@ You arrive in a waiting room that looks like a sketchbook. Entering the tea room
 - The Crypto Bull Market (Bitcoin, Ether, Hyperliquid, Solana)
 - AI Taking Over the World (Venice, SanDisk, NVIDIA, Micron)
 
-Each book shows a conviction seal. The seal is a summary of smart-money numbers, not a promise that the thesis is right. Open a book to read the essay. Open an asset to see the evidence we saved: who has been buying and selling, holders, how much supply is not circulating yet, and perp positioning when that asset trades as a perp.
+A click on a counter card in the room opens the Thesis Desk on all three scrolls. Each book shows a conviction seal. The seal is a summary of smart-money numbers, not a promise that the thesis is right. Open a book to read the essay. Open an asset to see the evidence we saved: who has been buying and selling, holders, how much supply is not circulating yet, and perp positioning when that asset trades as a perp. From an open thesis you can ask Uncle, share on X, open trading partners, or follow the idea in this browser.
 
-**Host.** Uncle answers in a chat. He uses Nansen's Research Agent. This part is live. Sending a message calls Nansen at that moment. Guests keep the thread until they reload. If you sign in, your chats are kept in the database and you can reopen them.
+**Host.** Uncle answers in a chat. He uses Nansen's Research Agent. This part is live. Sending a message calls Nansen at that moment. With the house key, each IP gets one free message per UTC day. After that cup — or when the house key is missing — the panel offers **Enter your key** (browser `localStorage`, sent only to Uncle) or **Get a Nansen API key** at [nsn.ai/iroh0x](https://nsn.ai/iroh0x). Escape closes the Host panel and keeps a half-typed question. Guests keep the thread until they reload. If you sign in, your chats are kept in the database and you can reopen them.
 
 **Shelf.** Ten spirits stand in for the wallets on a saved Nansen leaderboard. The scroll has four boards: Perps Traders, Smart Wallets, and Whales (accounts worth $10M or more) on Hyperliquid, and Meme Traders. The default sort is 30-day PnL. Rank 1 is open by default. Clicking another rank opens it in place with realized and unrealized PnL, 30-day volume, trade count, and its three largest open positions. That detail comes back with the same leaderboard call, so it adds no Nansen requests. The names (Azure Dragon, Vermilion Phoenix, and the rest) are illustrations. They are not claims about who owns the wallet. Clicking through opens that address in Nansen's profiler.
 
@@ -38,9 +38,9 @@ The server fills that table when it starts, then checks every hour. Fast reading
 
 Until the first fill finishes, the desk and the shelf say the readings are still being saved.
 
-Uncle is the exception. His route is `POST /api/nansen-agent`, which calls `agent/fast`. That is one live request per message. The default limit is one message per IP per UTC day (`NANSEN_AGENT_DAILY_LIMIT`). Chat text for signed-in people is stored. The Nansen call is not replaced by the hourly save, because every question is different.
+Uncle is the exception. His route is `POST /api/nansen-agent`, which calls `agent/fast`. That is one live request per message. The default limit is one message per IP per UTC day (`NANSEN_AGENT_DAILY_LIMIT`) when the **house** key is used. A visitor who pastes their own Nansen key in the browser skips that cup. Chat text for signed-in people is stored. The Nansen call is not replaced by the hourly save, because every question is different.
 
-The API key lives only on the server (`NANSEN_API_KEY`). The browser never sees it.
+The house API key lives only on the server (`NANSEN_API_KEY`). Visitors may store **their own** key in the browser for Uncle only (`localStorage` key `iroh-user-nansen-api-key`, request header `x-user-nansen-api-key`). That key is never used for the thesis desk or the shelf. After the free cup, the Host UI shows Enter your key and Get a Nansen API key ([nsn.ai/iroh0x](https://nsn.ai/iroh0x)).
 
 ## Accounts
 
@@ -54,7 +54,7 @@ One SQLite file on a single Node process. Locally that file is `prisma/dev.db` (
 - Uncle's chats and messages, for signed-in people
 - saved Nansen readings (the deck, each asset page, the shelf)
 
-Railway runs migrations before the server starts. A new checkout needs `npm run db:migrate` before sign-in or the hourly save can write.
+Railway runs migrations before the server starts (`scripts/migrate-db.mjs`, then `next start`). A push or merge to `main` auto-deploys the `web` service. A new checkout needs `npm run db:migrate` before sign-in or the hourly save can write.
 
 ## What you can ignore
 
@@ -65,6 +65,7 @@ Visual scores, the perf budget, and the Nansen request-manager note are still us
 ## Honest limits
 
 - Several server copies would each keep their own SQLite file and each run their own refresh schedule. Ship one web process.
-- Uncle's daily cap resets if that process restarts.
+- Uncle's house-key daily cap resets if that process restarts. A visitor browser key skips the cup.
+- A visitor key in `localStorage` is plaintext in that browser. Clear it from the Host panel when finished.
 - The 3D host is still being finished. The copy says Uncle.
 - Tests use a fake Nansen. They check that pages read the database and that the hourly save is the thing that calls out. They do not check a live Nansen plan or a credit balance.
