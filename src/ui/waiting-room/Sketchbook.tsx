@@ -1,14 +1,14 @@
 'use client';
 import {
+  type CSSProperties,
   memo,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
 } from 'react';
 import dynamic from 'next/dynamic';
 import {
@@ -27,8 +27,8 @@ import {
   BakerCopy,
   SKETCH_IMAGES,
   SKETCH_PAGES,
-  SPREAD_TITLES,
   sketchPreloadUrl,
+  SPREAD_TITLES,
 } from './sketchbookPages';
 import { noteBook, releaseBook } from './bookMotion';
 import { bakePageShot, getPageShot, idle, pageShotKey } from './pageSnapshot';
@@ -1019,32 +1019,39 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
         </button>
       </div>
       <nav ref={index} className="sb-index" aria-label="Sketchbook pages">
-        {SPREAD_TITLES.map((title, i) => {
-          const target = mode === 'spread' ? i : i * 2;
-          const current =
-            mode === 'spread' ? shown === i : Math.floor(shown / 2) === i;
-          return (
-            <button
-              key={title}
-              type="button"
-              aria-current={current ? 'page' : undefined}
-              onClick={() => {
-                auto.current = false;
-                if (current) return;
-                const { view } = live.current;
-                if (Math.abs(target - view) === 1)
-                  step(target > view ? 'next' : 'prev');
-                else {
-                  settle();
-                  setTurn(null);
-                  setView(target);
-                }
-              }}
-            >
-              {title}
-            </button>
-          );
-        })}
+        <div className="sb-index-list">
+          {SPREAD_TITLES.map((title, i) => {
+            const target = mode === 'spread' ? i : i * 2;
+            const current =
+              mode === 'spread' ? shown === i : Math.floor(shown / 2) === i;
+            return (
+              <button
+                key={title}
+                type="button"
+                aria-current={current ? 'page' : undefined}
+                onClick={() => {
+                  auto.current = false;
+                  if (current) return;
+                  const { view } = live.current;
+                  if (Math.abs(target - view) === 1)
+                    step(target > view ? 'next' : 'prev');
+                  else {
+                    settle();
+                    setTurn(null);
+                    setView(target);
+                  }
+                }}
+              >
+                {title}
+              </button>
+            );
+          })}
+        </div>
+
+        <span className="sb-index-counter" aria-live="polite">
+          {(mode === 'spread' ? shown : Math.floor(shown)) + 1} of{' '}
+          {SPREAD_TITLES.length * 2}
+        </span>
       </nav>
       {petals && (
         <PetalCanvas

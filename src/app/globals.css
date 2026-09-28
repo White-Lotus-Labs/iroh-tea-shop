@@ -400,6 +400,12 @@ h2 {
   font-size: 25px;
   line-height: 1;
   cursor: pointer;
+
+  span {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 }
 .panel-close:hover {
   background: #fff9ea;
