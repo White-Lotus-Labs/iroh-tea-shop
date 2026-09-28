@@ -1,7 +1,14 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { flushSync } from 'react-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  startTransition,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { MotionPreference, Station } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import type { IrohActivity } from '../scene/TeaHost3D';
@@ -60,12 +67,10 @@ const TeaRoom = dynamic(
     loading: () => <div className="scene-fallback" />,
   },
 );
-const ThesisDeck = dynamic(loadThesisDeck, {
-  loading: () => null,
-});
-const IrohChat = dynamic(loadIrohChat, {
-  loading: () => null,
-});
+// No `loading`: the panel's own Suspense waits for them, so the scroll mounts
+// once with its content and final size instead of growing mid-unroll.
+const ThesisDeck = dynamic(loadThesisDeck);
+const IrohChat = dynamic(loadIrohChat);
 
 function idlePreload(load: () => Promise<unknown>) {
   if (typeof window.requestIdleCallback === 'function') {
@@ -161,6 +166,11 @@ export default function TeaRoomShell({
     return () => window.clearTimeout(timer);
   }, [revealed]);
   const panel = useRef<HTMLElement>(null);
+  // Openers commit the panel in a transition, so focus it as it mounts.
+  const panelRef = useCallback((node: HTMLElement | null) => {
+    panel.current = node;
+    node?.focus({ preventScroll: true });
+  }, []);
   const openHint = useRef<HTMLButtonElement>(null);
   const observatoriumOpening = useRef(false);
   // Deep link opens the Counter panel once after the camera arrives.
@@ -261,11 +271,14 @@ export default function TeaRoomShell({
     setPanelOpen(true);
   }, [shelfFocused, station, cameraAt, sceneFailed]);
   const openPanel = useCallback(() => {
-    if (station === 'Shelf') {
-      if (cameraAt !== 'Shelf' && !sceneFailed) setCameraAt(null);
-      setShelfFocused(true);
-    }
-    setPanelOpen(true);
+    // A transition keeps the panel unmounted until its lazy content is ready.
+    startTransition(() => {
+      if (station === 'Shelf') {
+        if (cameraAt !== 'Shelf' && !sceneFailed) setCameraAt(null);
+        setShelfFocused(true);
+      }
+      setPanelOpen(true);
+    });
     queueMicrotask(() => panel.current?.focus());
   }, [station, cameraAt, sceneFailed]);
   useEffect(() => {
@@ -273,7 +286,7 @@ export default function TeaRoomShell({
     if (station !== 'Counter') return;
     if (cameraAt !== 'Counter' && !sceneFailed) return;
     deepLinkOpenOnce.current = false;
-    setPanelOpen(true);
+    startTransition(() => setPanelOpen(true));
   }, [station, cameraAt, sceneFailed]);
   const closePanel = useCallback(() => {
     const paper = panel.current;
@@ -382,12 +395,13 @@ export default function TeaRoomShell({
   const onTalkToUncle = useCallback(
     (text: string) => {
       returnThesis.current = selectedThesis;
+      // Urgent, not a transition: a pending one could land after the guest
+      // closes the desk. The panel's Suspense still mounts it once, with the chat.
       setUncleDraft({ text, key: Date.now() });
       setCameraAt(null);
       setShelfFocused(false);
       setStation('AvatarSeat');
       setPanelOpen(true);
-      queueMicrotask(() => panel.current?.focus());
     },
     [selectedThesis],
   );
@@ -661,50 +675,52 @@ export default function TeaRoomShell({
           )}
         </section>
 
-        {showPanel && (
-          <section
-            key={station}
-            className="reading-panel"
-            id="main-panel"
-            ref={panel}
-            tabIndex={-1}
-            aria-label={active.label}
-          >
-            <button
-              type="button"
-              className="panel-close"
-              aria-label={`Close ${active.label} menu`}
-              onClick={closePanel}
+        <Suspense fallback={null}>
+          {showPanel && (
+            <section
+              key={station}
+              className="reading-panel"
+              id="main-panel"
+              ref={panelRef}
+              tabIndex={-1}
+              aria-label={active.label}
             >
-              <span aria-hidden="true">×</span>
-              <span className="sr-only">Close menu</span>
-            </button>
-            <span
-              className="scroll-ornament"
-              aria-hidden="true"
-              data-seal={teaser?.glyph ?? '茶'}
-            />
-            {station === 'Counter' && (
-              <ThesisDeck
-                reduced={reduced}
-                initialThesis={initialThesis}
-                selectedThesis={selectedThesis}
-                onOpenThesis={onOpenThesis}
-                onCloseThesis={onCloseThesis}
-                onTalkToUncle={onTalkToUncle}
+              <button
+                type="button"
+                className="panel-close"
+                aria-label={`Close ${active.label} menu`}
+                onClick={closePanel}
+              >
+                <span aria-hidden="true">×</span>
+                <span className="sr-only">Close menu</span>
+              </button>
+              <span
+                className="scroll-ornament"
+                aria-hidden="true"
+                data-seal={teaser?.glyph ?? '茶'}
               />
-            )}
-            {station === 'AvatarSeat' && (
-              <IrohChat
-                session={irohSession}
-                user={user}
-                nansen={nansen}
-                draft={uncleDraft}
-              />
-            )}
-            {shelfOpen && <SmartWalletShelf nansen={nansen} />}
-          </section>
-        )}
+              {station === 'Counter' && (
+                <ThesisDeck
+                  reduced={reduced}
+                  initialThesis={initialThesis}
+                  selectedThesis={selectedThesis}
+                  onOpenThesis={onOpenThesis}
+                  onCloseThesis={onCloseThesis}
+                  onTalkToUncle={onTalkToUncle}
+                />
+              )}
+              {station === 'AvatarSeat' && (
+                <IrohChat
+                  session={irohSession}
+                  user={user}
+                  nansen={nansen}
+                  draft={uncleDraft}
+                />
+              )}
+              {shelfOpen && <SmartWalletShelf nansen={nansen} />}
+            </section>
+          )}
+        </Suspense>
       </div>
 
       {!isEntrance && (

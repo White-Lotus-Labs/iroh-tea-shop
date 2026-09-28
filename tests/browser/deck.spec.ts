@@ -213,7 +213,40 @@ test('full motion reading switches theses in place and returns focus to the book
   await mockNansen(page);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // The first open must mount the scroll with its deck at its final size;
+  // an empty paper that resizes mid-unroll reads as a second opening.
+  await page.addInitScript(() => {
+    new MutationObserver((_, observer) => {
+      const panel = document.querySelector('.reading-panel');
+      if (!panel) return;
+      observer.disconnect();
+      const { left, width } = panel.getBoundingClientRect();
+      Object.assign(window, {
+        firstPanel: {
+          deck: Boolean(panel.querySelector('.thesis-deck')),
+          left: Math.round(left),
+          width: Math.round(width),
+        },
+      });
+    }).observe(document, { childList: true, subtree: true });
+  });
   await openCounter(page);
+  const panel = page.locator('.reading-panel');
+  await expect(panel).toBeFocused();
+  await page.waitForFunction(() =>
+    document
+      .querySelector('.reading-panel')
+      ?.getAnimations()
+      .every((a) => a.playState === 'finished'),
+  );
+  const box = await panel.boundingBox();
+  expect(
+    await page.evaluate(() => (window as { firstPanel?: unknown }).firstPanel),
+  ).toEqual({
+    deck: true,
+    left: Math.round(box!.x),
+    width: Math.round(box!.width),
+  });
   const robinhood = page.getByRole('button', { name: /Open Robinhood Chain/ });
   await robinhood.click();
   const scroll = page.getByRole('dialog', {
