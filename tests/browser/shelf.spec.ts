@@ -232,7 +232,28 @@ test('clicking the Shelf in the room starts the focus journey', async ({
   await expect(
     page.getByRole('button', { name: 'See the top traders' }),
   ).toBeVisible();
-  await page.mouse.click(1000, 450);
+  // Click the middle of the shelf where the camera draws it; a fixed pixel
+  // can fall in a gap between the uprights and the tins.
+  type Camera = {
+    pose(): { moving: boolean };
+    project(point: [number, number, number]): [number, number, number];
+  };
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (
+            window as typeof window & { __teaCamera?: Camera }
+          ).__teaCamera?.pose().moving,
+      ),
+    )
+    .toBe(false);
+  const [x, y] = await page.evaluate(() =>
+    (window as typeof window & { __teaCamera: Camera }).__teaCamera.project([
+      3.6, 1.7, -4.55,
+    ]),
+  );
+  await page.mouse.click(x, y);
   await expect(page.locator('.app-shell')).toHaveAttribute(
     'data-shelf-view',
     'open',

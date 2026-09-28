@@ -64,7 +64,7 @@ export const PROJECT = {
     {
       label: 'Shelf',
       caption: 'Top traders',
-      text: 'See the ten Smart HL Perps Traders with the highest 30-day PnL on Nansen. Open any wallet in Nansen’s profiler.',
+      text: 'Four 30-day boards from Nansen: perps traders, smart wallets, whales and meme traders. Open any wallet in Nansen’s profiler.',
     },
     {
       label: 'Observatorium',

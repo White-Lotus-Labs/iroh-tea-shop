@@ -128,7 +128,7 @@ test('deck shows an honest offline state when Nansen answers 503', async ({
   ).toContainText('Conviction offline');
 });
 
-test('a counter card opens the one panel on its thesis, and another thesis rearranges it', async ({
+test('a counter card opens the Thesis Desk on all scrolls, and each thesis opens in the same panel', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -169,6 +169,16 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
 
   const panel = page.locator('.reading-panel');
   const main = page.locator('main');
+  await expect(page.locator('.deck-book')).toHaveCount(3);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(main).toHaveAttribute('data-mood', 'waiting');
+
+  await panel.evaluate((el) => {
+    el.dataset.probe = 'one-window';
+  });
+  await page
+    .getByRole('button', { name: /Open The Crypto Bull Market/ })
+    .click();
   await expect(
     page.getByRole('dialog', { name: 'The Crypto Bull Market' }),
   ).toBeVisible();
@@ -177,9 +187,6 @@ test('a counter card opens the one panel on its thesis, and another thesis rearr
   ).toHaveAttribute('aria-current', 'true');
   await expect(main).toHaveAttribute('data-mood', 'supported');
 
-  await panel.evaluate((el) => {
-    el.dataset.probe = 'one-window';
-  });
   await page
     .getByRole('button', { name: /Open AI Taking Over the World/ })
     .click();
@@ -206,7 +213,40 @@ test('full motion reading switches theses in place and returns focus to the book
   await mockNansen(page);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // The first open must mount the scroll with its deck at its final size;
+  // an empty paper that resizes mid-unroll reads as a second opening.
+  await page.addInitScript(() => {
+    new MutationObserver((_, observer) => {
+      const panel = document.querySelector('.reading-panel');
+      if (!panel) return;
+      observer.disconnect();
+      const { left, width } = panel.getBoundingClientRect();
+      Object.assign(window, {
+        firstPanel: {
+          deck: Boolean(panel.querySelector('.thesis-deck')),
+          left: Math.round(left),
+          width: Math.round(width),
+        },
+      });
+    }).observe(document, { childList: true, subtree: true });
+  });
   await openCounter(page);
+  const panel = page.locator('.reading-panel');
+  await expect(panel).toBeFocused();
+  await page.waitForFunction(() =>
+    document
+      .querySelector('.reading-panel')
+      ?.getAnimations()
+      .every((a) => a.playState === 'finished'),
+  );
+  const box = await panel.boundingBox();
+  expect(
+    await page.evaluate(() => (window as { firstPanel?: unknown }).firstPanel),
+  ).toEqual({
+    deck: true,
+    left: Math.round(box!.x),
+    width: Math.round(box!.width),
+  });
   const robinhood = page.getByRole('button', { name: /Open Robinhood Chain/ });
   await robinhood.click();
   const scroll = page.getByRole('dialog', {

@@ -16,7 +16,7 @@ export const STATION_TEASERS: Partial<
   },
   Shelf: {
     glyph: '卷',
-    text: 'Meet the ten Smart HL Perps Traders leading by 30-day PnL.',
+    text: 'See the top ten perps traders, smart wallets, whales and meme traders.',
     cta: ['See the', 'top traders'],
   },
   TeaTable: {

@@ -96,7 +96,9 @@ uniform float eyeTop[${EYE_COLUMNS * 2}];
 uniform float eyeBot[${EYE_COLUMNS * 2}];
 uniform vec2 eyeGaze;
 uniform float eyeLid;
-float eyeMask = 0.0;`;
+float eyeMask = 0.0;
+float lidMask = 0.0;
+vec4 region = vec4( 0.0 );`;
 
 /**
  * A procedural eye over the painted one: sclera with lid shadow, brown iris
@@ -161,28 +163,33 @@ vec3 irohEye( const in int i, const in vec3 base, inout float mask ) {
   float lash = ( 1.0 - smoothstep( 0.0015, 0.0015 + aa, abs( p.y - top - 0.0006 ) ) ) * ( 1.0 - smoothstep( 0.9, 1.1, abs( x ) ) ) * window;
   outColor = mix( outColor, vec3( 0.03, 0.02, 0.015 ), lash * 0.92 );
   mask = max( mask, open );
+  lidMask = max( lidMask, lidded );
   return outColor;
 }`;
 
 const BODY_SURFACE = /* glsl */ `
 diffuseColor.rgb = irohEye( 0, diffuseColor.rgb, eyeMask );
 diffuseColor.rgb = irohEye( 1, diffuseColor.rgb, eyeMask );
-float skinTone = vMask.r * ( 1.0 - eyeMask );
+// The eye under the lid is masked as glossy cloth; shade the lid as skin.
+// SKIN_DIFFUSE keeps vMask: skin wrap on the eyeball's normals lights the lid pink.
+region = mix( vMask, vec4( 1.0, 0.0, 0.0, 0.0 ), lidMask );
+float skinTone = region.r * ( 1.0 - eyeMask );
 float luma = dot( diffuseColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) );
 diffuseColor.rgb = mix( diffuseColor.rgb, mix( vec3( luma ), diffuseColor.rgb, 0.7 ) * vec3( 1.04, 0.94, 0.93 ), skinTone );`;
 
 const BODY_ROUGHNESS = /* glsl */ `
-roughnessFactor = mix( roughnessFactor, max( roughnessFactor, 0.62 ), vMask.r );
-roughnessFactor = mix( roughnessFactor, max( roughnessFactor, 0.75 ), vMask.g );
+roughnessFactor = mix( roughnessFactor, max( roughnessFactor, 0.62 ), region.r );
+roughnessFactor = mix( roughnessFactor, max( roughnessFactor, 0.75 ), region.g );
 roughnessFactor = mix( roughnessFactor, 1.0, eyeMask );`;
 
 /** A fine plain weave on the robe, faded out before it can alias. */
 const BODY_WEAVE = /* glsl */ `
 float crease = smoothstep( 0.2, 0.65, length( normal - nonPerturbedNormal ) );
-normal = normalize( mix( normal, nonPerturbedNormal, max( eyeMask, crease * vMask.r ) ) );
+// The normal map carries the sculpted iris, which would show through the lid.
+normal = normalize( mix( normal, nonPerturbedNormal, max( max( eyeMask, lidMask ), crease * vMask.r ) ) );
 {
   vec3 q = vRest * 1500.0;
-  float fade = vMask.b * ( 1.0 - smoothstep( 0.6, 1.6, length( fwidth( q ) ) ) );
+  float fade = region.b * ( 1.0 - smoothstep( 0.6, 1.6, length( fwidth( q ) ) ) );
   if ( fade > 0.0 ) {
     float h = 0.5 * ( sin( q.x ) + sin( q.z ) ) * sin( q.y ) * 0.3 * fade;
     vec2 dH = vec2( dFdx( h ), dFdy( h ) );
@@ -200,7 +207,7 @@ material.roughness = mix( material.roughness, 1.0, eyeMask );
 material.specularColor *= 1.0 - eyeMask;
 material.specularF90 = mix( material.specularF90, 0.0, eyeMask );
 #ifdef USE_SHEEN
-  material.sheenColor *= vMask.b * ( 1.0 - eyeMask );
+  material.sheenColor *= region.b * ( 1.0 - eyeMask );
 #endif`;
 
 /** Wrap light and a warm terminator on skin; everything else stays Lambert. */
@@ -247,7 +254,7 @@ export function patchHostBody(uniforms: Uniforms) {
       f,
       '#include <metalnessmap_fragment>',
       `#include <metalnessmap_fragment>
-metalnessFactor = mix( metalnessFactor, 0.0, max( vMask.r, eyeMask ) );`,
+metalnessFactor = mix( metalnessFactor, 0.0, max( region.r, eyeMask ) );`,
     );
     f = patch(
       f,
