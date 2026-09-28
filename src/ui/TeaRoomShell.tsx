@@ -126,6 +126,10 @@ export default function TeaRoomShell({
   // Latches once the guest leaves Entrance by any path (Enter, deep link,
   // dock), so the thesis pictures prefetch only for guests inside.
   const [revealed, setRevealed] = useState(false);
+  const [recentered, setRecentered] = useState(false);
+  const timerRef = useRef<number>(0);
+
+  useEffect(() => () => window.clearTimeout(timerRef.current), []);
   useEffect(() => {
     if (station !== 'Entrance') setRevealed(true);
   }, [station]);
@@ -611,9 +615,17 @@ export default function TeaRoomShell({
               className="recenter-view"
               aria-label="Recenter view"
               title="Recenter view"
-              onClick={() => window.dispatchEvent(new Event(RECENTER_EVENT))}
+              onClick={() => {
+                window.dispatchEvent(new Event(RECENTER_EVENT));
+                setRecentered(true);
+                window.clearTimeout(timerRef.current);
+                timerRef.current = window.setTimeout(
+                  () => setRecentered(false),
+                  2000,
+                );
+              }}
             >
-              <span aria-hidden="true">◎</span>
+              <span aria-hidden="true">{recentered ? '✓' : '◎'}</span>
             </button>
           )}
 
