@@ -648,7 +648,8 @@ input {
 }
 .iroh-chat-actions button,
 .iroh-error button,
-.iroh-limit-cta {
+.iroh-limit-cta,
+.iroh-byok-form button {
   display: inline-block;
   border: 1px solid #b9aa8d;
   background: #f9f2e4;
@@ -657,6 +658,46 @@ input {
   padding: 7px 11px;
   font-size: 12px;
   text-decoration: none;
+}
+.iroh-byok {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+.iroh-byok-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex: 1 1 220px;
+}
+.iroh-byok-form input {
+  flex: 1 1 160px;
+  min-width: 0;
+  border: 1px solid #b9aa8d;
+  border-radius: 4px;
+  background: #fffaf0;
+  color: var(--ink);
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.iroh-byok-using {
+  margin: 0;
+  padding: 0 clamp(22px, 3vw, 44px) 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.iroh-byok-using button {
+  margin-left: 6px;
+  border: none;
+  background: none;
+  color: var(--moss);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
 }
 .iroh-chat-body {
   display: grid;
@@ -3105,7 +3146,8 @@ body:has(.auth-shell) {
 .app-shell:not([data-station='Shelf']) .reading-panel .secondary,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button,
 .app-shell:not([data-station='Shelf']) .iroh-error button,
-.app-shell:not([data-station='Shelf']) .iroh-limit-cta {
+.app-shell:not([data-station='Shelf']) .iroh-limit-cta,
+.app-shell:not([data-station='Shelf']) .iroh-byok-form button {
   border: 1px solid rgba(74, 47, 29, 0.32);
   border-radius: 3px;
   background: rgba(255, 252, 243, 0.6);
@@ -3117,9 +3159,19 @@ body:has(.auth-shell) {
 .app-shell:not([data-station='Shelf']) .reading-panel .secondary:hover,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button:hover,
 .app-shell:not([data-station='Shelf']) .iroh-error button:hover,
-.app-shell:not([data-station='Shelf']) .iroh-limit-cta:hover {
+.app-shell:not([data-station='Shelf']) .iroh-limit-cta:hover,
+.app-shell:not([data-station='Shelf']) .iroh-byok-form button:hover {
   border-color: rgba(138, 47, 34, 0.6);
   background: #fffaf0;
+}
+.app-shell:not([data-station='Shelf']) .iroh-byok-form input {
+  border: 1px solid rgba(74, 47, 29, 0.32);
+  border-radius: 3px;
+  background: rgba(255, 252, 243, 0.85);
+  color: var(--scroll-ink);
+}
+.app-shell:not([data-station='Shelf']) .iroh-byok-using {
+  color: var(--scroll-ink-soft, var(--muted));
 }
 .app-shell:not([data-station='Shelf']) .reading-panel .secondary:active,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button:active {

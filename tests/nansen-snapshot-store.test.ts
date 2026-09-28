@@ -115,8 +115,8 @@ describe('Nansen call plan', () => {
     expect(readme).toContain('103 Nansen requests');
     expect(readme).toContain(`${plan.hourlyCount} Nansen requests`);
     expect(readme).toContain('agent/fast');
-    // The Prisma CLI reads DATABASE_URL only from .env.
-    expect(readme).toMatch(/cp \.env\.example \.env\r?\n/);
+    // Local house key lives in .env.local; Prisma still uses DATABASE_URL from .env when set.
+    expect(readme).toMatch(/\.env\.local/);
   });
 });
 

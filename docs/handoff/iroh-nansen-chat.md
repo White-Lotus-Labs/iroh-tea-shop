@@ -19,7 +19,7 @@
 
 - `src/ui/IrohChat.tsx` owns the Host history control and selection UI. `src/nansen/session.ts` manages browser streaming, stop/retry and restoration of the selected chat.
 - `/api/iroh/chats` creates and lists the signed-in user's chats. `/api/iroh/chats/[chatId]` returns an owned chat and ordered messages.
-- `/api/nansen-agent` validates requests, resolves the session for saved chats, loads the chat's server-held Nansen ID, streams safe SSE events and persists the result. `NANSEN_API_KEY` is read only on the server.
+- `/api/nansen-agent` validates requests, resolves the session for saved chats, loads the chat's server-held Nansen ID, streams safe SSE events and persists the result. The house key (`NANSEN_API_KEY`) stays on the server. Visitors may also send their own key in `x-user-nansen-api-key` for Uncle only; see the [README](../../README.md) and [How the tea shop works](../project-status.md).
 - `src/iroh/history.ts` applies ownership checks for reads and writes. `src/nansen/context.ts` builds bounded follow-up context when Nansen supplies no conversation ID. The guest path remains memory-only.
 
 ## Database usage

@@ -1,6 +1,10 @@
 import { SseDecoder } from './sse';
 import { contextualQuestion } from './context';
 import { MAX_QUESTION_LENGTH } from './limits';
+import {
+  getUserNansenApiKey,
+  USER_NANSEN_API_KEY_HEADER,
+} from './user-api-key';
 
 export interface ChatMessage {
   id: string;
@@ -144,9 +148,13 @@ export class IrohSession {
     const current = () => owner === this.generation && this.active === abort;
     let finished = false;
     try {
+      const userKey = getUserNansenApiKey();
       const response = await this.fetcher('/api/nansen-agent', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          ...(userKey ? { [USER_NANSEN_API_KEY_HEADER]: userKey } : {}),
+        },
         body: JSON.stringify({
           text,
           ...(text !== question ? { question } : {}),

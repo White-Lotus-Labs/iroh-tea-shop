@@ -1,13 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from '../src/app/api/nansen-agent/route';
 import { nansenRequestManager } from '../src/nansen/request-manager';
+import {
+  USER_NANSEN_API_KEY_HEADER,
+  USER_NANSEN_API_KEY_MAX_LENGTH,
+} from '../src/nansen/user-api-key';
 
-const request = (body: unknown, clientIp?: string) =>
+const request = (
+  body: unknown,
+  clientIp?: string,
+  extraHeaders?: Record<string, string>,
+) =>
   new Request('http://localhost/api/nansen-agent', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       ...(clientIp ? { 'x-forwarded-for': clientIp } : {}),
+      ...extraHeaders,
     },
     body: JSON.stringify(body),
   });
@@ -121,6 +130,108 @@ describe('Nansen agent route', () => {
     expect(otherIp.status).toBe(200);
     await otherIp.text();
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses a visitor key and skips the daily cup', async () => {
+    delete process.env.NANSEN_API_KEY;
+    process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    const first = await POST(
+      request({ text: 'first' }, '203.0.113.40', {
+        [USER_NANSEN_API_KEY_HEADER]: 'visitor-byok',
+      }),
+    );
+    expect(first.status).toBe(200);
+    expect(first.headers.get('x-ratelimit-limit')).toBeNull();
+    await first.text();
+    const second = await POST(
+      request({ text: 'second' }, '203.0.113.40', {
+        [USER_NANSEN_API_KEY_HEADER]: 'visitor-byok',
+      }),
+    );
+    expect(second.status).toBe(200);
+    await second.text();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(
+      new Headers((fetch.mock.calls[0][1] as RequestInit).headers).get(
+        'apikey',
+      ),
+    ).toBe('visitor-byok');
+  });
+
+  it('falls back to the house key when the visitor header is empty or overlong', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    await POST(
+      request({ text: 'empty header' }, undefined, {
+        [USER_NANSEN_API_KEY_HEADER]: '   ',
+      }),
+    );
+    await POST(
+      request({ text: 'overlong header' }, undefined, {
+        [USER_NANSEN_API_KEY_HEADER]: 'x'.repeat(
+          USER_NANSEN_API_KEY_MAX_LENGTH + 1,
+        ),
+      }),
+    );
+    expect(
+      new Headers((fetch.mock.calls[0][1] as RequestInit).headers).get(
+        'apikey',
+      ),
+    ).toBe('test-only-secret');
+    expect(
+      new Headers((fetch.mock.calls[1][1] as RequestInit).headers).get(
+        'apikey',
+      ),
+    ).toBe('test-only-secret');
+  });
+
+  it('prefers the visitor key over the house key when both are present', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    const house = await POST(request({ text: 'house' }, '203.0.113.50'));
+    expect(house.status).toBe(200);
+    await house.text();
+    const capped = await POST(request({ text: 'capped' }, '203.0.113.50'));
+    expect(capped.status).toBe(429);
+
+    const byok = await POST(
+      request({ text: 'byok' }, '203.0.113.50', {
+        [USER_NANSEN_API_KEY_HEADER]: 'visitor-byok',
+      }),
+    );
+    expect(byok.status).toBe(200);
+    await byok.text();
+    expect(
+      new Headers((fetch.mock.calls.at(-1)![1] as RequestInit).headers).get(
+        'apikey',
+      ),
+    ).toBe('visitor-byok');
   });
 
   it('gives the daily cup back when Nansen fails before answering', async () => {
