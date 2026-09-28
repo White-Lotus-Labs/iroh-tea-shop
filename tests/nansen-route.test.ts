@@ -136,7 +136,7 @@ describe('Nansen agent route', () => {
     delete process.env.NANSEN_API_KEY;
     process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
     const fetch = vi.fn(
-      async () =>
+      async (_url: string, _init: RequestInit) =>
         new Response(
           'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
           { headers: { 'content-type': 'text/event-stream' } },
@@ -160,17 +160,14 @@ describe('Nansen agent route', () => {
     expect(second.status).toBe(200);
     await second.text();
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(
-      new Headers((fetch.mock.calls[0][1] as RequestInit).headers).get(
-        'apikey',
-      ),
-    ).toBe('visitor-byok');
+    const firstInit = fetch.mock.calls[0][1] as RequestInit;
+    expect(new Headers(firstInit.headers).get('apikey')).toBe('visitor-byok');
   });
 
   it('falls back to the house key when the visitor header is empty or overlong', async () => {
     process.env.NANSEN_API_KEY = 'test-only-secret';
     const fetch = vi.fn(
-      async () =>
+      async (_url: string, _init: RequestInit) =>
         new Response(
           'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
           { headers: { 'content-type': 'text/event-stream' } },
@@ -190,23 +187,21 @@ describe('Nansen agent route', () => {
         ),
       }),
     );
-    expect(
-      new Headers((fetch.mock.calls[0][1] as RequestInit).headers).get(
-        'apikey',
-      ),
-    ).toBe('test-only-secret');
-    expect(
-      new Headers((fetch.mock.calls[1][1] as RequestInit).headers).get(
-        'apikey',
-      ),
-    ).toBe('test-only-secret');
+    const emptyInit = fetch.mock.calls[0][1] as RequestInit;
+    const overlongInit = fetch.mock.calls[1][1] as RequestInit;
+    expect(new Headers(emptyInit.headers).get('apikey')).toBe(
+      'test-only-secret',
+    );
+    expect(new Headers(overlongInit.headers).get('apikey')).toBe(
+      'test-only-secret',
+    );
   });
 
   it('prefers the visitor key over the house key when both are present', async () => {
     process.env.NANSEN_API_KEY = 'test-only-secret';
     process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
     const fetch = vi.fn(
-      async () =>
+      async (_url: string, _init: RequestInit) =>
         new Response(
           'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
           { headers: { 'content-type': 'text/event-stream' } },
@@ -227,11 +222,8 @@ describe('Nansen agent route', () => {
     );
     expect(byok.status).toBe(200);
     await byok.text();
-    expect(
-      new Headers((fetch.mock.calls.at(-1)![1] as RequestInit).headers).get(
-        'apikey',
-      ),
-    ).toBe('visitor-byok');
+    const byokInit = fetch.mock.calls.at(-1)![1] as RequestInit;
+    expect(new Headers(byokInit.headers).get('apikey')).toBe('visitor-byok');
   });
 
   it('gives the daily cup back when Nansen fails before answering', async () => {
