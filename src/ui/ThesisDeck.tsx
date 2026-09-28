@@ -28,10 +28,8 @@ import {
   convictionTitle,
   formatRelative,
   netLabel,
-  readFollowed,
   shareText,
   thesisLink,
-  toggleFollowed,
   xIntentUrl,
   type DeckState,
 } from './deckModel';
@@ -58,6 +56,53 @@ const COVER_LINES: Partial<
 };
 
 const OWN_THESIS_DRAFT = 'Uncle, test my thesis: ';
+
+const TRADING_PLATFORMS = [
+  {
+    name: 'Arcus',
+    logo: '/images/platforms/arcus-help-center.svg',
+    wordmark: true,
+    dark: false,
+    large: false,
+    ink: false,
+    flush: true,
+    wordmarkLogo: null,
+    url: 'https://app.arcus.xyz/ref/IROH',
+  },
+  {
+    name: 'FOMO',
+    logo: '/images/platforms/fomo-manifest.png',
+    wordmark: false,
+    dark: false,
+    large: false,
+    ink: false,
+    flush: false,
+    wordmarkLogo: '/images/platforms/fomo-wordmark.svg',
+    url: 'https://fomo.family/r/0x_iroh',
+  },
+  {
+    name: 'Omni',
+    logo: '/images/platforms/omni.svg',
+    wordmark: true,
+    dark: false,
+    large: true,
+    ink: false,
+    flush: false,
+    wordmarkLogo: null,
+    url: 'https://omni.variational.io/?ref=OMNIIROH',
+  },
+  {
+    name: 'Hyperliquid',
+    logo: '/images/platforms/hyperliquid-wordmark.svg',
+    wordmark: true,
+    dark: false,
+    large: true,
+    ink: true,
+    flush: false,
+    wordmarkLogo: null,
+    url: 'https://app.hyperliquid.xyz/join/0XIROH',
+  },
+] as const;
 
 // The ?thesis= deep link opens its thesis once per page load, not on every
 // panel reopen.
@@ -105,7 +150,6 @@ export function ThesisDeck({
   const instantMotion = reduced || budget === 'light';
   const [deck, setDeck] = useState<DeckState>({ status: 'loading' });
   const [readingId, setReadingId] = useState<ThesisId | null>(selectedThesis);
-  const [followed, setFollowed] = useState<ThesisId[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const books = useRef<Partial<Record<ThesisId, HTMLButtonElement | null>>>({});
   const shelf = useRef<HTMLUListElement>(null);
@@ -151,7 +195,6 @@ export function ThesisDeck({
   }, [attempt]);
 
   useEffect(() => {
-    setFollowed(readFollowed());
     const tick = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(tick);
   }, []);
@@ -217,6 +260,7 @@ export function ThesisDeck({
     if (!readingId) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      if (document.querySelector('dialog[open]')) return;
       // Capture phase: Escape returns to the deck and keeps the panel open.
       event.preventDefault();
       event.stopPropagation();
@@ -225,10 +269,6 @@ export function ThesisDeck({
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [readingId, close]);
-
-  const onToggleFollow = useCallback((id: ThesisId) => {
-    setFollowed(toggleFollowed(id));
-  }, []);
 
   // On phones the books sit in a snap carousel; start on the middle one.
   useEffect(() => {
@@ -287,7 +327,6 @@ export function ThesisDeck({
                 thesis={thesis}
                 deck={deck}
                 summary={summaryFor(deck, thesis.id)}
-                followed={followed.includes(thesis.id)}
                 reduced={reduced}
                 light={budget === 'light'}
                 current={readingId === thesis.id}
@@ -308,9 +347,7 @@ export function ThesisDeck({
           summary={summaryFor(deck, reading.id)}
           deck={deck}
           now={now}
-          followed={followed.includes(reading.id)}
           titleRef={title}
-          onToggleFollow={() => onToggleFollow(reading.id)}
           onTalkToUncle={onTalkToUncle}
         />
       )}
@@ -366,7 +403,6 @@ function ThesisBook({
   thesis,
   deck,
   summary,
-  followed,
   reduced,
   light,
   current,
@@ -376,7 +412,6 @@ function ThesisBook({
   thesis: Thesis;
   deck: DeckState;
   summary: ThesisSummary | null;
-  followed: boolean;
   reduced: boolean;
   light: boolean;
   current: boolean;
@@ -431,7 +466,7 @@ function ThesisBook({
       data-thesis={thesis.id}
       aria-current={current ? 'true' : undefined}
       style={style}
-      aria-label={`Open ${thesis.title}. Scroll ${thesis.numeral}: ${thesis.subtitle}. ${sealWords(thesis, deck, summary)}${followed ? ' Following.' : ''}`}
+      aria-label={`Open ${thesis.title}. Scroll ${thesis.numeral}: ${thesis.subtitle}. ${sealWords(thesis, deck, summary)}`}
       onClick={onOpen}
       onPointerEnter={onPointerEnter}
       onPointerMove={onPointerMove}
@@ -477,11 +512,6 @@ function ThesisBook({
               </span>
               <span className="book-hinge" />
               <span className="book-sheen" />
-              {followed && (
-                <span className="book-stamp" title="Following">
-                  追
-                </span>
-              )}
             </span>
           </span>
         </span>
@@ -635,25 +665,21 @@ function ThesisReading({
   summary,
   deck,
   now,
-  followed,
   titleRef,
-  onToggleFollow,
   onTalkToUncle,
 }: {
   thesis: Thesis;
   summary: ThesisSummary | null;
   deck: DeckState;
   now: number;
-  followed: boolean;
   titleRef: Ref<HTMLHeadingElement>;
-  onToggleFollow: () => void;
   onTalkToUncle: (draft: string) => void;
 }) {
   const titleId = useId();
   const [origin, setOrigin] = useState('');
   const [canShare, setCanShare] = useState(false);
   const [toast, setToast] = useState('');
-  const [stampKey, setStampKey] = useState(0);
+  const tradeDialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -686,11 +712,6 @@ function ThesisReading({
       /* The person closed the share sheet. */
     }
   };
-  const follow = () => {
-    onToggleFollow();
-    if (!followed) setStampKey((k) => k + 1);
-    setToast(followed ? 'No longer following.' : 'Following this thesis.');
-  };
 
   const style = {
     '--book': thesis.colors.primary,
@@ -719,11 +740,6 @@ function ThesisReading({
             width={900}
             height={1200}
           />
-          {followed && (
-            <span key={stampKey} className="scroll-stamp" aria-hidden="true">
-              追
-            </span>
-          )}
           <figcaption>{thesis.spirit}</figcaption>
         </figure>
 
@@ -766,13 +782,13 @@ function ThesisReading({
             <button
               type="button"
               className="scroll-action scroll-action--seal"
-              aria-pressed={followed}
-              onClick={follow}
+              aria-haspopup="dialog"
+              onClick={() => tradeDialog.current?.showModal()}
             >
               <span className="scroll-action-seal" aria-hidden="true">
-                追
+                ↗
               </span>
-              {followed ? 'Following the thesis' : 'Follow the thesis'}
+              Follow this thesis
             </button>
             <div
               className="scroll-share"
@@ -812,6 +828,70 @@ function ThesisReading({
             {toast}
           </p>
         </div>
+
+        <dialog
+          ref={tradeDialog}
+          className="trade-sheet"
+          aria-labelledby={`${titleId}-trade-title`}
+          onMouseDown={(event) => {
+            if (event.currentTarget !== event.target) return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            if (
+              event.clientX < bounds.left ||
+              event.clientX > bounds.right ||
+              event.clientY < bounds.top ||
+              event.clientY > bounds.bottom
+            )
+              tradeDialog.current?.close();
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <div className="trade-sheet-heading">
+            <div>
+              <h3 id={`${titleId}-trade-title`}>Follow this thesis</h3>
+              <p>Choose where you want to trade the signal.</p>
+            </div>
+            <button
+              type="button"
+              className="trade-sheet-close"
+              aria-label="Close trading platforms"
+              onClick={() => tradeDialog.current?.close()}
+            >
+              ×
+            </button>
+          </div>
+          <div className="trade-platform-list">
+            {TRADING_PLATFORMS.map((platform) => (
+              <a
+                key={platform.name}
+                className="trade-platform"
+                aria-label={`Open ${platform.name} in a new tab`}
+                href={platform.url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+              >
+                <span
+                  className={`trade-platform-logo${platform.wordmark ? ' trade-platform-logo--wordmark' : ''}${platform.dark ? ' trade-platform-logo--dark' : ''}${platform.large ? ' trade-platform-logo--large' : ''}${platform.ink ? ' trade-platform-logo--ink' : ''}${platform.flush ? ' trade-platform-logo--flush' : ''}`}
+                  aria-hidden="true"
+                >
+                  <img src={platform.logo} alt="" width={48} height={48} />
+                </span>
+                {platform.wordmarkLogo && (
+                  <img
+                    className="trade-platform-wordmark trade-platform-wordmark--ink"
+                    src={platform.wordmarkLogo}
+                    alt=""
+                    width={75}
+                    height={24}
+                  />
+                )}
+                <span className="trade-platform-arrow" aria-hidden="true">
+                  ↗
+                </span>
+              </a>
+            ))}
+          </div>
+        </dialog>
 
         <section
           className="scroll-leaves ink"

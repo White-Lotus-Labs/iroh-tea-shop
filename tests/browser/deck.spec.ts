@@ -256,10 +256,33 @@ test('full motion reading switches theses in place and returns focus to the book
   await expect(
     scroll.getByRole('heading', { name: 'Robinhood Chain Tokenization' }),
   ).toBeFocused();
-  await scroll.getByRole('button', { name: 'Follow the thesis' }).click();
+  const platforms = scroll.getByRole('button', {
+    name: 'Follow this thesis',
+  });
+  await platforms.click();
+  const trading = page.getByRole('dialog', { name: 'Follow this thesis' });
+  await expect(trading).toBeVisible();
   await expect(
-    scroll.getByRole('button', { name: 'Following the thesis' }),
-  ).toHaveAttribute('aria-pressed', 'true');
+    trading.getByRole('button', { name: 'Close trading platforms' }),
+  ).toBeFocused();
+  await expect(
+    trading.getByRole('link', { name: /Open Arcus/ }),
+  ).toHaveAttribute('href', 'https://app.arcus.xyz/ref/IROH');
+  await expect(
+    trading.getByRole('link', { name: /Open FOMO/ }),
+  ).toHaveAttribute('href', 'https://fomo.family/r/0x_iroh');
+  await expect(
+    trading.getByRole('link', { name: /Open Omni/ }),
+  ).toHaveAttribute('href', 'https://omni.variational.io/?ref=OMNIIROH');
+  await expect(
+    trading.getByRole('link', { name: /Open Hyperliquid/ }),
+  ).toHaveAttribute('href', 'https://app.hyperliquid.xyz/join/0XIROH');
+  await page.keyboard.press('Shift+Tab');
+  await expect(trading.getByRole('link', { name: /Open Omni/ })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(trading).not.toBeVisible();
+  await expect(scroll).toBeVisible();
+  await expect(platforms).toBeFocused();
 
   // Each switch runs inside a view transition, which waits for a rendered
   // frame; software WebGL under a full suite can take seconds per frame.
@@ -276,7 +299,6 @@ test('full motion reading switches theses in place and returns focus to the book
   await page.getByRole('button', { name: 'All scrolls' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 20_000 });
   await expect(ai).toBeFocused();
-  await expect(robinhood).toHaveAccessibleName(/Following\./);
   expect(errors).toEqual([]);
 });
 
