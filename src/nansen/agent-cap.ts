@@ -1,4 +1,4 @@
-import { isIP } from 'node:net';
+import { BlockList, isIP } from 'node:net';
 
 export const DEFAULT_AGENT_DAILY_LIMIT = 1;
 const UNKNOWN_CLIENT = 'unknown-client';
@@ -84,13 +84,42 @@ export function createAgentDailyCap() {
 
 export const agentDailyCap = createAgentDailyCap();
 
-/** Trust the deployment proxy headers; never use an unvalidated value as a key. */
+// Proxy hops and local traffic. A visitor on the internet never has these.
+const INTERNAL_NETWORKS = new BlockList();
+for (const [network, prefix] of [
+  ['0.0.0.0', 8],
+  ['10.0.0.0', 8],
+  ['100.64.0.0', 10],
+  ['127.0.0.0', 8],
+  ['169.254.0.0', 16],
+  ['172.16.0.0', 12],
+  ['192.168.0.0', 16],
+] as const)
+  INTERNAL_NETWORKS.addSubnet(network, prefix, 'ipv4');
+for (const [network, prefix] of [
+  ['::', 128],
+  ['::1', 128],
+  ['fc00::', 7],
+  ['fe80::', 10],
+] as const)
+  INTERNAL_NETWORKS.addSubnet(network, prefix, 'ipv6');
+
+function isInternal(ip: string) {
+  return INTERNAL_NETWORKS.check(ip, isIP(ip) === 6 ? 'ipv6' : 'ipv4');
+}
+
+/**
+ * The visitor is the right-most public x-forwarded-for entry, the one the
+ * deployment proxy added. Entries to its left come from the client and can be
+ * forged, so an unreadable entry stops the walk instead of skipping to them.
+ */
 export function clientIpFromRequest(request: Request) {
-  const forwarded = request.headers
-    .get('x-forwarded-for')
-    ?.split(',', 1)[0]
-    ?.trim();
-  if (forwarded && isIP(forwarded)) return forwarded;
+  const hops = request.headers.get('x-forwarded-for')?.split(',') ?? [];
+  for (let index = hops.length - 1; index >= 0; index--) {
+    const hop = hops[index].trim();
+    if (!isIP(hop)) break;
+    if (!isInternal(hop)) return hop;
+  }
 
   const realIp = request.headers.get('x-real-ip')?.trim();
   return realIp && isIP(realIp) ? realIp : UNKNOWN_CLIENT;

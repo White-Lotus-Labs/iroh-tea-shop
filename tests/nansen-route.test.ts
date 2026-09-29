@@ -132,6 +132,33 @@ describe('Nansen agent route', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('does not give another cup for a forged left-most x-forwarded-for', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    // The client sends the left entries; the proxy appends the right one.
+    const first = await POST(
+      request({ text: 'first' }, '198.51.100.1, 203.0.113.60'),
+    );
+    expect(first.status).toBe(200);
+    await first.text();
+    for (const forged of ['198.51.100.2', '198.51.100.3, 192.0.2.4']) {
+      const capped = await POST(
+        request({ text: 'again' }, `${forged}, 203.0.113.60`),
+      );
+      expect(capped.status).toBe(429);
+    }
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('uses a visitor key and skips the daily cup', async () => {
     delete process.env.NANSEN_API_KEY;
     process.env.NANSEN_AGENT_DAILY_LIMIT = '1';
