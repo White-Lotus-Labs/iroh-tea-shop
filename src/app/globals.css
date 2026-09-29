@@ -2523,17 +2523,6 @@ body:has(.auth-shell) {
   transform: rotate(45deg);
 }
 
-@keyframes entrance-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 /* ==========================================================================
    Scroll UI — hanging-scroll chrome for Counter, Host, and generic panels.
    The Shelf keeps its own parchment (Lane E), so it is excluded here.
@@ -2878,7 +2867,7 @@ body:has(.auth-shell) {
   color: #8a7a62;
 }
 
-/* Buttons on paper: ink-lacquer primary with a gold glint, paper secondary. */
+/* Buttons on paper: ink-lacquer primary with a gold glint. */
 .app-shell:not([data-station='Shelf']) .reading-panel .primary {
   position: relative;
   overflow: hidden;
@@ -3702,7 +3691,7 @@ body:has(.auth-shell) {
 }
 
 /* ==========================================================================
-   Scroll UI — topbar slips and entrance hero share the language.
+   Scroll UI — the topbar slips share the scroll language.
    ========================================================================== */
 .brand-text {
   font-family: var(--font-display);
@@ -3854,18 +3843,5 @@ body:has(.auth-shell) {
   }
   to {
     clip-path: inset(-12px -12px -40px -12px);
-  }
-}
-
-@keyframes entrance-ink {
-  from {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: none;
   }
 }

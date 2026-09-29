@@ -196,6 +196,14 @@ export function IrohChat({
     const pending = session.send(draft);
     if (pending) {
       refocusAfterAnswer.current = document.activeElement === input.current;
+      // A click anywhere (selecting answer text, dragging the room) means the
+      // visitor moved on, even if focus stays on <body>.
+      if (refocusAfterAnswer.current)
+        document.addEventListener(
+          'pointerdown',
+          () => (refocusAfterAnswer.current = false),
+          { once: true, capture: true },
+        );
       setDraft('');
       if (user) void pending.then(fetchChats).then(setHistory, () => {});
     }

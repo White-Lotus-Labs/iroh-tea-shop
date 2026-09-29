@@ -136,7 +136,7 @@ async function open(shot) {
     .waitFor({ timeout: 30_000 });
   if (!has('ui'))
     await page.addStyleTag({
-      content: `.topbar,.reading-panel,.station-dock,.entrance-hero,.shelf-approach,.scene-caption{visibility:hidden!important}`,
+      content: `.topbar,.reading-panel,.station-dock,.shelf-approach,.scene-caption{visibility:hidden!important}`,
     });
 }
 

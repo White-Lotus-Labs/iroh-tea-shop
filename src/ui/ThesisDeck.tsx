@@ -47,13 +47,12 @@ export interface ThesisDeckProps {
   onTalkToUncle: (draft: string) => void;
 }
 
-// Short cover lines keep the title inside the paper band; the full title stays
-// in the accessible name and on the reading view.
-
 /** The 360w and 600w cuts sit next to the full 900w thesis picture. */
 const thesisSrcSet = (image: string) =>
   `${image.replace(/\.webp$/, '-360w.webp')} 360w, ${image.replace(/\.webp$/, '-600w.webp')} 600w, ${image} 900w`;
 
+// Short cover lines keep the title inside the paper band; the full title stays
+// in the accessible name and on the reading view.
 const COVER_LINES: Partial<
   Record<ThesisId, { title: string; subtitle: string }>
 > = {

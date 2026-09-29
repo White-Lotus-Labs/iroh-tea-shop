@@ -31,7 +31,9 @@ export default function AuthScreen() {
       }
       setPassword('');
       // Stay pending while the page navigates, so a second click cannot resend.
+      // If the navigation is stopped, the form comes back after a while.
       window.location.assign('/');
+      window.setTimeout(() => setPending(false), 8000);
     } catch {
       setError(message);
       setPending(false);
