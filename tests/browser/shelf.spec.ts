@@ -329,15 +329,19 @@ test('Shelf presents one leader above a ranked list of nine spirits', async ({
       name: /Top Hyperliquid Traders by 30-Day PnL/,
     }),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'Smart Wallets' }).click();
+  await page
+    .getByRole('button', { name: 'Smart Wallets', exact: true })
+    .click();
   await expect(
     page.getByText('Fund and Smart Trader wallets · last 30 days').first(),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'Whales' }).click();
+  await page.getByRole('button', { name: 'Whales', exact: true }).click();
   await expect(
     page.getByText('Accounts worth $10M or more · last 30 days').first(),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'Perps Traders' }).click();
+  await page
+    .getByRole('button', { name: 'Perps Traders', exact: true })
+    .click();
   await page.getByLabel('Rank by').selectOption('roi');
   await expect(
     page.getByRole('heading', { name: /Highest ROI/ }),
@@ -428,7 +432,7 @@ test('Meme Traders has its own sorts, win rate, chains and profiler links', asyn
   await focusShelf(page);
   const rankBy = page.getByLabel('Rank by');
   await rankBy.selectOption('account');
-  await page.getByRole('tab', { name: 'Meme Traders' }).click();
+  await page.getByRole('button', { name: 'Meme Traders', exact: true }).click();
   await expect(rankBy).toHaveValue('wins');
   await expect(rankBy.locator('option')).toHaveCount(2);
   await expect(
@@ -605,7 +609,7 @@ test('a stale real snapshot is labelled and small screens keep values readable',
   expect(rank!.y + rank!.height).toBeLessThanOrEqual(footer!.y);
 
   // Four tabs, the chain chips and the top tokens still fit at phone width.
-  await page.getByRole('tab', { name: 'Meme Traders' }).click();
+  await page.getByRole('button', { name: 'Meme Traders', exact: true }).click();
   const chains = page.getByTestId('top-wallet').locator('.wallet-chains');
   await expect(chains).toBeVisible();
   expect(

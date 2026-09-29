@@ -25,6 +25,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
   const loading = useRef(false);
   const want = useRef(false);
   const [on, setOn] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
   const fade = useCallback(() => {
     const current = player.current;
@@ -75,6 +76,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
           source.connect(gain);
           source.start(0, bounds.start);
           player.current = { context, gain };
+          setPlaying(true);
           loading.current = false;
           return fade();
         } catch {
@@ -107,9 +109,9 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
   }, []);
 
   // Browsers hold sound until a gesture, so "on" starts at the guest's first
-  // click, key or page drag anywhere.
+  // click, key or page drag anywhere. Once the music plays, stop listening.
   useEffect(() => {
-    if (!on || player.current) return;
+    if (!on || playing) return;
     const onGesture = () => start();
     window.addEventListener('click', onGesture);
     window.addEventListener('pointerup', onGesture);
@@ -119,7 +121,7 @@ export function MusicToggle({ floating = false }: { floating?: boolean }) {
       window.removeEventListener('pointerup', onGesture);
       window.removeEventListener('keydown', onGesture);
     };
-  }, [on, start]);
+  }, [on, playing, start]);
 
   useEffect(() => {
     const onVisibility = () => {

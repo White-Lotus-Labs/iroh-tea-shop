@@ -30,10 +30,10 @@ export default function AuthScreen() {
         throw new Error();
       }
       setPassword('');
+      // Stay pending while the page navigates, so a second click cannot resend.
       window.location.assign('/');
     } catch {
       setError(message);
-    } finally {
       setPending(false);
     }
   };

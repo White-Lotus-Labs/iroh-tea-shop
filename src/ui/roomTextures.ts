@@ -1,11 +1,13 @@
-const THESES = ['robinhood', 'bullrun', 'ai'];
+import type { ThesisId } from '../thesis/types';
+
+export const THESIS_IDS: readonly ThesisId[] = ['robinhood', 'bullrun', 'ai'];
 
 /** Room textures the warm-up fetches while three.js loads (BackWall, ThesisCards). */
 export function roomTextures(light: boolean) {
   const cover = light ? '360w' : '600w';
   return [
     '/images/tea-back-wall.bbdb12.webp',
-    ...THESES.map((id) => `/images/theses/${id}-${cover}.webp`),
+    ...THESIS_IDS.map((id) => `/images/theses/${id}-${cover}.webp`),
   ];
 }
 
