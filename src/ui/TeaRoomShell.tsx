@@ -314,7 +314,7 @@ export default function TeaRoomShell({
     // no roll-up, so it closes at once.
     paper.classList.add('is-rolling-up');
     const { animationName, animationDuration } = getComputedStyle(paper);
-    if (animationName === 'none') return finish();
+    if (!animationName.includes('paper-roll-up')) return finish();
     rollUpTimer.current = window.setTimeout(
       finish,
       parseFloat(animationDuration) * 1000,
@@ -375,8 +375,12 @@ export default function TeaRoomShell({
   const loaderProgress = sceneAvailable ? 15 + assetProgress * 0.85 : 6;
   useEffect(() => {
     if (panelOpen) closeApplied.current = false;
-    // Once the panel opens or closes by any path, a pending roll-up is moot.
-    return () => window.clearTimeout(rollUpTimer.current);
+    // Once the panel opens or closes by any path, a pending roll-up is moot,
+    // and so is a question Escape stashed for it.
+    return () => {
+      window.clearTimeout(rollUpTimer.current);
+      draftOnClose.current = null;
+    };
   }, [panelOpen]);
   useEffect(() => {
     if (!panelOpen) return;
