@@ -65,10 +65,6 @@ function floorPoint(hits: Intersection[]) {
 export function CameraRig({
   station,
   reduced,
-  resetKey,
-  typing,
-  reading = false,
-  allowTravelWhileTyping = false,
   shelfFocused = false,
   observatoriumZoomKey = 0,
   onArrive,
@@ -76,10 +72,6 @@ export function CameraRig({
 }: {
   station: Station;
   reduced: boolean;
-  resetKey: number;
-  typing: boolean;
-  reading?: boolean;
-  allowTravelWhileTyping?: boolean;
   shelfFocused?: boolean;
   /** Changes when the live planetary model should open after a close camera push-in. */
   observatoriumZoomKey?: number;
@@ -210,11 +202,11 @@ export function CameraRig({
         goal: angles.current.distance,
         last: angles.current.distance,
       };
-      c.enabled = !typing && !reading;
+      c.enabled = true;
       camera.lookAt(c.target);
       onArrive?.(station);
     }
-  }, [station, shelfFocused, resetKey, recenter, camera, size.width, onArrive]);
+  }, [station, shelfFocused, recenter, camera, size.width, onArrive]);
   useEffect(() => {
     if (observatoriumZoomKey === latestObservatoriumZoomKey.current) return;
     latestObservatoriumZoomKey.current = observatoriumZoomKey;
@@ -324,7 +316,7 @@ export function CameraRig({
       // An explicit Observatorium action is intentional motion, so it still
       // shows its short push-in even when the rest of the room is reduced.
       if (reduced && !zoomingObservatorium.current) t.finish();
-      else if ((!typing && !reading) || allowTravelWhileTyping) t.step(delta);
+      else t.step(delta);
       camera.position.copy(t.position);
       c.target.copy(t.target);
       if (!t.active) {
@@ -332,7 +324,7 @@ export function CameraRig({
           zoomingObservatorium.current = false;
           lookAround(c, a, reduced);
           z.goal = z.last = a.distance;
-          c.enabled = !typing && !reading;
+          c.enabled = true;
           onObservatoriumZoomEnd?.();
           camera.lookAt(c.target);
           return;
@@ -364,7 +356,7 @@ export function CameraRig({
       camera.position.sub(c.target).setLength(next).add(c.target);
       keepInRoom(camera.position, roomOf(station));
       z.last = camera.position.distanceTo(c.target);
-      if (!reduced && !typing && !reading) {
+      if (!reduced) {
         i.time += dt;
         i.gain = damp(i.gain, i.dragging ? 0 : 1, 3, dt);
         const g = i.gain;
@@ -384,7 +376,7 @@ export function CameraRig({
         c.target.add(i.target);
       }
     }
-    c.enabled = !t.active && !typing && !reading;
+    c.enabled = !t.active;
     camera.lookAt(c.target);
   });
   return (

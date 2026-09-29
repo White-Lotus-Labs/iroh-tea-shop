@@ -28,10 +28,10 @@ import { merge, paint, place, useBuilt } from './props/craft';
 const WOOD_NORMAL_SCALE = new Vector2(0.45, 0.45);
 const PLANET_NORMAL_SCALE = new Vector2(0.22, 0.22);
 
-const POSITION: Point = [-3.28, 0, -3.15];
-const SCALE = 1.55;
+export const POSITION: Point = [-3.28, 0, -3.15];
+export const SCALE = 1.55;
 /** Height of the wooden display table. */
-const STAND_Y = 0.38;
+export const STAND_Y = 0.38;
 /** Additional elevation of the orrery base above the table to clear rotating crank handle. */
 export const BASE_Y = 0.036;
 /** Crank drive axle height in the pedestal frame. */
@@ -48,6 +48,9 @@ export const BASE_TRIM_RINGS = [
 ] as const;
 /** The sun sits at this height in the pedestal frame, defining the common ecliptic plane. */
 export const SUN_Y = 0.329 + BASE_Y;
+export const SUN_RADIUS = 0.035;
+/** Inner and outer radius of Saturn's rings. */
+export const SATURN_RINGS = [0.024, 0.048] as const;
 
 /** Spindle collar mounting heights along the central column. */
 export const ARM_HEIGHTS = {
@@ -88,6 +91,26 @@ export const ECCENTRICITIES = {
   saturn: 0.0542,
 };
 
+/** Tooth counts of the clockwork train. */
+export const TEETH = {
+  drive: 28,
+  pinion1: 14,
+  pinion1Upper: 12,
+  pinion2: 11,
+  intermediate: 35,
+} as const;
+
+/** Clockwork angular speeds at nominal wind; the pinions counter-rotate. */
+export const TRAIN_SPEEDS = {
+  drive: 0.62,
+  pinion1: 1.24,
+  pinion2: 1.58,
+  intermediate: 1.24 * (12 / 35),
+};
+
+/** A click winds the spring to `burst` times nominal speed; it damps back at `rate`. */
+export const WIND_UP = { burst: 4.8, rate: 1.35 };
+
 /** Galilean moon speeds around Jupiter exhibiting Laplace resonance (4:2:1). */
 export const LAPLACE_RESONANCE = {
   io: 4.8,
@@ -98,7 +121,8 @@ export const LAPLACE_RESONANCE = {
 /**
  * Calculates instantaneous angular velocity for an eccentric Keplerian orbit.
  * By conservation of angular momentum: dθ/dt ≈ ω0 * (1 + 2e * cos(θ)), accelerating at
- * perihelion (θ=0) and lingering at aphelion (θ=π) while keeping the mean period exact.
+ * perihelion (θ=0) and lingering at aphelion (θ=π). Averaged over angle it is ω0, but the
+ * period stretches by 1/√(1 − 4e²): about 10% for Mercury, under 2% for the others.
  */
 export function keplerianVelocity(
   nominalSpeed: number,
@@ -108,16 +132,23 @@ export function keplerianVelocity(
   return nominalSpeed * (1 + 2 * eccentricity * Math.cos(theta));
 }
 
+// One context for every click: browsers cap how many a page may hold open.
+let windAudio: AudioContext | null = null;
+
 /** WebAudio ratchet click synthesis for tactile wind-up feedback. */
 function playOrreryWindSound() {
   if (typeof window === 'undefined') return;
   try {
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    if (!windAudio) {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioCtx) return;
+      windAudio = new AudioCtx();
+    }
+    const ctx = windAudio;
+    if (ctx.state !== 'running') void ctx.resume().catch(() => {});
     const now = ctx.currentTime;
     for (let i = 0; i < 4; i++) {
       const t = now + i * 0.045;
@@ -529,7 +560,7 @@ function buildOrrery() {
     jupiter: merge(armParts(ARMS.jupiter)),
     saturn: merge(armParts(ARMS.saturn)),
     saturnRings: place(
-      new RingGeometry(0.024, 0.048, 48),
+      new RingGeometry(SATURN_RINGS[0], SATURN_RINGS[1], 48),
       [0, 0, 0],
       [-Math.PI / 2, 0, 0],
     ),
@@ -1141,13 +1172,13 @@ export function MechanicalPlanetarySystem({
     if (reduced) return;
     playOrreryWindSound();
     // Spring tension release: a burst that damps back to the nominal speed.
-    speedRef.current = 4.8;
+    speedRef.current = WIND_UP.burst;
   };
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
     const targetSpeed = reduced ? 0.06 : 1.0;
-    speedRef.current = damp(speedRef.current, targetSpeed, 1.35, dt);
+    speedRef.current = damp(speedRef.current, targetSpeed, WIND_UP.rate, dt);
     const s = speedRef.current;
     const a = angles.current;
 
@@ -1191,10 +1222,10 @@ export function MechanicalPlanetarySystem({
       s;
 
     // Clockwork drive train with exact meshing ratios
-    a.driveGear += dt * 0.62 * s;
-    a.pinion1 -= dt * 1.24 * s; // 2:1 counter-rotation
-    a.pinion2 -= dt * 1.58 * s; // 2.545:1 counter-rotation
-    a.intermediateGear += dt * (1.24 * (12 / 35)) * s; // Step-up counter-rotation from Pinion 1 upper
+    a.driveGear += dt * TRAIN_SPEEDS.drive * s;
+    a.pinion1 -= dt * TRAIN_SPEEDS.pinion1 * s; // 2:1 counter-rotation
+    a.pinion2 -= dt * TRAIN_SPEEDS.pinion2 * s; // 2.545:1 counter-rotation
+    a.intermediateGear += dt * TRAIN_SPEEDS.intermediate * s; // Step-up counter-rotation from Pinion 1 upper
     a.crank += dt * 2.1 * s;
 
     // Diurnal planet rotations & solar rotation
@@ -1394,7 +1425,7 @@ export function MechanicalPlanetarySystem({
         <group ref={driveGearRef} position={[0, 0.088 + BASE_Y, 0]}>
           <Cog
             radius={0.062}
-            teeth={28}
+            teeth={TEETH.drive}
             thickness={0.0055}
             color="#ffffff"
             map={brassTexture}
@@ -1405,7 +1436,7 @@ export function MechanicalPlanetarySystem({
           <group position={[0, 0.088, 0]}>
             <Cog
               radius={0.031}
-              teeth={14}
+              teeth={TEETH.pinion1}
               thickness={0.005}
               color="#fff4d4"
               map={brassTexture}
@@ -1415,7 +1446,7 @@ export function MechanicalPlanetarySystem({
           <group position={[0, 0.104, 0]}>
             <Cog
               radius={0.024}
-              teeth={12}
+              teeth={TEETH.pinion1Upper}
               thickness={0.0045}
               color="#ffeec4"
               map={brassTexture}
@@ -1425,7 +1456,7 @@ export function MechanicalPlanetarySystem({
         <group ref={pinion2Ref} position={[0.0735, 0.088 + BASE_Y, -0.0454]}>
           <Cog
             radius={0.0244}
-            teeth={11}
+            teeth={TEETH.pinion2}
             thickness={0.0048}
             color="#fff0cc"
             map={brassTexture}
@@ -1434,7 +1465,7 @@ export function MechanicalPlanetarySystem({
         <group ref={intermediateGearRef} position={[0, 0.104 + BASE_Y, 0]}>
           <Cog
             radius={0.069}
-            teeth={35}
+            teeth={TEETH.intermediate}
             thickness={0.0045}
             color="#fff8dc"
             map={brassTexture}
@@ -1477,7 +1508,7 @@ export function MechanicalPlanetarySystem({
           receiveShadow
           material={sunGlobeMat}
         >
-          <sphereGeometry args={[0.035, 32, 24]} />
+          <sphereGeometry args={[SUN_RADIUS, 32, 24]} />
         </mesh>
 
         {/* Planet arms with concentric telescoping sleeves */}

@@ -23,10 +23,9 @@ import {
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { once, useSurfaceMaps } from '../Surfaces';
+import { canvasTexture, once, useSurfaceMaps } from '../Surfaces';
 import {
   block,
-  canvasTexture,
   cord,
   merge,
   paint,

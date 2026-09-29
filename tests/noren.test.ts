@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { drape } from '../src/scene/props/Noren';
+import { NOREN_ROD_Y as ROD_Y } from '../src/scene/TeaArchitecture';
 
-// TeaHouseDoorway hangs the rod centre at 2.38 m; the lintel soffit is at 2.41 m and
-// the opening between the jamb posts is ±1.3 m.
-const ROD_Y = 2.38;
+// The lintel soffit is at 2.41 m and the opening between the jamb posts is ±1.3 m.
 
 describe('doorway noren', () => {
   it('hangs inside the opening, under the lintel, and above the camera', () => {

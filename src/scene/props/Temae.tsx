@@ -7,13 +7,12 @@ import {
   Vector3,
 } from 'three';
 import { Steam } from '../Steam';
-import { once, Solid } from '../Surfaces';
+import { canvasTexture, once, Solid } from '../Surfaces';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
 import { Chabana } from './BackWall';
 import {
   block,
-  canvasTexture,
   cord,
   inkStroke,
   merge,

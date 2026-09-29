@@ -380,35 +380,3 @@ export function LanternLight({
     </>
   );
 }
-export function ShelfPlacement({
-  active,
-  reduced,
-  children,
-}: {
-  active: boolean;
-  reduced: boolean;
-  children: React.ReactNode;
-}) {
-  const group = useRef<Group>(null),
-    amount = useRef(active ? 0 : 1);
-  useEffect(() => {
-    if (active) amount.current = 0;
-  }, [active]);
-  useFrame((_, delta) => {
-    amount.current = reduced
-      ? 1
-      : damp(amount.current, 1, 13, Math.min(delta, 0.05));
-    if (group.current) {
-      group.current.position.y = active ? -0.025 * (1 - amount.current) : 0;
-      group.current.position.z = active ? 0.025 * (1 - amount.current) : 0;
-      group.current.rotation.x = active ? -0.035 * (1 - amount.current) : 0;
-    }
-  });
-  return (
-    <group position={[2.96, 1.51, -3.96]} rotation={[0, -Math.PI / 2, 0]}>
-      <group ref={group} visible={active}>
-        {children}
-      </group>
-    </group>
-  );
-}

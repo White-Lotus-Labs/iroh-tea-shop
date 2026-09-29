@@ -1,11 +1,10 @@
 import { BufferGeometry, PlaneGeometry, TorusGeometry } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { once, Solid } from '../Surfaces';
+import { canvasTexture, once, Solid } from '../Surfaces';
 import {
   block,
   brushText,
-  canvasTexture,
   merge,
   paint,
   paper,

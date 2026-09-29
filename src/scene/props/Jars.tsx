@@ -7,15 +7,8 @@ import {
 } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { once, useSurfaceMaps } from '../Surfaces';
-import {
-  canvasTexture,
-  brushText,
-  merge,
-  paper,
-  place,
-  useBuilt,
-} from './craft';
+import { canvasTexture, once, useSurfaceMaps } from '../Surfaces';
+import { brushText, merge, paper, place, useBuilt } from './craft';
 
 type Profile = [number, number][];
 export type JarKind = 'chatsubo' | 'canister' | 'squat' | 'bottle' | 'bowl';

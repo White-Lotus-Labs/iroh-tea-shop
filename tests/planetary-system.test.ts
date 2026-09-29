@@ -1,16 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { damp } from '../src/scene/motion/dynamics';
+import { IROH_DEFAULT_POSITION } from '../src/scene/TeaHost3D';
 import {
   ARM_HEIGHTS,
   ARMS,
-  BASE_Y,
   BASE_TRIM_RINGS,
   CRANK_AXLE_Y,
   CRANK_HANDLE_X,
   ECCENTRICITIES,
   LAPLACE_RESONANCE,
   ORBITAL_SPEEDS,
+  POSITION,
+  SATURN_RINGS,
+  SCALE,
+  STAND_Y,
+  SUN_RADIUS,
   SUN_Y,
+  TEETH,
+  TRAIN_SPEEDS,
+  WIND_UP,
   keplerianVelocity,
 } from '../src/scene/MechanicalPlanetarySystem';
 
@@ -23,25 +31,30 @@ describe('mechanical planetary system (orrery)', () => {
     expect(ORBITAL_SPEEDS.jupiter).toBeGreaterThan(ORBITAL_SPEEDS.saturn);
   });
 
-  it('calculates proper counter-rotating gear ratios', () => {
-    const driveGearTeeth = 28;
-    const pinion1Teeth = 14;
-    const pinion2Teeth = 11;
-
-    const ratio1 = driveGearTeeth / pinion1Teeth;
-    const ratio2 = driveGearTeeth / pinion2Teeth;
-
-    expect(ratio1).toBe(2.0); // Exact 2:1 reduction
-    expect(ratio2).toBeCloseTo(2.545, 2);
+  it('turns each gear at its tooth ratio', () => {
+    expect(TEETH.drive / TEETH.pinion1).toBe(2.0); // Exact 2:1 reduction
+    expect(TEETH.drive / TEETH.pinion2).toBeCloseTo(2.545, 2);
+    expect(TRAIN_SPEEDS.pinion1).toBeCloseTo(
+      (TRAIN_SPEEDS.drive * TEETH.drive) / TEETH.pinion1,
+      6,
+    );
+    expect(TRAIN_SPEEDS.pinion2).toBeCloseTo(
+      (TRAIN_SPEEDS.drive * TEETH.drive) / TEETH.pinion2,
+      2,
+    );
+    expect(TRAIN_SPEEDS.intermediate).toBeCloseTo(
+      (TRAIN_SPEEDS.pinion1 * TEETH.pinion1Upper) / TEETH.intermediate,
+      6,
+    );
   });
 
   it('damps wind-up impulse back to nominal velocity', () => {
-    let speed = 4.8; // Wind-up burst
+    let speed = WIND_UP.burst;
     const targetSpeed = 1.0;
     const dt = 1 / 60;
 
     for (let frame = 0; frame < 120; frame++) {
-      speed = damp(speed, targetSpeed, 1.35, dt);
+      speed = damp(speed, targetSpeed, WIND_UP.rate, dt);
     }
 
     // After 2 seconds (120 frames at 60fps), speed should have settled close to nominal 1.0
@@ -66,7 +79,7 @@ describe('mechanical planetary system (orrery)', () => {
     expect(aphelionSpeed).toBeLessThan(ORBITAL_SPEEDS.mercury);
     expect(perihelionSpeed).toBeGreaterThan(aphelionSpeed);
 
-    // Mean velocity across full revolution preserves nominal speed
+    // Averaged over angle (not time) the speed is nominal
     const samples = 120;
     let sum = 0;
     for (let i = 0; i < samples; i++) {
@@ -109,48 +122,28 @@ describe('mechanical planetary system (orrery)', () => {
   });
 
   it('stands on the ground next to the left wall, further toward host', () => {
-    const scale = 1.55;
-    const orreryPosition = [-3.28, 0, -3.15];
-    const standHeight = 0.38 * scale;
-    const mechanismHeight = (0.42 + BASE_Y) * scale; // Plinth to Sun apex
-    const totalApexY = orreryPosition[1] + standHeight + mechanismHeight;
-    const outerSaturnRadius = 0.32 * scale;
+    const totalApexY = POSITION[1] + (STAND_Y + SUN_Y + SUN_RADIUS) * SCALE;
+    const outerSaturnRadius = (ARMS.saturn.rod[1] + SATURN_RINGS[1]) * SCALE;
 
-    // Boundary constants from TeaArchitecture.tsx
+    // Boundary constants from TeaTable.tsx and TeaArchitecture.tsx
     const tableMinX = -2.58 / 2; // -1.29
     const leftWallBeamX = -3.98 + 0.17 / 2; // -3.895
     const tableCenterZ = -2.41;
-    const hostZ = -3.62;
 
     // Verify resting on the ground
-    expect(orreryPosition[1]).toBe(0);
+    expect(POSITION[1]).toBe(0);
 
     // Verify placed to the left of the table and clear of the left wall
-    expect(orreryPosition[0]).toBeLessThan(tableMinX);
-    expect(orreryPosition[0] - outerSaturnRadius).toBeGreaterThan(
-      leftWallBeamX,
-    );
+    expect(POSITION[0]).toBeLessThan(tableMinX);
+    expect(POSITION[0] - outerSaturnRadius).toBeGreaterThan(leftWallBeamX);
 
     // Verify positioned further toward the host than table center
-    expect(orreryPosition[2]).toBeLessThan(tableCenterZ);
-    expect(orreryPosition[2]).toBeGreaterThan(hostZ);
+    expect(POSITION[2]).toBeLessThan(tableCenterZ);
+    expect(POSITION[2]).toBeGreaterThan(IROH_DEFAULT_POSITION[2]);
 
     // Verify top apex stays comfortably below minimum camera travel plane (1.4m)
     expect(totalApexY).toBeLessThan(1.4);
     expect(totalApexY).toBeGreaterThan(1.0);
-  });
-
-  it('aligns winding crank axle and handle with horizontal drive arbor', () => {
-    // Horizontal axle emerges along X at [0.144, CRANK_AXLE_Y, 0].
-    const axleOrigin = [0.144, CRANK_AXLE_Y, 0];
-    const crankPosition = [CRANK_HANDLE_X, CRANK_AXLE_Y, 0];
-    const handleOffset = [0.019, 0.038, 0]; // Extends outward along +X
-
-    expect(crankPosition[1]).toBe(axleOrigin[1]);
-    expect(crankPosition[2]).toBe(axleOrigin[2]);
-    expect(crankPosition[0]).toBeGreaterThan(axleOrigin[0]);
-    // Handle grip points outwards away from plinth (+X)
-    expect(handleOffset[0]).toBeGreaterThan(0);
   });
 
   it('uses only a bottom and top trim ring, with the crank outside both', () => {

@@ -8,11 +8,10 @@ import {
 import type { CanvasTexture } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { once } from '../Surfaces';
+import { canvasTexture, once } from '../Surfaces';
 import {
   block,
   brushText,
-  canvasTexture,
   cord,
   Hanger,
   merge,
@@ -21,11 +20,12 @@ import {
   useBuilt,
   WoodMaterial,
 } from './craft';
+import { NAGESHI, WAINSCOT_TOP } from './hanging';
 
 const timber = '#3a2419';
 const BANDS: [number, number][] = [
-  [0.985, 2.26],
-  [2.38, 3.265],
+  [WAINSCOT_TOP, NAGESHI.bottom],
+  [NAGESHI.top, 3.265],
 ];
 
 let wear: CanvasTexture | undefined;
@@ -93,13 +93,17 @@ export function WallTrim({
       paint(
         place(
           new CylinderGeometry(0.034, 0.038, 0.01, 18),
-          [at(0.093), 2.32, z],
+          [at(0.093), (NAGESHI.bottom + NAGESHI.top) / 2, z],
           [0, 0, Math.PI / 2],
         ),
         '#8a6a34',
       ),
       paint(
-        place(new SphereGeometry(0.013, 12, 8), [at(0.098), 2.32, z]),
+        place(new SphereGeometry(0.013, 12, 8), [
+          at(0.098),
+          (NAGESHI.bottom + NAGESHI.top) / 2,
+          z,
+        ]),
         '#b08a48',
       ),
     ]);

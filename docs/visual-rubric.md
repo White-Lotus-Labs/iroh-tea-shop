@@ -37,7 +37,7 @@ All shots use reduced motion so that they repeat exactly, except `tea-set` and `
    - `--size=1600x900` sets the viewport. This is the default.
    - `--gpu=metal`, the default, uses the real GPU: ANGLE Metal on macOS, Chromium's default backend (D3D11 on Windows) elsewhere. `--gpu=swiftshader` uses SwiftShader, the software renderer.
    - `--headed` is a fallback only. It opens Chromium off-screen at `-32000,-32000` and never brings it to the front.
-   - `--dpr=1` renders at 1x. The real-GPU run defaults to 2x, like a Retina laptop. The Canvas caps the render at its own dpr range.
+   - `--dpr=1` renders at 1x. The real-GPU run defaults to 2x, like a Retina laptop. The quality ladder in `ScenePolish` then sets the render ratio, never above 1.5x or the page's own: desktop starts at 1.5x, phones and save-data at 1x, and the frame rate moves it between the two.
    - `--motion=full` turns off reduced motion for all shots. `--ui` keeps the HTML panels visible.
    - `--query=irohPose=sip:2` adds a URL query, for example to hold one frame of Uncle's animation.
 3. The script waits 1.4 s per shot, or 2.6 s for `tea-set` and `brazier`, then samples frames for 3 s. `--motion=full` does not change the wait. It writes one PNG per shot and `frames-<gpu>.json`. The JSON has the WebGL renderer string, the mean and p95 frame time and fps per shot, the mean fps across shots, and a list of page errors and HTTP responses of 400 or higher.

@@ -7,7 +7,7 @@ export type { IrohActivity };
 type Point = [number, number, number];
 
 export const IROH_DEFAULT_POSITION: Point = [0, 0, -3.62];
-export const IROH_DEFAULT_ROTATION: Point = [0, 0, 0];
+const IROH_DEFAULT_ROTATION: Point = [0, 0, 0];
 
 /** A model that fails to load leaves the cushion empty instead of taking the room down. */
 class HostBoundary extends Component<

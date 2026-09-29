@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   BufferAttribute,
   BufferGeometry,
-  CanvasTexture,
   Color,
   CylinderGeometry,
   Euler,
   Matrix4,
   Quaternion,
-  SRGBColorSpace,
   TorusGeometry,
   TubeGeometry,
   Vector3,
@@ -24,21 +22,6 @@ export function useBuilt<T extends { dispose(): void }>(make: () => T) {
   const [value] = useState(make);
   useEffect(() => () => value.dispose(), [value]);
   return value;
-}
-
-export function canvasTexture(
-  width: number,
-  height: number,
-  draw: (ctx: CanvasRenderingContext2D) => void,
-) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  draw(canvas.getContext('2d')!);
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  texture.anisotropy = 8;
-  return texture;
 }
 
 /** Metres per wood texture tile: [along the grain, across it]; matches Surfaces. */

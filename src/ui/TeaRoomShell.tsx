@@ -9,13 +9,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { MotionPreference, Station } from '../shared/contracts';
+import type { Station } from '../shared/contracts';
 import type { SceneMood } from '../scene/motion/dynamics';
 import type { IrohActivity } from '../scene/TeaHost3D';
 import { OBSERVATORIUM_URL, RECENTER_EVENT, STATIONS } from '../scene/stations';
 import { AccountMenu } from './AccountMenu';
 import type { PublicUser } from '../auth/service';
-import { SmartWalletShelf } from './SmartWalletShelf';
 import {
   isNansenAvailability,
   type NansenAvailability,
@@ -29,16 +28,18 @@ import { WaitingRoom } from './waiting-room/WaitingRoom';
 import { whenBookRests } from './waiting-room/bookMotion';
 import { WaitingVersions } from './waiting-room/Versions';
 import { MusicToggle } from './MusicToggle';
-import { roomTextures, SHELF_POSTERS } from './roomTextures';
+import { roomTextures, SHELF_POSTERS, THESIS_IDS } from './roomTextures';
 import { lightExperience } from '../scene/lightExperience';
 import { paintSurfaces } from '../scene/paintSurfaces';
 
-// Scene / deck / chat stay out of the first paint; idle preloads warm them.
+// Scene, deck, chat and Shelf stay out of the first paint; idle preloads warm them.
 const loadTeaRoom = () => import('../scene/TeaRoom');
 const loadThesisDeck = () =>
   import('./ThesisDeck').then((m) => ({ default: m.ThesisDeck }));
 const loadIrohChat = () =>
   import('./IrohChat').then((m) => ({ default: m.IrohChat }));
+const loadShelf = () =>
+  import('./SmartWalletShelf').then((m) => ({ default: m.SmartWalletShelf }));
 
 // Textures download while three.js parses and the room builds, instead of
 // after; the scene then reads them from the HTTP cache.
@@ -71,6 +72,7 @@ const TeaRoom = dynamic(
 // once with its content and final size instead of growing mid-unroll.
 const ThesisDeck = dynamic(loadThesisDeck);
 const IrohChat = dynamic(loadIrohChat);
+const SmartWalletShelf = dynamic(loadShelf);
 
 function idlePreload(load: () => Promise<unknown>) {
   if (typeof window.requestIdleCallback === 'function') {
@@ -85,8 +87,6 @@ function idlePreload(load: () => Promise<unknown>) {
   return () => window.clearTimeout(timer);
 }
 
-const THESIS_IDS: ThesisId[] = ['robinhood', 'bullrun', 'ai'];
-
 export default function TeaRoomShell({
   user,
   nansen: initialNansen,
@@ -100,9 +100,7 @@ export default function TeaRoomShell({
   const [station, setStation] = useState<Station>('Entrance');
   const [cameraAt, setCameraAt] = useState<Station | null>(null);
   const [shelfFocused, setShelfFocused] = useState(false);
-  const [motion] = useState<MotionPreference>('system');
   const [systemReduced, setSystemReduced] = useState<boolean | null>(null);
-  const [resetKey] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [observatoriumZoomKey, setObservatoriumZoomKey] = useState(0);
   const [openingObservatorium, setOpeningObservatorium] = useState(false);
@@ -135,39 +133,26 @@ export default function TeaRoomShell({
   }, [station]);
   // Warm the 3D room behind the sketchbook once it rests.
   useEffect(() => void whenBookRests().then(warmTeaRoom), []);
-  // Warm the shelf posters and the Counter / Host panels once the room is ready to enter.
+  // Warm the shelf posters and the Counter, Host and Shelf panels once the room is ready to enter.
   useEffect(() => {
     if (!sceneReady) return;
     return idlePreload(() => {
-      // The scroll seals and watermark use the CJK face, which is not
-      // preloaded; fetch its glyph slices now so a first scroll does not swap.
-      const cjk = getComputedStyle(document.documentElement)
-        .getPropertyValue('--font-cjk-face')
-        .trim();
-      if (cjk)
-        document.fonts.load(`600 20px ${cjk}`, '茶禅签师卷星').catch(() => {});
       for (const src of SHELF_POSTERS) {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.src = src;
       }
-      return Promise.all([loadThesisDeck(), loadIrohChat()]);
+      return Promise.all([loadThesisDeck(), loadIrohChat(), loadShelf()]);
     });
   }, [sceneReady]);
   useEffect(() => {
     if (!revealed) return;
-    const prefetch = () => {
+    return idlePreload(async () => {
       for (const id of THESIS_IDS) {
         const img = new Image();
         img.src = `/images/theses/${id}-600w.webp`;
       }
-    };
-    if (typeof window.requestIdleCallback === 'function') {
-      const handle = window.requestIdleCallback(prefetch);
-      return () => window.cancelIdleCallback(handle);
-    }
-    const timer = window.setTimeout(prefetch, 1);
-    return () => window.clearTimeout(timer);
+    });
   }, [revealed]);
   const panel = useRef<HTMLElement>(null);
   // Openers commit the panel in a transition, so focus it as it mounts.
@@ -180,12 +165,12 @@ export default function TeaRoomShell({
   const draftOnClose = useRef<{ text: string; key: number } | null>(null);
   const closeApplied = useRef(false);
   const observatoriumOpening = useRef(false);
+  const rollUpTimer = useRef(0);
   // Deep link opens the Counter panel once after the camera arrives.
   const deepLinkOpenOnce = useRef(false);
   const focusHintOnArrive = useRef(false);
   const returnThesis = useRef<ThesisId | null>(null);
-  const reduced =
-    motion === 'reduce' || (motion === 'system' && (systemReduced ?? true));
+  const reduced = systemReduced ?? true;
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     setSystemReduced(media.matches);
@@ -256,6 +241,8 @@ export default function TeaRoomShell({
         deepLinkOpenOnce.current = true;
       } else {
         returnThesis.current = null;
+        // An open queued by an earlier trip (a card, a deep link) is stale now.
+        deepLinkOpenOnce.current = false;
       }
       setCameraAt(null);
       setShelfFocused(false);
@@ -323,9 +310,15 @@ export default function TeaRoomShell({
     };
     if (reduced || !paper || paper.classList.contains('is-rolling-up'))
       return finish();
-    // Let the scroll roll up to its top rod before it unmounts.
+    // Let the scroll roll up to its top rod before it unmounts. The Shelf has
+    // no roll-up, so it closes at once.
     paper.classList.add('is-rolling-up');
-    window.setTimeout(finish, 380);
+    const { animationName, animationDuration } = getComputedStyle(paper);
+    if (animationName === 'none') return finish();
+    rollUpTimer.current = window.setTimeout(
+      finish,
+      parseFloat(animationDuration) * 1000,
+    );
   }, [reduced]);
   const onCameraArrive = useCallback((at: Station) => {
     setCameraAt(at);
@@ -355,6 +348,11 @@ export default function TeaRoomShell({
   const onSceneAvailability = useCallback((available: boolean) => {
     setSceneAvailable(available);
     setSceneFailed(!available);
+    // A lost context never finishes the push-in; do not lock navigation on it.
+    if (!available) {
+      observatoriumOpening.current = false;
+      setOpeningObservatorium(false);
+    }
   }, []);
   const onLoadProgress = useCallback((active: boolean, progress: number) => {
     setAssetsLoading(active);
@@ -377,6 +375,8 @@ export default function TeaRoomShell({
   const loaderProgress = sceneAvailable ? 15 + assetProgress * 0.85 : 6;
   useEffect(() => {
     if (panelOpen) closeApplied.current = false;
+    // Once the panel opens or closes by any path, a pending roll-up is moot.
+    return () => window.clearTimeout(rollUpTimer.current);
   }, [panelOpen]);
   useEffect(() => {
     if (!panelOpen) return;
@@ -413,6 +413,7 @@ export default function TeaRoomShell({
     // An explicit click wins over the thesis saved before asking Uncle.
     returnThesis.current = null;
     if (station === 'Counter') return openPanel();
+    if (observatoriumOpening.current) return;
     navigate('Counter');
     deepLinkOpenOnce.current = true;
   }, [station, navigate, openPanel]);
@@ -586,10 +587,6 @@ export default function TeaRoomShell({
           <TeaRoom
             station={station}
             reduced={reduced}
-            resetKey={resetKey}
-            typing={false}
-            reading={false}
-            allowTravelWhileTyping={station === 'AvatarSeat'}
             mood={mood}
             requestKey={pour.key}
             irohActivity={irohActivity}

@@ -4,6 +4,7 @@ import {
   BufferGeometry,
   ExtrudeGeometry,
   InstancedMesh,
+  MathUtils,
   MeshPhysicalMaterial,
   Object3D,
   RepeatWrapping,
@@ -11,7 +12,7 @@ import {
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { canvasTexture, Cup, fbm, tiledNoise } from '../Ceramics';
+import { Cup, fbm, imageTexture, tiledNoise } from '../Ceramics';
 import { createRandom } from '../motion/dynamics';
 import { once, Solid } from '../Surfaces';
 import type { Point } from '../stations';
@@ -19,13 +20,8 @@ import { TeaService } from './TeaService';
 
 /** Metres covered by one wood tile: [along the grain, across it]. */
 const WOOD_TILE = [1.2, 0.3];
-const smooth = (edge0: number, edge1: number, x: number) => {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-};
-
 /** Soft growth rings and long streaks; R holds relief, G roughness. */
-export function woodMaps(
+function woodMaps(
   early: [number, number, number],
   late: [number, number, number],
   seed: number,
@@ -42,7 +38,9 @@ export function woodMaps(
         t = y / height,
         warp = fbm(noise, s * 4, t * 4, 4, 3, 4),
         phase = (((t * 10 + warp * 1.5) % 1) + 1) % 1,
-        band = smooth(0.5, 0.82, phase) * (1 - smooth(0.9, 1, phase)),
+        band =
+          MathUtils.smoothstep(phase, 0.5, 0.82) *
+          (1 - MathUtils.smoothstep(phase, 0.9, 1)),
         streak = fbm(fine, s * 6, t * 48, 6, 2, 64),
         pore = random() < 0.012 * (1 - band) ? 1 : 0,
         tone = 0.92 + (streak - 0.5) * 0.42 - pore * 0.25,
@@ -55,8 +53,8 @@ export function woodMaps(
       surface.data[i + 3] = 255;
     }
   const maps = {
-    color: canvasTexture(color, true),
-    surface: canvasTexture(surface, false),
+    color: imageTexture(color, true),
+    surface: imageTexture(surface, false),
   };
   maps.color.wrapT = maps.surface.wrapT = RepeatWrapping;
   return maps;
@@ -252,8 +250,8 @@ function runnerMaps() {
       surface.data[i + 3] = 255;
     }
   const maps = {
-    color: canvasTexture(color, true),
-    surface: canvasTexture(surface, false),
+    color: imageTexture(color, true),
+    surface: imageTexture(surface, false),
   };
   maps.color.repeat.set(2.05 / along, 1);
   maps.surface.repeat.set(2.05 / along, 1);
