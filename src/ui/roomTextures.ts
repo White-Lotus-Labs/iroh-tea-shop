@@ -11,7 +11,7 @@ export function roomTextures(light: boolean) {
   ];
 }
 
-/** HangingPaper's posters: they mount at Step inside, so they preload once the room is ready. */
+/** HangingPaper's posters: they mount at Enter Teashop, so they preload once the room is ready. */
 export const SHELF_POSTERS = [
   '/images/shelf/spirit-1.d17cfc.webp',
   '/images/shelf/spirit-2.db8327.webp',

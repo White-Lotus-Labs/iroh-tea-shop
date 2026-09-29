@@ -1,15 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { NANSEN_REFRESH_MS } from '../src/nansen/snapshot-store';
 import type { ThesisSummary } from '../src/thesis/types';
+import { stubNansenLimits } from './nansen-mock';
 import { openTempDb } from './temp-sqlite';
 
 beforeEach(() => {
   vi.resetModules();
-  vi.stubEnv('NANSEN_REQUEST_STARTS_PER_SECOND', '1000');
-  vi.stubEnv('NANSEN_REQUEST_START_BURST', '1000');
-  vi.stubEnv('NANSEN_GLOBAL_MAX_CONCURRENT', '32');
-  vi.stubEnv('NANSEN_NORMAL_MAX_QUEUE', '200');
-  vi.stubEnv('NANSEN_JSON_MAX_RETRIES', '0');
+  stubNansenLimits();
 });
 
 afterEach(() => {

@@ -27,6 +27,7 @@ import {
   convictionSentence,
   convictionTitle,
   formatRelative,
+  shopErrorText,
   netLabel,
   shareText,
   thesisLink,
@@ -176,17 +177,7 @@ export function ThesisDeck({
           setDeck({ status: 'ready', snapshot });
           return;
         }
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setDeck({
-          status: 'offline',
-          reason:
-            body?.error ??
-            (response.status === 503
-              ? 'Nansen is not configured.'
-              : 'Nansen is unavailable right now.'),
-        });
+        setDeck({ status: 'offline', reason: await shopErrorText(response) });
       })
       .catch(() => {
         if (!controller.signal.aborted)

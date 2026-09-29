@@ -29,7 +29,6 @@ import {
   cord,
   merge,
   paint,
-  place,
   taperedTube,
   useBuilt,
   WoodMaterial,

@@ -608,7 +608,7 @@ test('a stale real snapshot is labelled and small screens keep values readable',
   const footer = await page.locator('.leaderboard-foot').boundingBox();
   expect(rank!.y + rank!.height).toBeLessThanOrEqual(footer!.y);
 
-  // Four tabs, the chain chips and the top tokens still fit at phone width.
+  // Four board buttons, the chain chips and the top tokens still fit at phone width.
   await page.getByRole('button', { name: 'Meme Traders', exact: true }).click();
   const chains = page.getByTestId('top-wallet').locator('.wallet-chains');
   await expect(chains).toBeVisible();

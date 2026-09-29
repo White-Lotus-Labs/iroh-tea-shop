@@ -17,7 +17,6 @@ import {
   Texture,
   TorusGeometry,
   Vector2,
-  Vector3,
 } from 'three';
 import { ContactShadows, useTexture } from '@react-three/drei';
 import { damp } from './motion/dynamics';
@@ -33,7 +32,7 @@ export const SCALE = 1.55;
 /** Height of the wooden display table. */
 export const STAND_Y = 0.38;
 /** Additional elevation of the orrery base above the table to clear rotating crank handle. */
-export const BASE_Y = 0.036;
+const BASE_Y = 0.036;
 /** Crank drive axle height in the pedestal frame. */
 export const CRANK_AXLE_Y = 0.032 + BASE_Y;
 /** Keep the winding handle visibly clear of the plinth and its trim rings. */

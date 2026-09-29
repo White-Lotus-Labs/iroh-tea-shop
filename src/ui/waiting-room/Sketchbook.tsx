@@ -796,13 +796,7 @@ export function Sketchbook({ reduced }: { reduced: boolean }) {
     SPREAD_TITLES[mode === 'spread' ? view : Math.floor(view / 2)];
   const place = `${spreadTitle}, ${mode === 'spread' ? 'spread' : 'page'} ${view + 1} of ${count}`;
   return (
-    <div
-      ref={root}
-      className="sb"
-      data-mode={mode}
-      data-open="open"
-      data-budget={budget}
-    >
+    <div ref={root} className="sb" data-mode={mode} data-budget={budget}>
       <svg className="sb-defs" aria-hidden="true" focusable="false">
         <filter id="sb-blur-1">
           <feGaussianBlur stdDeviation="4 0" />

@@ -8,7 +8,7 @@ import type {
   TickerDetail,
   TickerSignal,
 } from '../thesis/types';
-import { formatRelative, isDust } from './deckModel';
+import { formatRelative, isDust, shopErrorText } from './deckModel';
 
 // Reuse a loaded detail for a few minutes, so reopening an asset is instant.
 // The shop saves new readings every hour, so a tab left open still refreshes.
@@ -31,16 +31,7 @@ function loadDetail(thesisId: ThesisId, symbol: string) {
     { cache: 'no-store' },
   ).then(async (response) => {
     if (response.ok) return (await response.json()) as TickerDetail;
-    const body = (await response.json().catch(() => null)) as {
-      error?: unknown;
-    } | null;
-    throw new DetailError(
-      typeof body?.error === 'string'
-        ? body.error
-        : response.status === 503
-          ? 'Nansen is not configured.'
-          : 'Nansen is unavailable right now.',
-    );
+    throw new DetailError(await shopErrorText(response));
   });
   detailCache.set(key, { loadedAt: Date.now(), pending });
   pending.catch(() => {

@@ -13,6 +13,7 @@ const PetalCanvas = dynamic(
 );
 
 // Long enough for the push through the doorway to read before the room shows.
+// Matches the 1.1s push and 0.2s reduced fade on .is-leaving in WaitingRoom.css.
 const LEAVE_MS = 1100;
 
 export function WaitingRoom({

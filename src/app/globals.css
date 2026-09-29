@@ -1362,7 +1362,6 @@ body:has(.auth-shell) {
   letter-spacing: 0.02em;
   cursor: pointer;
 }
-.leaderboard-tab.is-active,
 .leaderboard-tab[aria-pressed='true'] {
   background: rgba(138, 47, 34, 0.12);
   color: #8a2f22;

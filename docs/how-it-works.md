@@ -186,7 +186,7 @@ At the Shelf, the scroll stays rolled up. Press **See the top traders**, click t
 
 The 3D shelf shows three hanging papers: the spirits of ranks 1, 2, and 3. The open scroll lists all ten.
 
-**Boards.** The tabs at the top pick a board. Each board shows ten wallets over the last 30 days:
+**Boards.** The buttons at the top pick a board. Each board shows ten wallets over the last 30 days:
 
 | Board             | Which wallets                                                               | Chains                    |
 | ----------------- | --------------------------------------------------------------------------- | ------------------------- |

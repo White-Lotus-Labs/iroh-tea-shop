@@ -26,7 +26,7 @@ import {
   SHELF_GUEST_NAME,
   shelfIdentityForRank,
 } from './shelfIdentities';
-import { formatRelative } from './relativeTime';
+import { formatRelative } from './deckModel';
 import { shelfLabel } from './shelfLabels';
 
 const snapshotCache = new Map<string, SmartWalletLeaderboardSnapshot>();
@@ -611,9 +611,7 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
                 key={id}
                 type="button"
                 aria-pressed={board === id}
-                className={
-                  board === id ? 'leaderboard-tab is-active' : 'leaderboard-tab'
-                }
+                className="leaderboard-tab"
                 onClick={() => {
                   setBoard(id);
                   if (!BOARD_METRICS[id].includes(metric)) setMetric('wins');

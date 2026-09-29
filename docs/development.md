@@ -36,12 +36,12 @@ PowerShell has no such one-run form. In Windows PowerShell 5.1, `$env:NANSEN_API
 
 The app reads each variable from the shell, then `.env.local`, then `.env`. The first value it finds wins, even an empty one.
 
-| Variable                   | Default         | What it does                                                                                                 |
-| -------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`             | none in the app | The SQLite file. Use `file:./dev.db` locally (the path is relative to `prisma/`). The app fails without it.  |
-| `NANSEN_API_KEY`           | empty           | The house key. It pays for the background save and for free Uncle messages. It never goes to the browser.    |
-| `NANSEN_AGENT_DAILY_LIMIT` | `1`             | Free house-key Uncle messages per IP address per UTC day. `0` turns them off. A bad value falls back to `1`. |
-| `TRIPO_API_KEY`            | empty           | Used only by `scripts/tripo.mjs`. That script reads `.env.local` only, not `.env`.                           |
+| Variable                   | Default         | What it does                                                                                                                 |
+| -------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`             | none in the app | The SQLite file. Use `file:./dev.db` locally (the path is relative to `prisma/`). The app fails without it.                  |
+| `NANSEN_API_KEY`           | empty           | The house key. It pays for the background save and for free Uncle messages. It never goes to the browser.                    |
+| `NANSEN_AGENT_DAILY_LIMIT` | `1`             | Free house-key Uncle messages per IP address (IPv6: per /64) per UTC day. `0` turns them off. A bad value falls back to `1`. |
+| `TRIPO_API_KEY`            | empty           | Used only by `scripts/tripo.mjs`. That script reads `.env.local` only, not `.env`.                                           |
 
 Ten more variables set how the server paces its Nansen calls. [Nansen request queue](nansen-request-manager.md) lists them.
 

@@ -105,12 +105,10 @@ test('the sketchbook starts open, riffles forward once, and lands on the first s
   await page.goto('/');
   const book = page.locator('.sb');
   await book.waitFor();
-  await expect(book).toHaveAttribute('data-open', 'open');
   await expect(page.locator('.sb-book')).toHaveAttribute(
     'aria-label',
     'The Tea Shop, spread 1 of 6',
   );
-  await expect(page.locator('.sb-lid')).toHaveCount(0);
   await page.evaluate(() => {
     const el = document.querySelector('.sb-book')!;
     const seen: number[] = [];

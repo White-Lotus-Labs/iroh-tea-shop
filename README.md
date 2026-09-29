@@ -57,7 +57,7 @@ A link such as `/?thesis=bullrun` skips the waiting room and opens that thesis. 
 
 Uncle is the old tea master who runs the shop. He answers questions about tokens, wallets, and markets. Nansen's Research Agent writes each answer when you ask. A question can be up to 100 characters.
 
-The shop pays for **one free message per IP address per day**. Uncle calls it a cup. The count resets at midnight UTC. When you have used your free message, Uncle shows two buttons:
+The shop pays for **one free message per IP address per day** (an IPv6 /64 network counts as one address). Uncle calls it a cup. The count resets at midnight UTC. When you have used your free message, Uncle shows two buttons:
 
 - **Enter your key.** Paste your own Nansen API key. Your browser keeps it and uses it for Uncle only.
 - **Get a Nansen API key ↗.** This opens [nsn.ai/iroh0x](https://nsn.ai/iroh0x).
