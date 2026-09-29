@@ -1,5 +1,7 @@
 # Perf budget
 
+> **Record from 27 September 2026.** These tables are history. The waiting-room button was then called "Step inside"; it is now **Enter Teashop**. To measure again, run `npm run build`, then `node scripts/perf-audit.mjs` (see [Development notes](development.md#scripts)). The script now counts compressed wire bytes, so its numbers do not compare directly with the tables below.
+
 Measured 2026-09-27T08:27:46.117Z against `http://127.0.0.1:3112` (production `next start`, headless Chromium, ANGLE Metal, unthrottled).
 
 ## Timing

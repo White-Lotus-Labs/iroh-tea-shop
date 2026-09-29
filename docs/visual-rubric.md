@@ -8,33 +8,41 @@ Scores go in `docs/visual-scores.md`, one table per round.
 
 `scripts/visual-shots.mjs` captures fixed, repeatable shots. The dev-only hook `src/scene/DevShotCamera.tsx` reads `?shot=<name>`, locks the camera to a fixed pose, and disables camera travel and orbit. Station shots use the same pose as the product station, so they show what a user sees.
 
-| Shot            | Pose                      | Parts it shows                        |
-| --------------- | ------------------------- | ------------------------------------- |
-| `room-wide`     | Doorway, wide lens        | Whole chamber, mood, atmosphere       |
-| `counter`       | Counter station           | Waiting room, counter, walls          |
-| `tea-table`     | Tea table (Observatorium) | Table, host, orrery at left           |
-| `host-full`     | Host station              | Host in context                       |
-| `host-face`     | Close-up, 30° lens        | Face, eyes, beard, hair               |
-| `host-hands`    | Close-up, 42° lens        | Hands, robe, table edge               |
-| `tea-set`       | Close-up, full motion     | Teapot, cups, tea, steam              |
-| `observatorium` | Close-up of the orrery    | Brass, gears, how it sits in the room |
-| `shelf`         | Shelf station             | Shelf, right wall                     |
+In this doc, "front room" means the 3D room around the counter. The app's **Waiting room** is the sketchbook screen, which these shots do not show. The code names the Observatorium station `TeaTable` and the Host station `AvatarSeat`.
 
-All shots use reduced motion for determinism, except `tea-set`. The app hides steam under reduced motion, so that shot runs with full motion.
+| Shot              | Pose                      | Parts it shows                        |
+| ----------------- | ------------------------- | ------------------------------------- |
+| `room-wide`       | Doorway, wide lens        | Whole chamber, mood, atmosphere       |
+| `entrance`        | Waiting room station pose | The room behind the sketchbook        |
+| `counter`         | Counter station           | Front room, counter, walls            |
+| `counter-shelves` | Close-up, 60° lens        | The shelves behind the counter        |
+| `tea-table`       | Observatorium station     | The orrery in the middle, the veranda |
+| `host-full`       | Host station              | Host in context                       |
+| `host-face`       | Close-up, 30° lens        | Face, eyes, beard, hair               |
+| `host-hands`      | Close-up, 42° lens        | Hands, robe, table edge               |
+| `tea-set`         | Close-up, full motion     | Teapot, cups, tea, steam              |
+| `brazier`         | Close-up, full motion     | The brazier and its glow              |
+| `observatorium`   | Close-up of the orrery    | Brass, gears, how it sits in the room |
+| `shelf`           | Shelf station             | Shelf, right wall                     |
+
+All shots use reduced motion so that they repeat exactly, except `tea-set` and `brazier`. The app hides steam under reduced motion, so those two shots run with full motion.
 
 ### Run the shots
 
 1. Start the dev server: `npm run dev -- --port 3106`.
 2. Run `node scripts/visual-shots.mjs [outDir]`.
-   - Default `outDir`: `../_scratch/shots/round-N`, where N is the next free number.
+   - Default `outDir`: `../_scratch/shots/round-N`, next to the repo, where N is the next free number.
    - `--shots=host-face,host-hands` takes only some shots.
-   - `--gpu=swiftshader` uses SwiftShader (the test renderer) instead of Metal.
+   - `--base=http://127.0.0.1:3106` sets the server. This is the default.
+   - `--size=1600x900` sets the viewport. This is the default.
+   - `--gpu=metal`, the default, uses the real GPU: ANGLE Metal on macOS, Chromium's default backend (D3D11 on Windows) elsewhere. `--gpu=swiftshader` uses SwiftShader, the software renderer.
    - `--headed` is a fallback only. It opens Chromium off-screen at `-32000,-32000` and never brings it to the front.
-   - `--dpr=1` renders at 1x. Metal defaults to 2x, like a Retina laptop. The Canvas caps the render at its own dpr range.
+   - `--dpr=1` renders at 1x. The real-GPU run defaults to 2x, like a Retina laptop. The Canvas caps the render at its own dpr range.
    - `--motion=full` turns off reduced motion for all shots. `--ui` keeps the HTML panels visible.
-3. The script writes one PNG per shot and `frames-<gpu>.json`. The JSON has the WebGL renderer string, mean frame time, p95 frame time, and fps per shot.
+   - `--query=irohPose=sip:2` adds a URL query, for example to hold one frame of Uncle's animation.
+3. The script waits 1.4 s per shot, or 2.6 s for `tea-set` and `brazier`, then samples frames for 3 s. `--motion=full` does not change the wait. It writes one PNG per shot and `frames-<gpu>.json`. The JSON has the WebGL renderer string, the mean and p95 frame time and fps per shot, the mean fps across shots, and a list of page errors and HTTP responses of 400 or higher.
 
-The frame sampler runs for 3 s per shot in the page with `requestAnimationFrame`. The Metal run turns off vsync and the frame-rate limit, so fps shows headroom above the display refresh.
+The frame sampler uses `requestAnimationFrame` in the page. The Metal run turns off vsync and the frame-rate limit, so fps shows headroom above the display refresh.
 
 ### GPU choice for scoring
 

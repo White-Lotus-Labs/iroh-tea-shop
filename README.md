@@ -1,117 +1,154 @@
 # Iroh's Tea Shop
 
-A small 3D tea shop where you can check three crypto ideas against what smart money is actually doing.
+A 3D tea shop in your browser. In it, you check three crypto theses against what smart money does. Smart money means wallets that [Nansen](https://nansen.ai) labels as funds or skilled traders. All market data comes from Nansen.
 
-You walk in through a sketchbook, then move around the room. The counter holds three thesis books. Uncle, the host, will talk with you. The shelf shows the ten strongest traders from the last 30 days, drawn as spirits. Three boards rank Hyperliquid perp traders. The fourth ranks Smart Money meme traders on Solana and EVM chains. A brass orrery sits in the corner and does not show market data.
+**Live site:** <https://iroh-tea-shop.up.railway.app>
 
-The shop is a Next.js app. Market numbers come from [Nansen](https://nansen.ai). Most of those numbers are saved in a SQLite database on the server and refreshed on a schedule (hourly for fast readings, every 4 hours for slow ones), so opening a page does not call Nansen. Talking to Uncle does. Each message is a live question.
+![The Counter inside the shop, with three thesis cards on the tray and the dock at the bottom](docs/screenshots/room.webp)
 
-Live demo: <https://iroh-tea-shop.up.railway.app>
+## What you can do
 
-![Room from the entrance toward the counter](docs/screenshots/room-wide.webp)
-![Thesis Desk with three books](docs/screenshots/thesis-desk.webp)
-![Opened thesis with an expanded ticker](docs/screenshots/thesis-open.webp)
-![Host chat with Uncle](docs/screenshots/host-uncle.webp)
-![Shelf leaderboard of Ten Spirits](docs/screenshots/shelf-leaderboard.webp)
+You start outside the shop, in front of a sketchbook. Press **Enter Teashop** when the room has loaded. A dock at the bottom of the screen then takes you to four stops:
+
+| Stop              | What you do there                                                                 |
+| ----------------- | --------------------------------------------------------------------------------- |
+| **Counter**       | Read three theses and see how many of their assets smart money is accumulating.   |
+| **Host**          | Ask Uncle, the shop's host, a question. Nansen's Research Agent finds the answer. |
+| **Shelf**         | See the top ten wallets on four trader leaderboards.                              |
+| **Observatorium** | Wind a brass orrery, a clockwork model of the planets. It shows no market data.   |
+
+The first dock button, **Waiting room**, takes you back to the sketchbook.
+
+### Waiting room
+
+![The sketchbook in front of the shop, with the Enter Teashop button below it](docs/screenshots/waiting-room.webp)
+
+The sketchbook explains the project and introduces the five people who built it. Drag a page, or press the arrow keys, to turn it. The **Enter Teashop** button fills like a tea bowl while the 3D room loads.
+
+### Counter: the Thesis Desk
+
+![The Thesis Desk with three books and their conviction seals](docs/screenshots/thesis-desk.webp)
+
+The team wrote three theses. On the desk, each thesis is a book about four assets:
+
+| Thesis                       | Assets                              |
+| ---------------------------- | ----------------------------------- |
+| Robinhood Chain Tokenization | NetNet, Mushroom, Arbitrum, Uniswap |
+| The Crypto Bull Market       | Bitcoin, Ether, Hyperliquid, Solana |
+| AI Taking Over the World     | Venice, SanDisk, NVIDIA, Micron     |
+
+Each book has a conviction seal: **Strong**, **Building**, **Weak**, or **No signal**. The seal shows how many of the four assets smart money is accumulating. For two theses, accumulating means that smart money bought more than it sold in the last 7 days. For The Crypto Bull Market, it means that smart money holds more long bets than short bets on Hyperliquid. [The conviction seal](docs/how-it-works.md#the-conviction-seal) gives the exact rule. The seal summarizes wallet data. It does not say that the thesis is right.
+
+Open a book to read the thesis. Open an asset to see the evidence: top buyers and sellers, holders, locked supply, and perpetual futures (perp) positions.
+
+![An open asset in The Crypto Bull Market, with buyers, holders, and perp positions](docs/screenshots/thesis-asset.webp)
+
+From an open thesis you can:
+
+- **Ask Uncle about this thesis.** This types a question in the Host panel. You decide whether to send it.
+- **Share** it with **Post on X** or **Copy link**.
+- **Follow this thesis.** This shows referral links to four trading apps: Arcus, FOMO, Omni, and Hyperliquid.
+
+A link such as `/?thesis=bullrun` skips the waiting room and opens that thesis. The three IDs are `robinhood`, `bullrun`, and `ai`.
+
+### Host: ask Uncle
+
+![The Ask Uncle panel next to the 3D host](docs/screenshots/host.webp)
+
+Uncle is the old tea master who runs the shop. He answers questions about tokens, wallets, and markets. Nansen's Research Agent writes each answer when you ask. A question can be up to 100 characters.
+
+The shop pays for **one free message per IP address per day**. Uncle calls it a cup. The count resets at midnight UTC. When you have used your free message, Uncle shows two buttons:
+
+- **Enter your key.** Paste your own Nansen API key. Your browser keeps it and uses it for Uncle only.
+- **Get a Nansen API key ↗.** This opens [nsn.ai/iroh0x](https://nsn.ai/iroh0x).
+
+If you are not logged in, a page reload clears the chat. If you log in, your chats stay in **Chat history**.
+
+### Shelf: top traders
+
+![The Shelf leaderboard with rank 1, Azure Dragon, open](docs/screenshots/shelf.webp)
+
+The Shelf has four boards. Each board shows ten wallets from the last 30 days:
+
+- **Perps Traders**: Hyperliquid wallets that Nansen labels Smart HL Perps Trader.
+- **Smart Wallets**: Hyperliquid wallets that Nansen labels as funds or smart traders.
+- **Whales**: Hyperliquid accounts worth $10M or more.
+- **Meme Traders**: Smart Money wallets on 18 chains, Solana and EVM, whose profit comes mostly from memecoins.
+
+Each rank gets an illustrated spirit, for example Azure Dragon for rank 1. The spirits are art. They say nothing about who owns the wallet. **Research in Nansen** opens the wallet in Nansen's profiler.
+
+![The Meme Traders board with win rate and top tokens](docs/screenshots/shelf-meme.webp)
+
+### Observatorium
+
+![The brass orrery by the veranda](docs/screenshots/observatorium.webp)
+
+Click the orrery to wind it. **Open the planetary model** opens the team's separate planetary model site in a new tab.
+
+### Moving around the room
+
+- Drag to look around. Scroll or pinch to zoom. Double-click the floor to walk there.
+- Click a glowing seal in the room to go to its stop. If you are already at that stop, the seal opens its panel.
+- Press **◎** (Recenter view) to put the camera back.
+- Press **Escape** to close a panel.
+
+**Log in** at the top right is optional. You need only a nickname and a password. An account keeps your chats with Uncle.
+
+## Where the numbers come from
+
+The shop uses Nansen in two ways.
+
+**Saved readings.** The Thesis Desk and the Shelf never call Nansen when you open them. Instead, the server asks Nansen on a schedule and saves the answers in its SQLite database. This is the background save. The desk and the Shelf show these saved answers, called readings. The server refreshes them on two schedules:
+
+- Every hour: the thesis seals, and the buyers, sellers, recent trades, and perp positions on the asset pages.
+- Every 4 hours: the holders and token information on the asset pages, and every Shelf board.
+
+Every fourth hour, a full save makes up to 103 Nansen requests. The hourly saves in between make 57 Nansen requests. These counts assume that nothing fails. If a save fails, the old reading stays on screen, marked as stale.
+
+**Live answers.** Uncle does not use saved readings. Each message calls Nansen's Research Agent (`agent/fast`) at that moment.
+
+[How the tea shop works](docs/how-it-works.md) has the full rules.
 
 ## Run it locally
 
-You need Node.js 22.12 or newer, npm, and a current browser.
+You need Node.js and npm. Use Node.js 24.10.0, the version in `.nvmrc` and on Railway. The commands below work in bash, zsh, Git Bash, and PowerShell.
 
-```sh
-npm ci
-```
+1. Get the code:
 
-Create `.env.local` and put a Nansen key in it if you want house-paid Uncle chat and background saves:
+   ```sh
+   git clone https://github.com/White-Lotus-Labs/iroh-tea-shop.git
+   cd iroh-tea-shop
+   ```
 
-```sh
-NANSEN_API_KEY=your-key
-```
+2. Install the packages:
 
-That house key stays on the server. It pays for saved readings and for the free Uncle question. Do not put it in a `NEXT_PUBLIC_` variable. Restart the dev server after you change `.env.local`.
+   ```sh
+   npm ci
+   ```
 
-You can also run without a house key. Open the Host panel and paste **your own** Nansen API key when Uncle asks. That key stays in the browser (`localStorage`) and is sent only as the `x-user-nansen-api-key` header to `/api/nansen-agent`. It is never used for the thesis desk or the shelf.
+3. Copy the settings file:
 
-Everything else is optional for local development. `.env.example` lists the available settings.
+   ```sh
+   cp .env.example .env.local
+   ```
 
-`scripts/tripo.mjs` reads `TRIPO_API_KEY` from `.env.local`, not `.env`.
+4. Optional: to see real market data, put a Nansen API key in `NANSEN_API_KEY` in `.env.local`. Read the warning below first. Skip this step to spend nothing.
 
-```sh
-npm run dev
-```
+5. Start the app. `npm run dev` first creates the database at `prisma/dev.db` and applies the migrations:
 
-Open <http://127.0.0.1:3000>. If that port is taken: `npm run dev -- --port 3101`.
+   ```sh
+   npm run dev
+   ```
 
-`npm run dev` creates the local database and applies pending migrations before Next.js starts (`scripts/migrate-db.mjs`). By default it uses `file:./dev.db`, which Prisma stores as `prisma/dev.db`; git ignores it, and each checkout has its own file. Set `DATABASE_URL` only when you need a different location. You can also run `npm run db:migrate` by itself. On Railway, set `DATABASE_URL=file:/data/dev.db` and mount a volume at `/data` on the one web replica. The start command runs the same migrate script, then `next start`.
+6. Open <http://127.0.0.1:3000>. If port 3000 is busy, Next.js uses the next free port and prints it.
 
-### Uncle: free cup, then your key
+Without a key, the terminal prints `Nansen refresh skipped: API key is not set.` The Thesis Desk then says "Nansen is not configured." and the Shelf says "Nansen research is offline." This is expected. With a key, the panels first say that market readings are still being saved. When the terminal prints `Nansen refresh saved …`, press **Try again**.
 
-With a house key configured, each IP gets **one** free Uncle message per UTC day (`NANSEN_AGENT_DAILY_LIMIT`, default `1`). After that cup (or when there is no house key), the Host panel offers two choices:
+> **A key spends Nansen credits.** With `NANSEN_API_KEY` set, the server saves readings as soon as it starts. The first start with an empty database makes up to 103 requests. After that, the server makes 57 requests each hour and up to 103 every fourth hour. That is up to 1,644 requests a day. Each free Uncle message also uses the key. To spend nothing, leave the key empty in `.env.local`. If your shell also sets `NANSEN_API_KEY`, remove it there too, because the shell value wins. You can still paste your own key in the Host panel to talk to Uncle.
 
-1. **Enter your key** — paste a Nansen API key; it unlocks Ask Uncle and skips the house cup.
-2. **Get a Nansen API key ↗** — opens the referral link [nsn.ai/iroh0x](https://nsn.ai/iroh0x).
+`NANSEN_API_KEY` is the house key: the shop's own Nansen key. It stays on the server. Never put it in a `NEXT_PUBLIC_` variable, because Next.js sends those variables to the browser.
 
-Clear the stored key in the Host panel to return to house-key + cup behavior.
-
-When the server starts, it fills the database in the background, then checks again every hour. Rows that are not due yet are skipped, so a restart does not ask Nansen again for readings it just saved. The first minute after boot, the thesis desk and the shelf can say the readings are still being saved. That is the fill running. It is not a visitor waiting on a live call.
-
-## What is saved, and what is live
-
-Two different things happen with Nansen.
-
-**Saved readings.** The thesis seals, the asset pages, and the shelf ranking are written into SQLite. Visitors read that copy. The server asks Nansen when it boots, then on two schedules:
-
-- **Every hour**: the thesis seals, and on each asset page the buyers, sellers, recent trades, and perp book. These move fast and are what visitors look at first.
-- **Every 4 hours**: holders and token info on the asset pages, and every Shelf board. Holders and supply barely move in an hour, and the boards rank 30-day windows.
-
-If an update fails, the previous row stays and the screen can mark it stale. A row is marked stale 15 minutes after its next update was due.
-
-**Uncle.** Chat is not a saved dataset. When you send a message, the server calls Nansen's Research Agent right then (`agent/fast`). The reply is streamed back. Signed-in chats are stored so you can reopen them. The Nansen request itself is still live, and it is not part of the hourly save. The free cup uses the house key. After that, or when the house key is missing, use a browser key or [nsn.ai/iroh0x](https://nsn.ai/iroh0x) as above.
-
-A full background save (on boot, and every 4 hours) makes **up to 103 Nansen requests**:
-
-| What it fills      | Requests | Where they go                                                                                                                                                                        |
-| ------------------ | -------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Thesis deck        |       12 | One per asset. Tokens use 7-day smart-money flow. Bitcoin, Ether, Hyperliquid, and Solana use open perp positions (longs minus shorts).                                              |
-| Asset detail pages |       67 | Buyers, sellers, recent trades, holders, and token info (every 4 hours) for everything except Solana. Perp books for assets that trade as perps. Solana only asks for the perp book. |
-| Shelf              |       15 | Every 4 hours. Three boards (Perps Traders, Smart Wallets, Whales) and five sorts. Account holdings reuses the account-value row.                                                    |
-| Meme Traders       |  up to 9 | Every 4 hours. 1 Smart Money PnL leaderboard (18 chains) + up to 8 entity lookups. An entity lookup finds one person's total across Solana and EVM. Both sorts rank the same rows.   |
-
-12 + 67 + 15 + 9 = 103. The hourly runs in between skip the 4-hour tier and make **57 Nansen requests** (12 seals + 45 asset-page requests). Meme Traders asks for one entity lookup per named person in its top 20, so a save with fewer than 8 of them makes fewer requests. Those calls are paced by the server so they do not all fire at once. They are not triggered by someone opening the desk or the shelf.
-
-Stock tokens (NVIDIA, Micron, SanDisk) still request token info, but the page hides "supply not yet circulating" for them. A stock's share count is not the story. Bitcoin, Ether, and Hyperliquid also look at the spot token on their detail page, on top of the perp signal used for the seal.
-
-The three essays are written by the team. Nansen does not write them. Nansen supplies the conviction seal and the evidence under each asset.
-
-Conviction, in plain words: a thesis looks at its four assets. An asset "counts" when Nansen returned a real smart-money number. It is "accumulating" when that number is positive. The seal is **strong** when at least three quarters of the counted assets are accumulating, **building** when at least half are, **weak** otherwise, and **no signal** when nothing counted.
-
-## A walk through the room
-
-1. **Waiting room.** A sketchbook. Press **Enter Teashop** when you want the stations.
-2. **Counter.** Three books: Robinhood Chain Tokenization, The Crypto Bull Market, and AI Taking Over the World. A click on a 3D counter card opens the Thesis Desk on all three scrolls (not only that thesis). Each book has a conviction seal from the saved readings. Open a book, then open an asset, to see buyers and sellers, holders, supply that is not circulating yet, and perp positioning. You can ask Uncle about it, share it on X, open trading partners, or follow it in this browser.
-3. **Host.** Talk to Uncle. One free question per day on the house key, then paste your own key or get one at [nsn.ai/iroh0x](https://nsn.ai/iroh0x). Escape closes the panel and keeps a half-typed question. Guests keep the conversation until they leave the page. Signed-in people get a list of old chats.
-4. **Shelf.** Ten hanging papers, one spirit each. "See the top traders" unrolls the saved leaderboard. The spirit names are a cast we drew. They are not the traders' real names. Rank 1 is open by default. Click another rank to open it in place with realized and unrealized PnL, 30-day volume, trade count, and its largest open positions. Each rank links to that wallet in Nansen's profiler. The Meme Traders board ranks Smart Money wallets whose biggest wins are mostly memecoins, sorted by realized PnL or by average trade ROI. Its cards show win rate, chains, tokens traded, and top tokens. A row marked Entity is one person's total across Solana and EVM wallets.
-5. **Observatorium.** Wind the orrery. No market data.
-
-Sign-in is optional. It is a nickname and a password, stored in the same SQLite file as chats and saved readings. Guests can use the room without an account.
-
-## Where the code lives
-
-| Folder                                  | What it is                                                                                             |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `src/thesis/`                           | The three theses, how conviction is scored, and the Nansen requests that build a deck or an asset page |
-| `src/nansen/`                           | The Nansen client, Uncle's chat, browser BYOK helper, the hourly save, and the SQLite snapshot store   |
-| `src/app/api/theses/`                   | Reads the saved deck and the saved asset pages                                                         |
-| `src/app/api/smart-wallet-leaderboard/` | Reads the saved shelf ranking                                                                          |
-| `src/app/api/nansen-agent/`             | Uncle's live chat (house key + optional visitor key)                                                   |
-| `src/scene/`                            | The 3D room                                                                                            |
-| `src/ui/`                               | Panels, the thesis books, the shelf scroll, the dock                                                   |
-| `src/leaderboard/`                      | Turns the Nansen leaderboard payload into the ten rows                                                 |
-| `src/auth/`, `src/iroh/`, `prisma/`     | Accounts, chat history, and the database                                                               |
-
-The save starts from `src/instrumentation.ts` when the Node server boots. It is skipped during `next build`, so a production build does not spend Nansen requests.
-
-A longer plain-language tour is in [docs/project-status.md](docs/project-status.md). Older handoff notes in `docs/handoff/` are history from earlier passes. If they disagree with this file, trust this file.
+[Development notes](docs/development.md) list the settings, scripts, and test suites.
 
 ## Checks
 
@@ -120,15 +157,52 @@ npm run typecheck
 npm test
 npm run format:check
 npm run build
-PLAYWRIGHT_BASE_URL=http://127.0.0.1:3101 npm run test:e2e
+npx playwright install chromium
+npm run test:e2e
 ```
 
-Unit tests mock Nansen. They do not spend credits. Browser tests mock the app's own API responses.
+- The unit tests (`npm test`) replace Nansen with recorded answers. They spend nothing.
+- `npx playwright install chromium` is needed once, before the first browser test run.
+- The browser tests (`npm run test:e2e`) use the server on port 3000, for example the one from step 5. If none runs, they start `npm run dev`. That server runs the real background save, so a key in `.env.local` can spend Nansen credits.
+- The repo has no CI. Run the checks before you push.
 
-## Limits worth knowing
+## Deploy
 
-- One Node process, one SQLite file. If you run several copies of the server, each copy has its own database and each copy runs its own refresh schedule. The intended deploy is a single web process with `DATABASE_URL` pointed at a volume.
-- Uncle's house-key daily cap lives in that process. It trusts the proxy's forwarding headers, resets at midnight UTC, and also resets if the process restarts. A visitor key skips that cup.
-- A visitor key in `localStorage` is plaintext in that browser. The house key never leaves the server.
-- The host's 3D model is still a work in progress. The writing says Uncle. The mesh still looks like the earlier grandfather.
-- Production is on Railway at the link above. A push or merge to `main` auto-deploys the `web` service. The start command runs `scripts/migrate-db.mjs` (creates the SQLite file if needed, then `prisma migrate deploy`) before `next start`, so the snapshot table exists before the first fill.
+The site runs on Railway, as one `web` service with one replica. A push to `main` starts a deploy. Check in Railway that the deploy started. Railway runs this start command. The command lives in the Railway settings, not in this repo:
+
+```sh
+node scripts/migrate-db.mjs && npx next start --hostname 0.0.0.0 --port ${PORT:-3000}
+```
+
+The service sets `DATABASE_URL=file:/data/dev.db` and mounts a volume at `/data`, so the database survives deploys.
+
+## Where the code lives
+
+| Folder                              | What it holds                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------- |
+| `src/app/`                          | Next.js pages and API routes                                                |
+| `src/scene/`                        | The 3D room: camera, props, the host, the orrery                            |
+| `src/ui/`                           | Panels, the Thesis Desk, the Shelf, the dock, the waiting room              |
+| `src/thesis/`                       | The three theses, the conviction rule, and the Nansen calls for each asset  |
+| `src/leaderboard/`                  | The four Shelf boards, the meme filter, and the Nansen leaderboard calls    |
+| `src/nansen/`                       | The Nansen client, the background save, the request queue, and Uncle's chat |
+| `src/auth/`, `src/iroh/`, `prisma/` | Accounts, saved chats, and the database schema                              |
+| `scripts/`                          | Database setup, screenshots, and audit scripts                              |
+| `tests/`                            | Unit tests; browser tests are in `tests/browser/`                           |
+
+In the code, "Iroh" means Uncle.
+
+## Known limits
+
+- The shop runs as one server process with one SQLite file. A second copy would keep its own database, run its own saves, and count free messages on its own.
+- The free-message count lives in server memory. It resets at midnight UTC and when the server restarts.
+- Your own Nansen key sits as plain text in your browser's `localStorage`. **Clear** in the Host panel removes it.
+- Accounts have no password reset.
+
+## More documentation
+
+- [How the tea shop works](docs/how-it-works.md): every stop, the data rules, and what you see when something fails.
+- [Development notes](docs/development.md): settings, scripts, tests, and deploy details.
+- [Nansen request queue](docs/nansen-request-manager.md): how the server paces its calls to Nansen.
+- [Visual rubric](docs/visual-rubric.md) and [visual scores](docs/visual-scores.md): how the team scores the look of the room.
+- [Performance budget](docs/perf-budget.md) and [visual QA, 27 September 2026](docs/qa/visual-qa-2026-09-27.md): dated records.

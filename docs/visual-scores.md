@@ -1,5 +1,7 @@
 # Visual scores
 
+> **Record of the art-review rounds.** The shot folders named below were on the author's machine. `scripts/visual-shots.mjs` now writes to `../_scratch/shots/round-N`, next to the repo.
+
 Scores follow `docs/visual-rubric.md`. Shots come from the Metal run (1600×900 at 2x): headed in rounds 0 to 2, headless from round 3 on (see `docs/visual-rubric.md`). Shot folders are under `/Users/jackie/dev/tea-wt/_scratch/shots/`.
 
 Frame rate is uncapped (no vsync) on an Apple M5 Max. "Min fps" is the slowest shot.

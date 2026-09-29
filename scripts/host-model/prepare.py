@@ -12,7 +12,7 @@ extras, and export a skinned GLB. With debugDir it also renders rest and
 test-pose views for review.
 
 Joint and eye positions are hand-picked from orthographic renders of the
-seed-11 model (docs/visual-asset-prompts.md); a new model needs new values.
+seed-11 Tripo model; a new model needs new values.
 """
 
 import bmesh
