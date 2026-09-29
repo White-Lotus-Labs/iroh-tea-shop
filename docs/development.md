@@ -77,7 +77,7 @@ The database is one SQLite file with five tables: `User`, `Session`, `Chat`, `Me
 
 The Prisma CLI reads `.env`, not `.env.local`. Give it the URL when you run it. In bash: `DATABASE_URL=file:./dev.db npx prisma studio`. In PowerShell: `$env:DATABASE_URL = 'file:./dev.db'; npx prisma studio`.
 
-The database tests do not run the migrations. They read the migration files from lists. When you add a migration, add the path of its `migration.sql` to `tests/temp-sqlite.ts`. `tests/auth-service.test.ts`, `tests/iroh-history.test.ts`, and `tests/iroh-routes.test.ts` keep their own lists. Update those too when the migration changes their tables.
+The database tests do not run `prisma migrate`. `openTempDb()` in `tests/temp-sqlite.ts` makes a temporary SQLite file and applies every `prisma/migrations/*/migration.sql` in folder-name order. A new migration is picked up with no test changes.
 
 ## Tests
 

@@ -9,11 +9,11 @@
 //
 // Bytes are wire bytes from CDP `Network.loadingFinished.encodedDataLength`
 // (compressed body plus headers), so a gzip chunk counts at its gzip size.
-// "Ready" is the first moment `.app-shell` drops aria-busy with Step inside
+// "Ready" is the first moment `.app-shell` drops aria-busy with Enter Teashop
 // enabled. "Sketchbook" is the first moment the first spread is baked
 // (`data-bake` >= 2) with Next page enabled; the audit then turns six pages,
 // 2 s apart, and records each turn's longest frame gap. "First-load JS" is every script the server HTML asks for, minus
-// `noModule` polyfills. With --step=1 the audit then clicks Step inside and
+// `noModule` polyfills. With --step=1 the audit then clicks Enter Teashop and
 // records what loads after it and the longest frame gap while the room opens.
 //
 // Does not rewrite docs/perf-budget.md. Prints a markdown table and writes JSON.
@@ -184,7 +184,7 @@ function probe() {
     attributes: true,
     attributeFilter: ['aria-busy', 'disabled', 'data-bake'],
   });
-  // Frame gaps after Step inside: a long gap is a visible hitch.
+  // Frame gaps after Enter Teashop: a long gap is a visible hitch.
   audit.watchFrames = (ms) => {
     const start = performance.now();
     const frames = (audit.frames = { start, gaps: [] });
@@ -441,6 +441,9 @@ async function measure(browser, preset) {
   return result;
 }
 
+for (const name of profiles)
+  if (!PRESETS[name]) throw new Error(`Unknown profile ${name}`);
+
 let server = null;
 if (!external) {
   // Node plus the next entry directly, not npx or the .bin shim (a POSIX
@@ -458,28 +461,41 @@ if (!external) {
   server.stdout.on('data', (chunk) => process.stderr.write(chunk));
   server.stderr.on('data', (chunk) => process.stderr.write(chunk));
 }
-await waitForServer(base);
 
-const browser = await chromium.launch({
-  headless: true,
-  channel: 'chromium',
-  args: [
-    ...(process.platform === 'darwin' ? ['--use-angle=metal'] : []),
-    '--enable-gpu',
-    '--ignore-gpu-blocklist',
-    '--enable-webgl',
-  ],
-});
 const runs = [];
-for (const name of profiles) {
-  const preset = PRESETS[name];
-  if (!preset) throw new Error(`Unknown profile ${name}`);
-  for (let i = 0; i < runsPerProfile; i++) {
-    process.stderr.write(`Measuring ${preset.label} run ${i + 1}…\n`);
-    runs.push(await measure(browser, preset));
+let browser = null;
+try {
+  await waitForServer(base);
+  browser = await chromium.launch({
+    headless: true,
+    channel: 'chromium',
+    args: [
+      ...(process.platform === 'darwin' ? ['--use-angle=metal'] : []),
+      '--enable-gpu',
+      '--ignore-gpu-blocklist',
+      '--enable-webgl',
+    ],
+  });
+  for (const name of profiles) {
+    const preset = PRESETS[name];
+    for (let i = 0; i < runsPerProfile; i++) {
+      process.stderr.write(`Measuring ${preset.label} run ${i + 1}…\n`);
+      runs.push(await measure(browser, preset));
+    }
+  }
+} finally {
+  // A throw above must not leave `next start` holding the port.
+  await browser?.close().catch(() => {});
+  if (server) {
+    server.kill('SIGTERM');
+    await new Promise((r) => setTimeout(r, 500));
+    try {
+      server.kill('SIGKILL');
+    } catch {
+      /* already dead */
+    }
   }
 }
-await browser.close();
 
 const summary = profiles.map((name) => {
   const label = PRESETS[name].label;
@@ -536,7 +552,7 @@ for (const s of summary) {
     `| Wire before first spread | ${kb(s.atSketch ?? 0)} |`,
     `| Six page turns while the room loads: longest frame gap | ${s.turnMaxGapMs} ms (${s.turnStutters} turns over 100 ms) |`,
     `| Frozen frames, first spread to ready (gaps over 100 ms) | ${s.frozenTotalMs} ms total, longest ${s.frozenMaxMs} ms |`,
-    `| Ready (Step inside enabled) | ${s.readyMs ?? 'timeout'} ms (${s.readyRuns.join(', ')}) |`,
+    `| Ready (Enter Teashop enabled) | ${s.readyMs ?? 'timeout'} ms (${s.readyRuns.join(', ')}) |`,
     `| FCP / LCP | ${s.fcpMs} / ${s.lcpMs} ms |`,
     `| First-load JS | ${kb(s.firstLoadJs ?? 0)} |`,
     `| three.js in first load | ${s.threeInFirstLoad} |`,
@@ -545,10 +561,10 @@ for (const s of summary) {
     ...TYPES.map((t) => `| · ${t} (settled) | ${kb(s.settled[t] ?? 0)} |`),
     ...(s.afterStep
       ? [
-          `| Wire after Step inside | ${kb(s.afterStep.bytes ?? 0)} |`,
-          `| Longest frame gap after Step inside | ${s.afterStep.maxGapMs} ms |`,
-          `| Frames over 100 ms after Step inside | ${s.afterStep.gapsOver100} |`,
-          `| Longest task after Step inside | ${s.afterStep.longTaskMaxMs} ms |`,
+          `| Wire after Enter Teashop | ${kb(s.afterStep.bytes ?? 0)} |`,
+          `| Longest frame gap after Enter Teashop | ${s.afterStep.maxGapMs} ms |`,
+          `| Frames over 100 ms after Enter Teashop | ${s.afterStep.gapsOver100} |`,
+          `| Longest task after Enter Teashop | ${s.afterStep.longTaskMaxMs} ms |`,
         ]
       : []),
     '',
@@ -556,14 +572,4 @@ for (const s of summary) {
 }
 console.log(lines.join('\n'));
 console.log(`Wrote ${outPath}`);
-
-if (server) {
-  server.kill('SIGTERM');
-  await new Promise((r) => setTimeout(r, 500));
-  try {
-    server.kill('SIGKILL');
-  } catch {
-    /* already dead */
-  }
-}
 process.exit(0);

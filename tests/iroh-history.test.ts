@@ -1,8 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { createAccount } from '../src/auth/service';
 import {
@@ -15,26 +11,19 @@ import {
   rollbackUnstartedResearchRequest,
   setConversationId,
 } from '../src/iroh/history';
+import { openTempDb } from './temp-sqlite';
 
-let directory: string;
+let temp: ReturnType<typeof openTempDb>;
 let db: PrismaClient;
 
 beforeEach(() => {
-  directory = mkdtempSync(join(tmpdir(), 'tea-iroh-'));
-  const path = join(directory, 'test.db');
-  const sqlite = new DatabaseSync(path);
-  for (const migration of [
-    'prisma/migrations/20260925205300_accounts_auth/migration.sql',
-    'prisma/migrations/20260926080000_iroh_chat_history/migration.sql',
-  ])
-    sqlite.exec(readFileSync(migration, 'utf8'));
-  sqlite.close();
-  db = new PrismaClient({ datasources: { db: { url: `file:${path}` } } });
+  temp = openTempDb();
+  db = temp.db;
 });
 
 afterEach(async () => {
   await db.$disconnect();
-  rmSync(directory, { recursive: true, force: true });
+  await temp.close();
 });
 
 describe('persistent Iroh chats', () => {
@@ -45,9 +34,7 @@ describe('persistent Iroh chats', () => {
     await appendAssistantMessage(db, user.id, chat.id, 'ETH is rising.');
     await setConversationId(db, user.id, chat.id, 'conv_123');
     await db.$disconnect();
-    db = new PrismaClient({
-      datasources: { db: { url: `file:${join(directory, 'test.db')}` } },
-    });
+    db = new PrismaClient({ datasources: { db: { url: temp.url } } });
     const restored = await getChat(db, user.id, chat.id);
     expect(restored?.nansenConversationId).toBe('conv_123');
     expect(restored?.title).toBe('What is ETH doing?');
