@@ -19,11 +19,13 @@ import {
 } from '../thesis/nansen';
 import type { ThesisId, TickerDetail } from '../thesis/types';
 import {
+  NANSEN_REFRESH_MS,
   REFRESH_SLACK_MS,
   markNansenSnapshotStale,
   readNansenSnapshot,
   refreshIntervalMs,
   writeNansenSnapshot,
+  type SnapshotMeta,
 } from './snapshot-store';
 
 export type RefreshReport = {
@@ -33,7 +35,11 @@ export type RefreshReport = {
   missing: string[];
   /** Saved rows younger than their refresh interval; no Nansen call made. */
   fresh: string[];
+  /** When the next row falls due; the background loop runs again then. */
+  nextDueAt: number;
 };
+
+type Outcome = 'saved' | 'kept' | 'missing' | 'fresh';
 
 type Job = {
   key: string;
@@ -55,15 +61,30 @@ async function refreshOne(
   database: PrismaClient,
   job: Job,
   now: number,
-): Promise<'saved' | 'kept' | 'missing' | 'fresh'> {
+): Promise<{ outcome: Outcome; dueAt: number }> {
   const existing = await readNansenSnapshot(database, job.key, now);
   const interval = refreshIntervalMs(job.key);
   // Slow keys (and any key after a restart) skip Nansen until their row is due.
-  if (
-    existing &&
-    now - Date.parse(existing.fetchedAt) < interval - REFRESH_SLACK_MS
-  )
-    return 'fresh';
+  if (existing) {
+    const savedAt = Date.parse(existing.fetchedAt);
+    if (now - savedAt < interval - REFRESH_SLACK_MS)
+      return { outcome: 'fresh', dueAt: savedAt + interval };
+  }
+  const outcome = await loadAndSave(database, job, now, existing, interval);
+  // A kept or missing row is asked for again at the next hourly run.
+  return {
+    outcome,
+    dueAt: now + (outcome === 'saved' ? interval : NANSEN_REFRESH_MS),
+  };
+}
+
+async function loadAndSave(
+  database: PrismaClient,
+  job: Job,
+  now: number,
+  existing: SnapshotMeta | null,
+  interval: number,
+): Promise<Exclude<Outcome, 'fresh'>> {
   try {
     const fresh = await job.load(existing);
     const reason = existing && job.preferExisting?.(fresh, existing);
@@ -91,17 +112,16 @@ async function refreshOne(
   }
 }
 
-function jobsFor(
-  apiKey: string,
-  now: number,
-): { first: Job[]; details: Job[] } {
+/** The deck and the Shelf first, then every ticker page. */
+function jobsFor(apiKey: string, now: number): Job[] {
   const deck: Job = {
     key: DECK_CACHE_KEY,
     load: () => loadDeckSnapshot(apiKey),
     preferExisting: preferExistingDeck,
     failed: deckFailed,
   };
-  // Both meme sorts rank the same pool, so the first meme job fetches it once.
+  // Both meme sorts rank the same pool, so the first meme job fetches it once,
+  // and the other waits on the same promise.
   let memePool: Promise<SmartWalletLeaderboardEntry[]> | undefined;
   const pool = () => (memePool ??= fetchMemePool(apiKey, now));
   const leaderboards: Job[] = leaderboardRefreshTargets().map(
@@ -133,7 +153,7 @@ function jobsFor(
       failed: detailFailed,
     })),
   );
-  return { first: [deck, ...leaderboards], details };
+  return [deck, ...leaderboards, ...details];
 }
 
 /**
@@ -151,21 +171,20 @@ export async function refreshSavedNansenData(
     kept: [],
     missing: [],
     fresh: [],
+    nextDueAt: now + NANSEN_REFRESH_MS,
   };
   if (!apiKey.trim()) {
     report.skipped = 'no-key';
     return report;
   }
-  const { first, details } = jobsFor(apiKey, now);
-  for (const job of first) {
-    report[await refreshOne(database, job, now)].push(job.key);
-  }
-  const detailResults = await mapPool(details, SUMMARY_CONCURRENCY, (job) =>
-    refreshOne(database, job, now).then((outcome) => ({
-      outcome,
-      key: job.key,
-    })),
+  const record = (key: string, result: { outcome: Outcome; dueAt: number }) => {
+    report[result.outcome].push(key);
+    report.nextDueAt = Math.min(report.nextDueAt, result.dueAt);
+  };
+  const jobs = jobsFor(apiKey, now);
+  const results = await mapPool(jobs, SUMMARY_CONCURRENCY, (job) =>
+    refreshOne(database, job, now),
   );
-  for (const result of detailResults) report[result.outcome].push(result.key);
+  results.forEach((result, index) => record(jobs[index].key, result));
   return report;
 }

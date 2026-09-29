@@ -90,21 +90,6 @@ export async function setConversationId(
   });
 }
 
-export async function prepareResearchRequest(
-  db: PrismaClient,
-  userId: string,
-  chatId: string,
-  question: string,
-) {
-  const chat = await getChat(db, userId, chatId);
-  if (!chat) throw new ChatNotFoundError();
-  const text = chat.nansenConversationId
-    ? question
-    : contextualQuestion(question, chat.messages);
-  await appendUserMessage(db, userId, chatId, question);
-  return { text, conversationId: chat.nansenConversationId };
-}
-
 /** Called only after Iroh admission, with the per-chat turn guard held. */
 export async function prepareAdmittedResearchRequest(
   db: PrismaClient,
@@ -113,18 +98,24 @@ export async function prepareAdmittedResearchRequest(
   question: string,
   signal: AbortSignal,
 ) {
-  const chat = await getChat(db, userId, chatId);
-  if (!chat) throw new ChatNotFoundError();
+  const chat = await ownedChat(db, userId, chatId);
+  // A saved Nansen conversation already holds the context.
   const text = chat.nansenConversationId
     ? question
-    : contextualQuestion(question, chat.messages);
+    : contextualQuestion(
+        question,
+        await db.message.findMany({
+          where: { chatId },
+          orderBy: { id: 'asc' },
+        }),
+      );
   if (signal.aborted) throw new DOMException('Cancelled', 'AbortError');
   const message = await appendUserMessage(db, userId, chatId, question);
   return {
     text,
     conversationId: chat.nansenConversationId,
     userMessageId: message.id,
-    previousTitle: chat.title,
+    previous: { title: chat.title, updatedAt: chat.updatedAt },
   };
 }
 
@@ -134,14 +125,27 @@ export async function rollbackUnstartedResearchRequest(
   userId: string,
   chatId: string,
   userMessageId: number,
-  previousTitle: string,
+  previous: { title: string; updatedAt: Date },
 ) {
   await ownedChat(db, userId, chatId);
+  // Restore updatedAt too, so an unanswered question does not reorder the list.
   await db.$transaction([
     db.message.delete({ where: { id: userMessageId, chatId } }),
     db.chat.update({
       where: { id: chatId, userId },
-      data: { title: previousTitle },
+      data: { title: previous.title, updatedAt: previous.updatedAt },
     }),
   ]);
+}
+
+/** True when the chat exists and belongs to the user. Reads no messages. */
+export async function chatExists(
+  db: PrismaClient,
+  userId: string,
+  chatId: string,
+) {
+  return !!(await db.chat.findFirst({
+    where: { id: chatId, userId },
+    select: { id: true },
+  }));
 }

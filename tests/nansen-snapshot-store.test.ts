@@ -227,15 +227,19 @@ describe('saved Nansen readings', () => {
         called.length = 0;
         return refreshSavedNansenData(temp.db, 'key', at);
       };
-      await run(now);
-      // A deploy restart ten minutes later finds every row fresh.
+      const first = await run(now);
+      expect(first.nextDueAt).toBe(now + NANSEN_REFRESH_MS);
+      // A deploy restart ten minutes later finds every row fresh, and wakes
+      // when the saved rows fall due, not an hour after the restart.
       const restart = await run(now + 10 * 60 * 1000);
       expect(called).toEqual([]);
       expect(restart.fresh).toHaveLength(30);
+      expect(restart.nextDueAt).toBe(now + NANSEN_REFRESH_MS);
       for (const hour of [1, 2, 3]) {
         const report = await run(now + hour * NANSEN_REFRESH_MS);
         expect(called.filter((path) => slow.has(path))).toEqual([]);
         expect(report.fresh).toHaveLength(17);
+        expect(report.nextDueAt).toBe(now + (hour + 1) * NANSEN_REFRESH_MS);
       }
       // Holders and token information come back on the hourly page untouched.
       expect(called.length).toBeLessThanOrEqual(plan.hourlyCount);
@@ -381,6 +385,8 @@ describe('saved Nansen readings', () => {
       const much = now + 2 * NANSEN_REFRESH_MS;
       const third = await refreshSavedNansenData(temp.db, 'key', much);
       expect(third.kept).toEqual(expect.arrayContaining([key, DECK_CACHE_KEY]));
+      // Also for tickers where some sections never apply (no perp, no supply).
+      expect(third.saved).toEqual([]);
       // A lasting partial failure must not freeze the page on one old reading.
       fail = (path) => path === 'tgm/holders';
       const fourth = await refreshSavedNansenData(temp.db, 'key', much);

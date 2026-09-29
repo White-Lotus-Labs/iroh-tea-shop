@@ -12,7 +12,6 @@ import {
   getChat,
   listChats,
   prepareAdmittedResearchRequest,
-  prepareResearchRequest,
   rollbackUnstartedResearchRequest,
   setConversationId,
 } from '../src/iroh/history';
@@ -113,24 +112,30 @@ describe('persistent Iroh chats', () => {
     const { user } = await createAccount(db, 'Mark', 'correct horse');
     const old = await createChat(db, user.id);
     await setConversationId(db, user.id, old.id, 'conv_old');
-    const resumed = await prepareResearchRequest(
+    const signal = new AbortController().signal;
+    const resumed = await prepareAdmittedResearchRequest(
       db,
       user.id,
       old.id,
       'And over 7 days?',
+      signal,
     );
-    expect(resumed).toEqual({
+    expect(resumed).toMatchObject({
       text: 'And over 7 days?',
       conversationId: 'conv_old',
     });
     const fresh = await createChat(db, user.id);
-    const first = await prepareResearchRequest(
+    const first = await prepareAdmittedResearchRequest(
       db,
       user.id,
       fresh.id,
       'Tell me about ETH',
+      signal,
     );
-    expect(first).toEqual({ text: 'Tell me about ETH', conversationId: null });
+    expect(first).toMatchObject({
+      text: 'Tell me about ETH',
+      conversationId: null,
+    });
   });
 
   it('uses multiple stored exchanges when Nansen returned no conversation ID', async () => {
@@ -140,11 +145,12 @@ describe('persistent Iroh chats', () => {
     await appendAssistantMessage(db, user.id, chat.id, 'ETH has inflows.');
     await appendUserMessage(db, user.id, chat.id, 'What about SOL?');
     await appendAssistantMessage(db, user.id, chat.id, 'SOL has outflows.');
-    const request = await prepareResearchRequest(
+    const request = await prepareAdmittedResearchRequest(
       db,
       user.id,
       chat.id,
       'Compare them over seven days.',
+      new AbortController().signal,
     );
     expect(request.conversationId).toBeNull();
     expect(request.text).toContain('What is ETH doing?');
@@ -170,9 +176,11 @@ describe('persistent Iroh chats', () => {
     ]);
   });
 
-  it('rolls back an admitted user write and title if Stop precedes upstream start', async () => {
+  it('rolls back an admitted user write, title and list order if Stop precedes upstream start', async () => {
     const { user } = await createAccount(db, 'Mark', 'correct horse');
     const chat = await createChat(db, user.id);
+    const newer = await createChat(db, user.id);
+    await appendUserMessage(db, user.id, newer.id, 'Newer question');
     const prepared = await prepareAdmittedResearchRequest(
       db,
       user.id,
@@ -185,10 +193,14 @@ describe('persistent Iroh chats', () => {
       user.id,
       chat.id,
       prepared.userMessageId,
-      prepared.previousTitle,
+      prepared.previous,
     );
     const restored = await getChat(db, user.id, chat.id);
     expect(restored?.messages).toEqual([]);
     expect(restored?.title).toBe('New chat');
+    expect((await listChats(db, user.id)).map((row) => row.id)).toEqual([
+      newer.id,
+      chat.id,
+    ]);
   });
 });

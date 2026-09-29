@@ -1,4 +1,5 @@
 import { db } from '../../../../auth/db';
+import { crossSiteError } from '../../../../auth/same-origin';
 import { createChat, listChats } from '../../../../iroh/history';
 import { userFromRequest } from '../../../../iroh/request-user';
 
@@ -18,6 +19,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const refused = crossSiteError(request, { json: false });
+  if (refused) return refused;
   const user = await userFromRequest(db, request);
   if (!user)
     return Response.json(

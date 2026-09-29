@@ -1,4 +1,4 @@
-import { SseDecoder } from './sse';
+import { INTERRUPTED_MESSAGE, SseDecoder } from './sse';
 import { contextualQuestion } from './context';
 import { MAX_QUESTION_LENGTH } from './limits';
 import {
@@ -34,8 +34,6 @@ const initial = (): ChatSnapshot => ({
   errorCode: null,
   lastQuestion: null,
 });
-
-const INTERRUPTED = 'The research connection was interrupted. You can retry.';
 
 class ChatError extends Error {
   constructor(
@@ -179,7 +177,7 @@ export class IrohSession {
           typeof data.code === 'string' ? data.code : null,
         );
       }
-      if (!response.body) throw new ChatError(INTERRUPTED);
+      if (!response.body) throw new ChatError(INTERRUPTED_MESSAGE);
       const reader = response.body.getReader();
       this.reader = reader;
       const decoder = new TextDecoder();
@@ -213,12 +211,13 @@ export class IrohSession {
       }
       if (!current()) return;
       parser.end(consume);
-      if (!finished) throw new ChatError(INTERRUPTED);
+      if (!finished) throw new ChatError(INTERRUPTED_MESSAGE);
       this.updateMessage(assistantId, { status: 'complete' });
       this.update({ currentTool: null, isStreaming: false });
     } catch (error) {
       if (!current()) return;
-      const message = error instanceof ChatError ? error.message : INTERRUPTED;
+      const message =
+        error instanceof ChatError ? error.message : INTERRUPTED_MESSAGE;
       this.updateMessage(assistantId, { status: 'error' });
       this.update({
         error: message,

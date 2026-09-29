@@ -290,6 +290,21 @@ describe('Nansen agent route', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('refuses a question another site sends from a hidden form', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const form = request({ text: 'hi' }, undefined, {
+      'content-type': 'text/plain',
+    });
+    expect((await POST(form)).status).toBe(415);
+    const crossSite = request({ text: 'hi' }, undefined, {
+      'sec-fetch-site': 'cross-site',
+    });
+    expect((await POST(crossSite)).status).toBe(403);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('asks for a shorter question before contacting Nansen', async () => {
     process.env.NANSEN_API_KEY = 'test-only-secret';
     const fetch = vi.fn();
@@ -458,6 +473,54 @@ describe('Nansen agent route', () => {
     expect(output).toContain('"type":"finish","conversation_id":null');
     expect(output).toContain('data: [DONE]');
     expect(output).not.toContain('interrupted');
+  });
+
+  it('does not pause house-key work when a visitor key hits a 429', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response('slow down', {
+            status: 429,
+            headers: { 'retry-after': '5' },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            'data: {"type":"error","error":"limited","status_code":429}\n\n',
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+        ),
+    );
+    const visitor = { [USER_NANSEN_API_KEY_HEADER]: 'visitor-byok' };
+    const first = await POST(request({ text: 'hello' }, undefined, visitor));
+    expect(first.status).toBe(429);
+    const second = await POST(request({ text: 'hello' }, undefined, visitor));
+    expect(await second.text()).toContain('"status_code":429');
+    const started = Date.now();
+    const lease = await nansenRequestManager.acquireIroh();
+    expect(Date.now() - started).toBeLessThan(500);
+    lease.release();
+  });
+
+  it('serves a guest whose browser still holds an expired session cookie', async () => {
+    process.env.NANSEN_API_KEY = 'test-only-secret';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            'data: {"type":"finish","conversation_id":"conv_1"}\n\ndata: [DONE]\n\n',
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      ),
+    );
+    const response = await POST(
+      request({ text: 'hello' }, undefined, { cookie: 'tea_session=gone' }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('conv_1');
   });
 
   it('shares an SSE 429 cooldown with later Nansen work', async () => {

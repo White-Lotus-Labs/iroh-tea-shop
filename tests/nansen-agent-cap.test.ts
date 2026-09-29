@@ -75,23 +75,33 @@ describe('Nansen Research Agent daily cap', () => {
     expect(cap.claim('203.0.113.10', tomorrow, '1').allowed).toBe(false);
   });
 
-  it('takes the first valid forwarded IP and ignores invalid values', () => {
+  it('trusts X-Real-IP, then the last forwarded hop, and ignores invalid values', () => {
+    const ip = (headers: Record<string, string>) =>
+      clientIpFromRequest(new Request('http://localhost', { headers }));
+    // A client can put anything first in X-Forwarded-For; the proxy appends.
+    expect(ip({ 'x-forwarded-for': '198.51.100.7, 203.0.113.10' })).toBe(
+      '203.0.113.10',
+    );
     expect(
-      clientIpFromRequest(
-        new Request('http://localhost', {
-          headers: { 'x-forwarded-for': '203.0.113.10, 10.0.0.1' },
-        }),
-      ),
+      ip({ 'x-forwarded-for': '198.51.100.7', 'x-real-ip': '203.0.113.10' }),
     ).toBe('203.0.113.10');
     expect(
+      ip({ 'x-forwarded-for': 'not-an-ip', 'x-real-ip': 'not-an-ip' }),
+    ).toBe('unknown-client');
+    expect(ip({})).toBe('unknown-client');
+  });
+
+  it('counts an IPv6 visitor by /64 and an IPv4-mapped address as IPv4', () => {
+    const ip = (value: string) =>
       clientIpFromRequest(
-        new Request('http://localhost', {
-          headers: {
-            'x-forwarded-for': 'not-an-ip',
-            'x-real-ip': '2001:db8::1',
-          },
-        }),
-      ),
-    ).toBe('2001:db8::1');
+        new Request('http://localhost', { headers: { 'x-real-ip': value } }),
+      );
+    expect(ip('2001:db8:0:1::1')).toBe('2001:db8:0:1::/64');
+    expect(ip('2001:0db8:0000:0001:ffff:ffff:ffff:ffff')).toBe(
+      '2001:db8:0:1::/64',
+    );
+    expect(ip('2001:db8::1')).toBe('2001:db8:0:0::/64');
+    expect(ip('::1')).toBe('0:0:0:0::/64');
+    expect(ip('::ffff:203.0.113.10')).toBe('203.0.113.10');
   });
 });

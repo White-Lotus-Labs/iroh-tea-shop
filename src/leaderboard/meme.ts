@@ -5,13 +5,10 @@
  * EVM wallets into one row.
  */
 import { managedNansenPost } from '../nansen/managed-client';
+import { numberOrNull, utcDateWindow } from '../nansen/payload';
 import { SUMMARY_CONCURRENCY, mapPool } from '../thesis/nansen';
 import type { LeaderboardMetric } from './boards';
-import {
-  numberOrNull,
-  shortenAddress,
-  type SmartWalletLeaderboardEntry,
-} from './model';
+import { shortenAddress, type SmartWalletLeaderboardEntry } from './model';
 import { toLeaderboardError } from './provider';
 
 /** Every Smart Money chain. `chains: ["all"]` leaves out BNB, so always send the list. */
@@ -262,10 +259,7 @@ export async function fetchMemePool(
         .map((row) => row.entry.displayName),
     ),
   ].slice(0, MEME_MAX_ENTITY_CALLS);
-  const date = {
-    from: new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    to: new Date(now).toISOString().slice(0, 10),
-  };
+  const date = utcDateWindow(now, 30);
   // ponytail: no entity cache; reuse last saved entity result if pnl-summary timeouts cause row flicker
   const summaries = await mapPool(names, SUMMARY_CONCURRENCY, async (name) => {
     try {

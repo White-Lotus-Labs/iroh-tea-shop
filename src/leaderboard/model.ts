@@ -1,3 +1,4 @@
+import { numberOrNull } from '../nansen/payload';
 import type { SnapshotMeta } from '../nansen/snapshot-store';
 
 export interface WalletPosition {
@@ -49,10 +50,6 @@ export function shortenAddress(address: string): string {
   return address.length > 13
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : address;
-}
-
-export function numberOrNull(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 /** Nansen `top_positions`, largest first. HIP-3 coins drop their deployer prefix (`xyz:MU` → `MU`). */
@@ -124,28 +121,35 @@ export function normalizeLeaderboard(
     });
 }
 
+const MONEY_UNITS = [
+  ['', 1],
+  ['K', 1_000],
+  ['M', 1_000_000],
+  ['B', 1_000_000_000],
+] as const;
+
+/** Two significant decimals under 10, one under 100, none above. */
+function moneyDigits(unit: string, scaled: number) {
+  return !unit ? 0 : scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+}
+
 export function formatMoney(value: number | null, signed = false): string {
   if (value === null) return '—';
   const magnitude = Math.abs(value);
-  const unit =
-    magnitude >= 1_000_000_000
-      ? 'B'
-      : magnitude >= 1_000_000
-        ? 'M'
-        : magnitude >= 1_000
-          ? 'K'
-          : '';
-  const divisor =
-    unit === 'B'
-      ? 1_000_000_000
-      : unit === 'M'
-        ? 1_000_000
-        : unit === 'K'
-          ? 1_000
-          : 1;
-  const scaled = magnitude / divisor;
-  const digits = !unit ? 0 : scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
-  const amount = scaled.toLocaleString('en-US', {
+  let index = MONEY_UNITS.findLastIndex(([, size]) => magnitude >= size);
+  if (index < 0) index = 0;
+  // Pick the unit and decimals from the rounded value, so 999,600 reads
+  // $1.00M rather than $1,000K, and 9,999,999 reads $10.0M, not $10.00M.
+  let [unit, size] = MONEY_UNITS[index];
+  let digits = moneyDigits(unit, magnitude / size);
+  let rounded = Number((magnitude / size).toFixed(digits));
+  while (rounded >= 1_000 && index < MONEY_UNITS.length - 1) {
+    [unit, size] = MONEY_UNITS[++index];
+    digits = moneyDigits(unit, magnitude / size);
+    rounded = Number((magnitude / size).toFixed(digits));
+  }
+  digits = Math.min(digits, moneyDigits(unit, rounded));
+  const amount = (magnitude / size).toLocaleString('en-US', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });

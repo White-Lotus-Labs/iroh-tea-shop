@@ -1,5 +1,6 @@
 import { NansenError } from '../nansen/client';
 import { managedNansenPost } from '../nansen/managed-client';
+import { numberOrNull } from '../nansen/payload';
 import { REFRESH_SLACK_MS, SLOW_REFRESH_MS } from '../nansen/snapshot-store';
 import { computeConviction } from './conviction';
 import { THESES, findThesis, findTicker } from './deck';
@@ -27,10 +28,6 @@ const SMART_MONEY_LABELS = [
   '180D Smart Trader',
   'Fund',
 ] as const;
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
@@ -340,13 +337,19 @@ export const deckFailed = (fresh: { theses: ThesisSummary[] }) =>
 
 /**
  * Every section this run asked for is unavailable: the fresh page holds no new
- * reading. Holders and supply reused from the saved page do not count.
+ * reading. Holders and supply reused from the saved page do not count, and
+ * neither do sections that never apply to the ticker.
  */
 export const detailFailed = (fresh: TickerDetail) => {
   const reused =
     !!fresh.metaFetchedAt && fresh.metaFetchedAt !== fresh.fetchedAt;
-  const asked = reused ? (['movements', 'perps'] as const) : DETAIL_SECTIONS;
-  return asked.every((section) => fresh[section].status === 'unavailable');
+  const asked = (
+    reused ? (['movements', 'perps'] as const) : DETAIL_SECTIONS
+  ).filter((section) => fresh[section].status !== 'not-applicable');
+  return (
+    asked.length > 0 &&
+    asked.every((section) => fresh[section].status === 'unavailable')
+  );
 };
 
 async function fetchTickerSignal(

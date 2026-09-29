@@ -84,14 +84,37 @@ export function createAgentDailyCap() {
 
 export const agentDailyCap = createAgentDailyCap();
 
-/** Trust the deployment proxy headers; never use an unvalidated value as a key. */
-export function clientIpFromRequest(request: Request) {
-  const forwarded = request.headers
-    .get('x-forwarded-for')
-    ?.split(',', 1)[0]
-    ?.trim();
-  if (forwarded && isIP(forwarded)) return forwarded;
+/** An IPv6 visitor owns a whole /64, so the cup counts the /64, not the address. */
+function capKey(ip: string): string {
+  if (isIP(ip) !== 6) return ip;
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip)?.[1];
+  if (mapped && isIP(mapped) === 4) return mapped;
+  const [head, tail] = ip.split('::');
+  const headGroups = head ? head.split(':') : [];
+  const groups =
+    tail === undefined
+      ? headGroups
+      : [...headGroups, ...Array<string>(8).fill('0')];
+  return `${groups
+    .slice(0, 4)
+    .map((group) => parseInt(group, 16).toString(16))
+    .join(':')}::/64`;
+}
 
+/**
+ * The deployment proxy (Railway) sets X-Real-IP to the address it saw, and
+ * appends that address to X-Forwarded-For after anything the client sent. So
+ * trust X-Real-IP, then only the last forwarded hop; never use an unvalidated
+ * value as a key.
+ */
+export function clientIpFromRequest(request: Request) {
   const realIp = request.headers.get('x-real-ip')?.trim();
-  return realIp && isIP(realIp) ? realIp : UNKNOWN_CLIENT;
+  if (realIp && isIP(realIp)) return capKey(realIp);
+
+  const lastHop = request.headers
+    .get('x-forwarded-for')
+    ?.split(',')
+    .at(-1)
+    ?.trim();
+  return lastHop && isIP(lastHop) ? capKey(lastHop) : UNKNOWN_CLIENT;
 }

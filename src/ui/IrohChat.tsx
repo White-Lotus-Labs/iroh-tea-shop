@@ -369,15 +369,13 @@ export function IrohChat({
               role="alert"
             >
               <p>{chat.error}</p>
-              {dailyCap ? (
-                !hasUserKey && byokActions
-              ) : (
-                (nansen === 'configured' || hasUserKey) && (
-                  <button type="button" onClick={() => session.retry()}>
-                    Try again
-                  </button>
-                )
-              )}
+              {dailyCap
+                ? !hasUserKey && byokActions
+                : (nansen === 'configured' || hasUserKey) && (
+                    <button type="button" onClick={() => session.retry()}>
+                      Try again
+                    </button>
+                  )}
             </div>
           )}
           <div ref={bottom} />

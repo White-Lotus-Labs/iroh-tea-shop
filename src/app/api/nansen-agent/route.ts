@@ -1,17 +1,18 @@
 import {
   AgentEvent,
   encodeEvent,
+  INTERRUPTED_MESSAGE,
   SseDecoder,
   validConversationId,
 } from '../../../nansen/sse';
 import {
   ChatNotFoundError,
-  getChat,
+  chatExists,
   prepareAdmittedResearchRequest,
   rollbackUnstartedResearchRequest,
 } from '../../../iroh/history';
 import { claimChatTurn } from '../../../iroh/turn-guard';
-import { SESSION_COOKIE } from '../../../auth/cookie';
+import { crossSiteError } from '../../../auth/same-origin';
 import {
   agentDailyCap,
   clientIpFromRequest,
@@ -38,6 +39,8 @@ export const dynamic = 'force-dynamic';
 
 const ENDPOINT = 'https://api.nansen.ai/api/v1/agent/fast';
 const TIMEOUT_MS = 90_000;
+/** Nansen reports spent credits as 402 or 403 with one of these codes. */
+const CREDIT_ERROR = /CREDIT|EXHAUST|INSUFFICIENT_BALANCE/i;
 
 function jsonError(
   status: number,
@@ -97,15 +100,14 @@ async function hasCreditError(response: Response) {
   } finally {
     await reader.cancel().catch(() => {});
   }
-  return /CREDIT|EXHAUST|INSUFFICIENT_BALANCE/i.test(sample);
+  return CREDIT_ERROR.test(sample);
 }
 
 function streamError(event: AgentEvent): AgentEvent {
   if (event.type !== 'error') return event;
   const status = event.status_code ?? 502;
   const creditError =
-    (status === 402 || status === 403) &&
-    /CREDIT|EXHAUST|INSUFFICIENT_BALANCE/i.test(event.error);
+    (status === 402 || status === 403) && CREDIT_ERROR.test(event.error);
   return {
     type: 'error',
     error: upstreamMessage(creditError ? 402 : status),
@@ -114,6 +116,8 @@ function streamError(event: AgentEvent): AgentEvent {
 }
 
 export async function POST(request: Request) {
+  const refused = crossSiteError(request, { json: true });
+  if (refused) return refused;
   if (Number(request.headers.get('content-length')) > 16_000)
     return jsonError(413, QUESTION_TOO_LONG_MESSAGE);
   let body: unknown;
@@ -163,11 +167,11 @@ export async function POST(request: Request) {
   let persisted: { userId: string; chatId: string } | null = null;
   let releaseTurn: (() => void) | null = null;
   let db: typeof import('../../../auth/db').db | null = null;
-  const hasSessionCookie = request.headers
-    .get('cookie')
-    ?.split(';')
-    .some((part) => part.trim().startsWith(`${SESSION_COOKIE}=`));
-  if (value.chatId !== undefined || hasSessionCookie) {
+  // Only a chat is saved. Without one, even a signed-in visitor (say, a guest
+  // tab left open after signing in elsewhere) asks the way a guest does.
+  if (typeof value.chatId === 'string') {
+    if (conversationId)
+      return jsonError(400, 'Invalid question or conversation.');
     const [{ db: database }, { userFromRequest }] = await Promise.all([
       import('../../../auth/db'),
       import('../../../iroh/request-user'),
@@ -175,9 +179,7 @@ export async function POST(request: Request) {
     db = database;
     const user = await userFromRequest(database, request);
     if (!user) return jsonError(401, 'Sign in to continue this chat.');
-    if (typeof value.chatId !== 'string' || conversationId)
-      return jsonError(400, 'Choose a chat before asking Uncle.');
-    if (!(await getChat(database, user.id, value.chatId)))
+    if (!(await chatExists(database, user.id, value.chatId)))
       return jsonError(404, 'Chat not found.');
     releaseTurn = claimChatTurn(value.chatId);
     if (!releaseTurn)
@@ -209,7 +211,7 @@ export async function POST(request: Request) {
       persisted.userId,
       persisted.chatId,
       preparation.value.userMessageId,
-      preparation.value.previousTitle,
+      preparation.value.previous,
     );
     preparation.value = null;
   };
@@ -305,9 +307,14 @@ export async function POST(request: Request) {
     if (lease.signal.aborted) return jsonError(499, 'Question cancelled.');
     return jsonError(502, 'Nansen Research Agent is temporarily unavailable.');
   }
+  // A visitor's own key has its own Nansen limit: its 429 must not pause the
+  // house key's queue for everyone else.
+  const noteRateLimit = (retryAfterMs: number) => {
+    if (!userKey) lease.noteRateLimit(retryAfterMs);
+  };
   if (!upstream.ok) {
     if (upstream.status === 429)
-      lease.noteRateLimit(parseRetryAfter(upstream.headers.get('retry-after')));
+      noteRateLimit(parseRetryAfter(upstream.headers.get('retry-after')));
     const creditError =
       (upstream.status === 402 || upstream.status === 403) &&
       (await hasCreditError(upstream));
@@ -358,7 +365,7 @@ export async function POST(request: Request) {
         }
         if (event.type === 'error') upstreamError = true;
         if (event.type === 'error' && event.status_code === 429)
-          lease.noteRateLimit(1000);
+          noteRateLimit(1000);
         controller.enqueue(encodeEvent(event));
       };
       try {
@@ -371,18 +378,12 @@ export async function POST(request: Request) {
         if (!upstreamError) parser.end(forward);
         if (!finished && !upstreamError && !upstreamController.signal.aborted)
           controller.enqueue(
-            encodeEvent({
-              type: 'error',
-              error: 'The research connection was interrupted. You can retry.',
-            }),
+            encodeEvent({ type: 'error', error: INTERRUPTED_MESSAGE }),
           );
       } catch {
         if (!upstreamController.signal.aborted && !upstreamError)
           controller.enqueue(
-            encodeEvent({
-              type: 'error',
-              error: 'The research connection was interrupted. You can retry.',
-            }),
+            encodeEvent({ type: 'error', error: INTERRUPTED_MESSAGE }),
           );
       } finally {
         releaseUpstream();

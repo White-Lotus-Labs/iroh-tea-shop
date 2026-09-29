@@ -5,6 +5,10 @@ export type AgentEvent =
   | { type: 'error'; error: string; status_code?: number }
   | { type: 'done' };
 
+/** Sent by the route and shown by the panel when a stream ends with no finish. */
+export const INTERRUPTED_MESSAGE =
+  'The research connection was interrupted. You can retry.';
+
 export function validConversationId(value: unknown): value is string {
   return (
     typeof value === 'string' &&

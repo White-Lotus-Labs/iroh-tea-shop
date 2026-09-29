@@ -142,6 +142,14 @@ describe('Nansen leaderboard provider', () => {
     expect(formatMoney(-482_000, true)).toBe('-$482K');
     expect(formatMoney(4_600_000)).toBe('$4.60M');
     expect(formatMoney(null)).toBe('—');
+    // Rounding can cross a unit or a decimals boundary.
+    expect(formatMoney(999_600)).toBe('$1.00M');
+    expect(formatMoney(999_700_000)).toBe('$1.00B');
+    expect(formatMoney(9_999_999)).toBe('$10.0M');
+    expect(formatMoney(99_960)).toBe('$100K');
+    expect(formatMoney(999.6)).toBe('$1.00K');
+    expect(formatMoney(412)).toBe('$412');
+    expect(formatMoney(2_500_000_000_000)).toBe('$2,500B');
     expect(formatRoi(0.274)).toBe('+27.4%');
     expect(formatRoi(-0.082)).toBe('-8.2%');
     expect(formatRoi(null)).toBe('—');
