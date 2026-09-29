@@ -192,13 +192,9 @@ export function SakuraPetals({
       }),
     [area],
   );
-  useEffect(
-    () => () => {
-      geometry.dispose();
-      material.dispose();
-    },
-    [geometry, material],
-  );
+  // Apart, so a new count does not dispose (and recompile) a live material.
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
   useFrame((_, dt) => {
     if (!reduced) material.uniforms.uTime.value += Math.min(dt, 0.05);
   });

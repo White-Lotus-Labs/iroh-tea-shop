@@ -38,6 +38,20 @@ export function getPageShot(key: string): string | undefined {
   return shots.get(key);
 }
 
+/** Revoke the shots baked at other widths, but not `keep`: a leaf may show one. */
+export function prunePageShots(
+  width: number,
+  keep: Iterable<string | undefined>,
+) {
+  const held = new Set(keep);
+  const tail = `:${Math.round(width)}`;
+  for (const [key, url] of shots)
+    if (!key.endsWith(tail) && !held.has(url)) {
+      shots.delete(key);
+      URL.revokeObjectURL(url);
+    }
+}
+
 /** Strip pseudo-elements and states so a selector can be tested on the DOM. */
 export function matchableSelector(selector: string): string {
   return (
@@ -151,11 +165,15 @@ function pageCss(root: HTMLElement): string {
   return css;
 }
 
-function dataUrl(url: string): Promise<string> {
+export function dataUrl(url: string): Promise<string> {
   let pending = inlined.get(url);
   if (!pending) {
     pending = fetch(url)
-      .then((res) => res.blob())
+      .then((res) => {
+        // An error page would inline as a broken font or picture.
+        if (!res.ok) throw new Error(`${res.status} ${url}`);
+        return res.blob();
+      })
       .then(
         (blob) =>
           new Promise<string>((resolve, reject) => {
@@ -244,6 +262,7 @@ async function fontCss(root: HTMLElement): Promise<string> {
 /**
  * Draw a `.sb-page` (laid out or hidden) at `width` x `height` CSS px and
  * keep the bitmap. `imageUrl` picks the file for each <img> (its srcset choice).
+ * Rejects, keeping nothing, when a font or picture fails to load.
  */
 export async function bakePageShot(
   el: HTMLElement,
@@ -258,7 +277,7 @@ export async function bakePageShot(
     fontCss(el),
     Promise.all(
       [...el.querySelectorAll('img')].map((img) =>
-        dataUrl(imageUrl(img.getAttribute('src') ?? '')).catch(() => ''),
+        dataUrl(imageUrl(img.getAttribute('src') ?? '')),
       ),
     ),
   ]);

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   coversAny,
+  dataUrl,
   declarations,
   matchableSelector,
   pageShotKey,
@@ -19,6 +20,8 @@ function fakeStyle(values: Record<string, string>, longhands: string[]) {
 }
 
 describe('pageSnapshot', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('keys a shot by page, side and rounded width', () => {
     expect(pageShotKey(3, 'left', 420.4)).toBe('3:left:420');
   });
@@ -71,5 +74,18 @@ describe('pageSnapshot', () => {
       ),
     ).toEqual(['dock-gold', 'dock-bronze']);
     expect(paintRefs('<path fill="#3a2a1d"/>')).toEqual([]);
+  });
+
+  it('refuses an error page, and fetches again after a failure', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('Not found', { status: 404 }))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetch);
+    await expect(dataUrl('/fonts/gone.woff2')).rejects.toThrow('404');
+    await expect(dataUrl('/fonts/gone.woff2')).rejects.toThrow(
+      'Failed to fetch',
+    );
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 });

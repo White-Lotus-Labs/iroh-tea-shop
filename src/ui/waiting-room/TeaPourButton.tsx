@@ -252,6 +252,9 @@ export function TeaPourButton({
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef({ fill, ready, reduced });
   live.current = { fill, ready, reduced };
+  const wake = useRef(() => {});
+
+  useEffect(() => wake.current(), [fill, ready, reduced]);
 
   useEffect(() => {
     // Creating a WebGL context blocks the page for a few hundred ms, so the
@@ -349,11 +352,18 @@ export function TeaPourButton({
       cancelAnimationFrame(raf);
       delete btn.dataset.gl;
     };
+    // A still bowl stops the loop once drawn; a change starts it again.
+    const rouse = () => {
+      if (raf || gl.isContextLost()) return;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
     let size = 0;
     const resize = new ResizeObserver(([entry]) => {
       size = Math.round(
         entry.contentRect.width * Math.min(window.devicePixelRatio || 1, 2),
       );
+      rouse();
     });
     // Where the stream lands: near the well while the pool is small.
     const landing = (): [number, number] => {
@@ -417,7 +427,13 @@ export function TeaPourButton({
       }
       if (size && cv.width !== size) cv.width = cv.height = size;
       const sig = calm ? `${level}|${glow}|${size}` : '';
-      if (!size || (sig && sig === drawn)) return;
+      if (!size || (sig && sig === drawn)) {
+        if (sig) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+        return;
+      }
       drawn = sig;
 
       const pool = POOL * Math.sqrt(level);
@@ -457,8 +473,12 @@ export function TeaPourButton({
     document.addEventListener('pointerout', out);
     btn.addEventListener('keydown', key);
     cv.addEventListener('webglcontextlost', lost);
+    media.addEventListener('change', rouse);
+    wake.current = rouse;
     raf = requestAnimationFrame(frame);
     return () => {
+      wake.current = () => {};
+      media.removeEventListener('change', rouse);
       cancelAnimationFrame(raf);
       resize.disconnect();
       window.removeEventListener('pointermove', move);
