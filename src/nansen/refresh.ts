@@ -96,7 +96,7 @@ async function loadAndSave(
       (now - Date.parse(existing.fetchedAt) < 2 * interval ||
         job.failed?.(fresh))
     ) {
-      await markNansenSnapshotStale(database, job.key, reason, now);
+      await markNansenSnapshotStale(database, job.key, reason);
       return 'kept';
     }
     await writeNansenSnapshot(database, job.key, fresh, now);
@@ -104,7 +104,7 @@ async function loadAndSave(
   } catch (error) {
     const message = errorMessage(error);
     if (existing) {
-      await markNansenSnapshotStale(database, job.key, message, now);
+      await markNansenSnapshotStale(database, job.key, message);
       return 'kept';
     }
     console.error(`Nansen refresh missed ${job.key}: ${message}`);
