@@ -97,6 +97,10 @@ One unit test reads `README.md`. It fails unless the README still contains the t
 - Most specs fake the app's own API answers. The dev server still runs the real background save, so a key in `.env.local` can spend Nansen credits during a test run.
 - The tests create real accounts, with nicknames such as `Test_…`, in the database of the server under test.
 
+### CI
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`. It runs `npm run format:check`, `npm run typecheck`, `npm test`, and `npm run build`, with `NANSEN_API_KEY` empty. It does not run the browser tests, because they need a GPU.
+
 ## Scripts
 
 | Script                         | What it does                                                                                                                                                                                                   |
@@ -155,13 +159,15 @@ The code uses a few older names:
 
 The saved-reading routes never call Nansen. When nothing is saved yet, they answer `503` with the text that the panels show.
 
+The `POST` routes refuse a request that the browser marks as coming from another site (`Sec-Fetch-Site`). `register`, `login`, and `nansen-agent` also refuse a body that is not `application/json`.
+
 ## Deploy
 
 The site runs on Railway:
 
 - One service, `web`, with one replica. Keep it at one: see the limits in [How the tea shop works](how-it-works.md#known-limits).
 - A GitHub trigger deploys each push to `main`. The trigger lives in the Railway settings, so check that a deploy started after you push.
-- The repo has no CI. A push to `main` deploys even when tests fail.
+- CI (see [CI](#ci)) checks pull requests, but Railway does not wait for it. A push to `main` deploys even when CI fails, so merge only green pull requests.
 - Railway builds with Railpack and has no custom build command. The repo has no Railway config file.
 - The start command lives in the Railway settings, not in the repo:
 

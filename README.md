@@ -164,7 +164,7 @@ npm run test:e2e
 - The unit tests (`npm test`) replace Nansen with recorded answers. They spend nothing.
 - `npx playwright install chromium` is needed once, before the first browser test run.
 - The browser tests (`npm run test:e2e`) use the server on port 3000, for example the one from step 5. If none runs, they start `npm run dev`. That server runs the real background save, so a key in `.env.local` can spend Nansen credits.
-- The repo has no CI. Run the checks before you push.
+- CI runs the format check, typecheck, unit tests, and build on each pull request. It skips the browser tests, so run those yourself before you push.
 
 ## Deploy
 
