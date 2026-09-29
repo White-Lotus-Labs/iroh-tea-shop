@@ -103,5 +103,12 @@ describe('Nansen Research Agent daily cap', () => {
     expect(ip('2001:db8::1')).toBe('2001:db8:0:0::/64');
     expect(ip('::1')).toBe('0:0:0:0::/64');
     expect(ip('::ffff:203.0.113.10')).toBe('203.0.113.10');
+    // Groups written after '::' still count toward the /64.
+    expect(ip('2a01::5:1:2:3:4')).toBe('2a01:0:0:5::/64');
+    expect(ip('2a01:0:0:5::1')).toBe('2a01:0:0:5::/64');
+    expect(ip('2001:db8::1:2:3:4:5')).toBe('2001:db8:0:1::/64');
+    expect(ip('2001:DB8::1')).toBe('2001:db8:0:0::/64');
+    expect(ip('fe80::1%eth0')).toBe('fe80:0:0:0::/64');
+    expect(ip('0:0:0:0:0:ffff:1.2.3.4')).toBe('1.2.3.4');
   });
 });

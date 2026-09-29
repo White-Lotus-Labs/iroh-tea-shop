@@ -84,20 +84,42 @@ export function createAgentDailyCap() {
 
 export const agentDailyCap = createAgentDailyCap();
 
+/** The eight 16-bit groups of an IPv6 address; a dotted IPv4 tail is two. */
+function ipv6Groups(ip: string): number[] {
+  const parse = (part: string | undefined) =>
+    part
+      ? part.split(':').flatMap((group) => {
+          if (!group.includes('.')) return [parseInt(group, 16)];
+          const [a, b, c, d] = group.split('.').map(Number);
+          return [(a << 8) | b, (c << 8) | d];
+        })
+      : [];
+  const [head, tail] = ip.replace(/%.*$/, '').split('::');
+  const left = parse(head);
+  if (tail === undefined) return left;
+  const right = parse(tail);
+  return [
+    ...left,
+    ...Array<number>(8 - left.length - right.length).fill(0),
+    ...right,
+  ];
+}
+
 /** An IPv6 visitor owns a whole /64, so the cup counts the /64, not the address. */
 function capKey(ip: string): string {
   if (isIP(ip) !== 6) return ip;
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip)?.[1];
-  if (mapped && isIP(mapped) === 4) return mapped;
-  const [head, tail] = ip.split('::');
-  const headGroups = head ? head.split(':') : [];
-  const groups =
-    tail === undefined
-      ? headGroups
-      : [...headGroups, ...Array<string>(8).fill('0')];
+  const groups = ipv6Groups(ip);
+  // An IPv4-mapped address (::ffff:a.b.c.d) is that IPv4 visitor.
+  if (groups.slice(0, 5).every((group) => group === 0) && groups[5] === 0xffff)
+    return [
+      groups[6] >> 8,
+      groups[6] & 255,
+      groups[7] >> 8,
+      groups[7] & 255,
+    ].join('.');
   return `${groups
     .slice(0, 4)
-    .map((group) => parseInt(group, 16).toString(16))
+    .map((group) => group.toString(16))
     .join(':')}::/64`;
 }
 

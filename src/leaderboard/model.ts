@@ -133,6 +133,17 @@ function moneyDigits(unit: string, scaled: number) {
   return !unit ? 0 : scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
 }
 
+/** Rounds the way the display does (9.995 → 10.00), unlike toFixed (9.99). */
+function roundMoney(scaled: number, digits: number) {
+  return Number(
+    scaled.toLocaleString('en-US', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+      useGrouping: false,
+    }),
+  );
+}
+
 export function formatMoney(value: number | null, signed = false): string {
   if (value === null) return '—';
   const magnitude = Math.abs(value);
@@ -142,11 +153,11 @@ export function formatMoney(value: number | null, signed = false): string {
   // $1.00M rather than $1,000K, and 9,999,999 reads $10.0M, not $10.00M.
   let [unit, size] = MONEY_UNITS[index];
   let digits = moneyDigits(unit, magnitude / size);
-  let rounded = Number((magnitude / size).toFixed(digits));
+  let rounded = roundMoney(magnitude / size, digits);
   while (rounded >= 1_000 && index < MONEY_UNITS.length - 1) {
     [unit, size] = MONEY_UNITS[++index];
     digits = moneyDigits(unit, magnitude / size);
-    rounded = Number((magnitude / size).toFixed(digits));
+    rounded = roundMoney(magnitude / size, digits);
   }
   digits = Math.min(digits, moneyDigits(unit, rounded));
   const amount = (magnitude / size).toLocaleString('en-US', {

@@ -146,6 +146,9 @@ describe('Nansen leaderboard provider', () => {
     expect(formatMoney(999_600)).toBe('$1.00M');
     expect(formatMoney(999_700_000)).toBe('$1.00B');
     expect(formatMoney(9_999_999)).toBe('$10.0M');
+    expect(formatMoney(9_995)).toBe('$10.0K');
+    expect(formatMoney(-9_995_000_000)).toBe('-$10.0B');
+    expect(formatMoney(999_500)).toBe('$1.00M');
     expect(formatMoney(99_960)).toBe('$100K');
     expect(formatMoney(999.6)).toBe('$1.00K');
     expect(formatMoney(412)).toBe('$412');
