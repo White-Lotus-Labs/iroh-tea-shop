@@ -75,40 +75,69 @@ describe('Nansen Research Agent daily cap', () => {
     expect(cap.claim('203.0.113.10', tomorrow, '1').allowed).toBe(false);
   });
 
-  it('trusts X-Real-IP, then the last forwarded hop, and ignores invalid values', () => {
-    const ip = (headers: Record<string, string>) =>
-      clientIpFromRequest(new Request('http://localhost', { headers }));
-    // A client can put anything first in X-Forwarded-For; the proxy appends.
-    expect(ip({ 'x-forwarded-for': '198.51.100.7, 203.0.113.10' })).toBe(
+  const ipFrom = (headers: Record<string, string>) =>
+    clientIpFromRequest(new Request('http://localhost', { headers }));
+
+  it('takes the proxy-added forwarded IP and skips internal hops after it', () => {
+    expect(ipFrom({ 'x-forwarded-for': '203.0.113.10' })).toBe('203.0.113.10');
+    expect(ipFrom({ 'x-forwarded-for': '203.0.113.10, 10.0.0.1' })).toBe(
       '203.0.113.10',
     );
     expect(
-      ip({ 'x-forwarded-for': '198.51.100.7', 'x-real-ip': '203.0.113.10' }),
-    ).toBe('203.0.113.10');
+      ipFrom({
+        'x-forwarded-for': '2001:db8::5, 100.64.0.2, fd12::1, 127.0.0.1, ::1',
+      }),
+    ).toBe('2001:db8:0:0::/64');
+  });
+
+  it('ignores a forged left-most forwarded IP', () => {
+    expect(ipFrom({ 'x-forwarded-for': '198.51.100.7, 203.0.113.10' })).toBe(
+      '203.0.113.10',
+    );
     expect(
-      ip({ 'x-forwarded-for': 'not-an-ip', 'x-real-ip': 'not-an-ip' }),
+      ipFrom({
+        'x-forwarded-for': '198.51.100.7, 198.51.100.8, 203.0.113.10, 10.0.0.1',
+        'x-real-ip': '203.0.113.10',
+      }),
+    ).toBe('203.0.113.10');
+  });
+
+  it('never reads past an unreadable hop into client-supplied entries', () => {
+    expect(ipFrom({ 'x-forwarded-for': '198.51.100.7, not-an-ip' })).toBe(
+      'unknown-client',
+    );
+    expect(
+      ipFrom({ 'x-forwarded-for': '198.51.100.7, 203.0.113.10:443' }),
     ).toBe('unknown-client');
-    expect(ip({})).toBe('unknown-client');
+  });
+
+  it('falls back to x-real-ip, then to one shared unknown bucket', () => {
+    expect(
+      ipFrom({ 'x-forwarded-for': 'not-an-ip', 'x-real-ip': '2001:db8::1' }),
+    ).toBe('2001:db8:0:0::/64');
+    expect(
+      ipFrom({ 'x-forwarded-for': '10.0.0.1', 'x-real-ip': '203.0.113.12' }),
+    ).toBe('203.0.113.12');
+    expect(ipFrom({ 'x-forwarded-for': '::1' })).toBe('unknown-client');
+    expect(ipFrom({ 'x-real-ip': 'garbage' })).toBe('unknown-client');
+    expect(ipFrom({})).toBe('unknown-client');
   });
 
   it('counts an IPv6 visitor by /64 and an IPv4-mapped address as IPv4', () => {
-    const ip = (value: string) =>
-      clientIpFromRequest(
-        new Request('http://localhost', { headers: { 'x-real-ip': value } }),
-      );
+    const ip = (value: string) => ipFrom({ 'x-forwarded-for': value });
     expect(ip('2001:db8:0:1::1')).toBe('2001:db8:0:1::/64');
     expect(ip('2001:0db8:0000:0001:ffff:ffff:ffff:ffff')).toBe(
       '2001:db8:0:1::/64',
     );
     expect(ip('2001:db8::1')).toBe('2001:db8:0:0::/64');
-    expect(ip('::1')).toBe('0:0:0:0::/64');
     expect(ip('::ffff:203.0.113.10')).toBe('203.0.113.10');
     // Groups written after '::' still count toward the /64.
     expect(ip('2a01::5:1:2:3:4')).toBe('2a01:0:0:5::/64');
     expect(ip('2a01:0:0:5::1')).toBe('2a01:0:0:5::/64');
     expect(ip('2001:db8::1:2:3:4:5')).toBe('2001:db8:0:1::/64');
     expect(ip('2001:DB8::1')).toBe('2001:db8:0:0::/64');
-    expect(ip('fe80::1%eth0')).toBe('fe80:0:0:0::/64');
     expect(ip('0:0:0:0:0:ffff:1.2.3.4')).toBe('1.2.3.4');
+    // The fallback header is keyed the same way.
+    expect(ipFrom({ 'x-real-ip': '2a01::5:1:2:3:4' })).toBe('2a01:0:0:5::/64');
   });
 });

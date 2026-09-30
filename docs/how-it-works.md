@@ -308,7 +308,7 @@ Accounts are optional. Without one, you can use every stop, including Uncle. An 
 - **Log out** is in the menu under your nickname. It ends the session in this browser only.
 - There is no password reset, no password change, and no account deletion.
 
-The free Uncle message is counted by IP address, not by account. The server takes the address from the `X-Real-IP` header that Railway's proxy sets, or else from the last entry of `X-Forwarded-For`, which the proxy adds. A visitor cannot pick it. An IPv6 visitor controls a whole /64 network, so every address in the same /64 shares one free message.
+The free Uncle message is counted by IP address, not by account. [Known limits](#known-limits) says which address the server reads. An IPv6 visitor controls a whole /64 network, so every address in the same /64 shares one free message.
 
 The server refuses a POST that another site sends from your browser. It checks the browser's `Sec-Fetch-Site` header, and login, account creation, and Uncle questions must send JSON.
 
@@ -328,5 +328,6 @@ The server does not store your own Nansen key. It exists only in your browser.
 
 - **One server process.** The background save, the request queue, and the free-message count all live inside one process. A second copy of the server would keep its own database, run its own saves, and count free messages on its own. Run one.
 - **The free-message count lives in memory.** It resets at midnight UTC and when the server restarts.
+- **The free-message count trusts Railway's proxy.** The server counts by the last public address in the `X-Forwarded-For` header, the one Railway's proxy adds. It ignores the addresses to its left, because a browser can send those itself. With no usable address, every such visitor shares one count. Put a CDN or another proxy in front of Railway, and all its visitors can share one count too.
 - **Your own key is plain text in your browser.** Anyone with access to that browser profile can read it. Press **Clear** when you are done.
 - **The status button checks only the house key.** It says "Offline" for Uncle when the shop has no house key, even when your own key works.

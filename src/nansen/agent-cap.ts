@@ -1,4 +1,4 @@
-import { isIP } from 'node:net';
+import { BlockList, isIP } from 'node:net';
 
 export const DEFAULT_AGENT_DAILY_LIMIT = 1;
 const UNKNOWN_CLIENT = 'unknown-client';
@@ -123,20 +123,44 @@ function capKey(ip: string): string {
     .join(':')}::/64`;
 }
 
+// Proxy hops and local traffic. A visitor on the internet never has these.
+const INTERNAL_NETWORKS = new BlockList();
+for (const [network, prefix] of [
+  ['0.0.0.0', 8],
+  ['10.0.0.0', 8],
+  ['100.64.0.0', 10],
+  ['127.0.0.0', 8],
+  ['169.254.0.0', 16],
+  ['172.16.0.0', 12],
+  ['192.168.0.0', 16],
+] as const)
+  INTERNAL_NETWORKS.addSubnet(network, prefix, 'ipv4');
+for (const [network, prefix] of [
+  ['::', 128],
+  ['::1', 128],
+  ['fc00::', 7],
+  ['fe80::', 10],
+] as const)
+  INTERNAL_NETWORKS.addSubnet(network, prefix, 'ipv6');
+
+function isInternal(ip: string) {
+  return INTERNAL_NETWORKS.check(ip, isIP(ip) === 6 ? 'ipv6' : 'ipv4');
+}
+
 /**
- * The deployment proxy (Railway) sets X-Real-IP to the address it saw, and
- * appends that address to X-Forwarded-For after anything the client sent. So
- * trust X-Real-IP, then only the last forwarded hop; never use an unvalidated
- * value as a key.
+ * The visitor is the right-most public x-forwarded-for entry, the one the
+ * deployment proxy added. Entries to its left come from the client and can be
+ * forged, so an unreadable entry stops the walk instead of skipping to them.
+ * An IPv6 visitor is counted by its /64.
  */
 export function clientIpFromRequest(request: Request) {
-  const realIp = request.headers.get('x-real-ip')?.trim();
-  if (realIp && isIP(realIp)) return capKey(realIp);
+  const hops = request.headers.get('x-forwarded-for')?.split(',') ?? [];
+  for (let index = hops.length - 1; index >= 0; index--) {
+    const hop = hops[index].trim();
+    if (!isIP(hop)) break;
+    if (!isInternal(hop)) return capKey(hop);
+  }
 
-  const lastHop = request.headers
-    .get('x-forwarded-for')
-    ?.split(',')
-    .at(-1)
-    ?.trim();
-  return lastHop && isIP(lastHop) ? capKey(lastHop) : UNKNOWN_CLIENT;
+  const realIp = request.headers.get('x-real-ip')?.trim();
+  return realIp && isIP(realIp) ? capKey(realIp) : UNKNOWN_CLIENT;
 }
