@@ -326,5 +326,6 @@ The server does not store your own Nansen key. It exists only in your browser.
 
 - **One server process.** The background save, the request queue, and the free-message count all live inside one process. A second copy of the server would keep its own database, run its own saves, and count free messages on its own. Run one.
 - **The free-message count lives in memory.** It resets at midnight UTC and when the server restarts.
+- **The free-message count trusts Railway's proxy.** The server counts by the last public address in the `X-Forwarded-For` header, the one Railway's proxy adds. It ignores the addresses to its left, because a browser can send those itself. With no usable address, every such visitor shares one count. Put a CDN or another proxy in front of Railway, and all its visitors can share one count too.
 - **Your own key is plain text in your browser.** Anyone with access to that browser profile can read it. Press **Clear** when you are done.
 - **The status button checks only the house key.** It says "Offline" for Uncle when the shop has no house key, even when your own key works.
