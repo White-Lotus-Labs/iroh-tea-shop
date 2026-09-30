@@ -31,7 +31,12 @@ export function AccountMenu({ user }: { user: PublicUser | null }) {
   };
   if (!user) {
     return (
-      <a className="account-entry" data-testid="account-entry" href="/account">
+      <a
+        className="account-entry"
+        data-testid="account-entry"
+        href="/account"
+        aria-label="Log in"
+      >
         <svg
           width="15"
           height="15"

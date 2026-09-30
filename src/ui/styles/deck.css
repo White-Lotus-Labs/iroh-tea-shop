@@ -767,10 +767,6 @@
     gap: 12px;
   }
 
-  .deck-head {
-    padding-right: 40px;
-  }
-
   .deck-stage {
     height: calc(var(--h) + 136px);
   }
@@ -821,11 +817,20 @@
   .deck-head {
     flex-direction: column;
     align-items: flex-start;
+    padding-right: 0;
+  }
+
+  /* The close button sits beside the title only, so the button row below
+     can use the full width. */
+  .deck-head-title {
     padding-right: 40px;
   }
 
   .deck-discuss {
-    width: auto;
+    gap: 8px;
+    padding-right: 14px;
+    font-size: 13px;
+    white-space: nowrap;
   }
 }
 

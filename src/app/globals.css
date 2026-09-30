@@ -3820,6 +3820,22 @@ body:has(.auth-shell) {
   .topbar-right {
     gap: 10px;
   }
+  /* One line for the brand; Log in becomes a round icon like its neighbours. */
+  .brand {
+    gap: 10px;
+  }
+  .brand-text {
+    font-size: 18px;
+    white-space: nowrap;
+  }
+  .account-entry {
+    justify-content: center;
+    width: 44px;
+    padding: 0;
+  }
+  .account-entry span {
+    display: none;
+  }
   /* Anchor the slip to the top bar so it never runs off the left edge. */
   .status-indicator {
     position: static;
