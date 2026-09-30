@@ -27,6 +27,7 @@ import {
   convictionSentence,
   convictionTitle,
   formatRelative,
+  shopErrorText,
   netLabel,
   shareText,
   thesisLink,
@@ -46,6 +47,10 @@ export interface ThesisDeckProps {
   onCloseThesis: () => void;
   onTalkToUncle: (draft: string) => void;
 }
+
+/** The 360w and 600w cuts sit next to the full 900w thesis picture. */
+const thesisSrcSet = (image: string) =>
+  `${image.replace(/\.webp$/, '-360w.webp')} 360w, ${image.replace(/\.webp$/, '-600w.webp')} 600w, ${image} 900w`;
 
 // Short cover lines keep the title inside the paper band; the full title stays
 // in the accessible name and on the reading view.
@@ -172,17 +177,7 @@ export function ThesisDeck({
           setDeck({ status: 'ready', snapshot });
           return;
         }
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setDeck({
-          status: 'offline',
-          reason:
-            body?.error ??
-            (response.status === 503
-              ? 'Nansen is not configured.'
-              : 'Nansen is unavailable right now.'),
-        });
+        setDeck({ status: 'offline', reason: await shopErrorText(response) });
       })
       .catch(() => {
         if (!controller.signal.aborted)
@@ -261,6 +256,8 @@ export function ThesisDeck({
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (document.querySelector('dialog[open]')) return;
+      // An open account menu takes its own Escape.
+      if ((event.target as Element).closest?.('.account-menu[open]')) return;
       // Capture phase: Escape returns to the deck and keeps the panel open.
       event.preventDefault();
       event.stopPropagation();
@@ -498,7 +495,7 @@ function ThesisBook({
               <img
                 className="book-art"
                 src={thesis.image}
-                srcSet={`${thesis.image.replace(/\.webp$/, '-360w.webp')} 360w, ${thesis.image.replace(/\.webp$/, '-600w.webp')} 600w, ${thesis.image} 900w`}
+                srcSet={thesisSrcSet(thesis.image)}
                 sizes="(max-width: 760px) 236px, 300px"
                 alt=""
                 width={900}
@@ -734,7 +731,7 @@ function ThesisReading({
         >
           <img
             src={thesis.image}
-            srcSet={`${thesis.image.replace(/\.webp$/, '-360w.webp')} 360w, ${thesis.image.replace(/\.webp$/, '-600w.webp')} 600w, ${thesis.image} 900w`}
+            srcSet={thesisSrcSet(thesis.image)}
             sizes="(max-width: 760px) 190px, 280px"
             alt={`${thesis.spirit}, the spirit of this thesis`}
             width={900}

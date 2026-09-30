@@ -45,9 +45,9 @@ describe('Iroh client session', () => {
       },
     });
     expect(setUserNansenApiKey('browser-byok')).toBe(true);
-    const fetcher = vi.fn().mockResolvedValue(
-      Response.json({ error: 'capped' }, { status: 429 }),
-    );
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(Response.json({ error: 'capped' }, { status: 429 }));
     const session = new IrohSession(fetcher);
     await session.send('hello');
     const headers = new Headers(

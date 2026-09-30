@@ -16,11 +16,10 @@ import {
 import { Cup } from '../Ceramics';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { once, Solid } from '../Surfaces';
+import { canvasTexture, once, Solid } from '../Surfaces';
 import {
   block,
   boxUv,
-  canvasTexture,
   brushText,
   Hanger,
   merge,

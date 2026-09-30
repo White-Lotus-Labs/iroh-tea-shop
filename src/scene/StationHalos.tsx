@@ -94,7 +94,7 @@ const world = new Vector3(),
   facing = new Quaternion();
 
 /** A small ember that marks something to open or inspect. Keep these props stable for other lanes. */
-export function HaloMarker({
+function HaloMarker({
   position,
   active,
   reduced,

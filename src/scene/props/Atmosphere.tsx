@@ -376,17 +376,20 @@ export function Atmosphere({ reduced }: { reduced: boolean }) {
           <planeGeometry args={size} />
         </mesh>
       ))}
+      {/* Light, not surfaces: a double-click walk must see the floor through them. */}
       <mesh
         geometry={shafts.geometry}
         material={shafts.material}
         renderOrder={2}
         frustumCulled={false}
+        raycast={() => null}
       />
       <points
         geometry={motes.geometry}
         material={motes.material}
         renderOrder={3}
         frustumCulled={false}
+        raycast={() => null}
       />
     </group>
   );

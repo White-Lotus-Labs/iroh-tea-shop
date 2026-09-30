@@ -13,7 +13,9 @@ import {
 } from 'three';
 import { THESES } from '../../thesis/deck';
 import type { Thesis, ThesisId } from '../../thesis/types';
-import { canvasTexture, useBuilt } from './craft';
+import { canvasTexture } from '../Surfaces';
+import { LOOK } from '../stations';
+import { useBuilt } from './craft';
 import { lightExperience } from '../lightExperience';
 
 // Must match TOP_Y in Counter.tsx: the cards rest on that slab.
@@ -35,8 +37,7 @@ const FAN: [number, number][] = [
 const LIFT = 0.05,
   TILT = 0.5,
   STIFFNESS = 210,
-  DAMPING = 17,
-  DRAG_PX = 6;
+  DAMPING = 17;
 
 function cardGeometry() {
   const w = W / 2,
@@ -201,7 +202,7 @@ function ThesisCard({
         onClick: (event: ThreeEvent<MouseEvent>) => {
           event.stopPropagation();
           // A camera orbit that ends on a card is not a pick.
-          if (event.delta > DRAG_PX) return;
+          if (event.delta > LOOK.dragPx) return;
           onPick(thesis.id);
         },
       }

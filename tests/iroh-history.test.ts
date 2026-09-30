@@ -1,8 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { createAccount } from '../src/auth/service';
 import {
@@ -12,30 +8,22 @@ import {
   getChat,
   listChats,
   prepareAdmittedResearchRequest,
-  prepareResearchRequest,
   rollbackUnstartedResearchRequest,
   setConversationId,
 } from '../src/iroh/history';
+import { openTempDb } from './temp-sqlite';
 
-let directory: string;
+let temp: ReturnType<typeof openTempDb>;
 let db: PrismaClient;
 
 beforeEach(() => {
-  directory = mkdtempSync(join(tmpdir(), 'tea-iroh-'));
-  const path = join(directory, 'test.db');
-  const sqlite = new DatabaseSync(path);
-  for (const migration of [
-    'prisma/migrations/20260925205300_accounts_auth/migration.sql',
-    'prisma/migrations/20260926080000_iroh_chat_history/migration.sql',
-  ])
-    sqlite.exec(readFileSync(migration, 'utf8'));
-  sqlite.close();
-  db = new PrismaClient({ datasources: { db: { url: `file:${path}` } } });
+  temp = openTempDb();
+  db = temp.db;
 });
 
 afterEach(async () => {
   await db.$disconnect();
-  rmSync(directory, { recursive: true, force: true });
+  await temp.close();
 });
 
 describe('persistent Iroh chats', () => {
@@ -46,9 +34,7 @@ describe('persistent Iroh chats', () => {
     await appendAssistantMessage(db, user.id, chat.id, 'ETH is rising.');
     await setConversationId(db, user.id, chat.id, 'conv_123');
     await db.$disconnect();
-    db = new PrismaClient({
-      datasources: { db: { url: `file:${join(directory, 'test.db')}` } },
-    });
+    db = new PrismaClient({ datasources: { db: { url: temp.url } } });
     const restored = await getChat(db, user.id, chat.id);
     expect(restored?.nansenConversationId).toBe('conv_123');
     expect(restored?.title).toBe('What is ETH doing?');
@@ -113,24 +99,30 @@ describe('persistent Iroh chats', () => {
     const { user } = await createAccount(db, 'Mark', 'correct horse');
     const old = await createChat(db, user.id);
     await setConversationId(db, user.id, old.id, 'conv_old');
-    const resumed = await prepareResearchRequest(
+    const signal = new AbortController().signal;
+    const resumed = await prepareAdmittedResearchRequest(
       db,
       user.id,
       old.id,
       'And over 7 days?',
+      signal,
     );
-    expect(resumed).toEqual({
+    expect(resumed).toMatchObject({
       text: 'And over 7 days?',
       conversationId: 'conv_old',
     });
     const fresh = await createChat(db, user.id);
-    const first = await prepareResearchRequest(
+    const first = await prepareAdmittedResearchRequest(
       db,
       user.id,
       fresh.id,
       'Tell me about ETH',
+      signal,
     );
-    expect(first).toEqual({ text: 'Tell me about ETH', conversationId: null });
+    expect(first).toMatchObject({
+      text: 'Tell me about ETH',
+      conversationId: null,
+    });
   });
 
   it('uses multiple stored exchanges when Nansen returned no conversation ID', async () => {
@@ -140,11 +132,12 @@ describe('persistent Iroh chats', () => {
     await appendAssistantMessage(db, user.id, chat.id, 'ETH has inflows.');
     await appendUserMessage(db, user.id, chat.id, 'What about SOL?');
     await appendAssistantMessage(db, user.id, chat.id, 'SOL has outflows.');
-    const request = await prepareResearchRequest(
+    const request = await prepareAdmittedResearchRequest(
       db,
       user.id,
       chat.id,
       'Compare them over seven days.',
+      new AbortController().signal,
     );
     expect(request.conversationId).toBeNull();
     expect(request.text).toContain('What is ETH doing?');
@@ -170,9 +163,11 @@ describe('persistent Iroh chats', () => {
     ]);
   });
 
-  it('rolls back an admitted user write and title if Stop precedes upstream start', async () => {
+  it('rolls back an admitted user write, title and list order if Stop precedes upstream start', async () => {
     const { user } = await createAccount(db, 'Mark', 'correct horse');
     const chat = await createChat(db, user.id);
+    const newer = await createChat(db, user.id);
+    await appendUserMessage(db, user.id, newer.id, 'Newer question');
     const prepared = await prepareAdmittedResearchRequest(
       db,
       user.id,
@@ -185,10 +180,14 @@ describe('persistent Iroh chats', () => {
       user.id,
       chat.id,
       prepared.userMessageId,
-      prepared.previousTitle,
+      prepared.previous,
     );
     const restored = await getChat(db, user.id, chat.id);
     expect(restored?.messages).toEqual([]);
     expect(restored?.title).toBe('New chat');
+    expect((await listChats(db, user.id)).map((row) => row.id)).toEqual([
+      newer.id,
+      chat.id,
+    ]);
   });
 });

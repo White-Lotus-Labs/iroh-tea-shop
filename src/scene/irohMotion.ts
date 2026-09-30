@@ -107,15 +107,24 @@ export const DEFAULT_LOOK: Record<IrohActivity, Look> = {
 type Channel = Exclude<keyof Key, 'at'>;
 type Sample<T> = { from: T; to: T; mix: number };
 
+// Sampled several times a frame, so each action's keys per channel are filtered once.
+const channelKeys: Partial<
+  Record<ActionName, Partial<Record<Channel, Key[]>>>
+> = {};
+function keysOf(name: ActionName, channel: Channel) {
+  const byChannel = (channelKeys[name] ??= {});
+  return (byChannel[channel] ??= (ACTIONS[name].keys as Key[]).filter(
+    (key) => key[channel] !== undefined,
+  ));
+}
+
 /** Eases a channel between the keys around time t; undefined if the action never sets it. */
 export function sample<C extends Channel>(
   name: ActionName,
   channel: C,
   t: number,
 ): Sample<NonNullable<Key[C]>> | undefined {
-  const keys = (ACTIONS[name].keys as Key[]).filter(
-    (key) => key[channel] !== undefined,
-  );
+  const keys = keysOf(name, channel);
   if (!keys.length) return undefined;
   const next = keys.findIndex((key) => key.at > t);
   const prev = next === -1 ? keys.length - 1 : Math.max(0, next - 1);

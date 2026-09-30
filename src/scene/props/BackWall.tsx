@@ -18,7 +18,12 @@ import {
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
 import { brushText, Hanger, merge, Timber, useBuilt } from './craft';
-import { KAKEJIKU_HANGER, KAKEJIKU_ORIGIN_Y, KAKEJIKU_ROD } from './hanging';
+import {
+  KAKEJIKU_HANGER,
+  KAKEJIKU_ORIGIN_Y,
+  KAKEJIKU_ROD,
+  TOKO_LINTEL_BOTTOM,
+} from './hanging';
 import { stemLeaves } from './Plants';
 import { ShojiWindow } from './Shoji';
 
@@ -642,8 +647,12 @@ function Tokonoma() {
         cast={false}
       />
       <Solid
-        position={[midX + 0.06, toko.top - 0.04, face - 0.03]}
-        size={[width + 0.12, 0.08, 0.1]}
+        position={[
+          midX + 0.06,
+          (toko.top + TOKO_LINTEL_BOTTOM) / 2,
+          face - 0.03,
+        ]}
+        size={[width + 0.12, toko.top - TOKO_LINTEL_BOTTOM, 0.1]}
         color={timber}
         cast={false}
       />

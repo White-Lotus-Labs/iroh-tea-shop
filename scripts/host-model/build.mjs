@@ -8,7 +8,7 @@
 // names to paste into src/scene/IrohModel.tsx. Needs `blender` on PATH.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, renameSync, rmSync } from 'node:fs';
+import { copyFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -26,8 +26,7 @@ run('blender', [
   ...(debug ? [debug] : []),
 ]);
 
-for (const old of readdirSync('public/models'))
-  if (old.startsWith('iroh-host')) rmSync(join('public/models', old));
+const built = [];
 for (const [suffix, size] of [
   ['', 2048],
   ['-1k', 1024],
@@ -63,7 +62,17 @@ for (const [suffix, size] of [
     .update(readFileSync(tmp))
     .digest('hex')
     .slice(0, 6);
-  const name = `iroh-host${suffix}.${hash}.glb`;
-  renameSync(tmp, join('public/models', name));
-  console.log(`public/models/${name}`);
+  built.push([tmp, `iroh-host${suffix}.${hash}.glb`]);
 }
+
+// Old models go only once both new ones are in place, so a failed step keeps
+// a working host. Copy, not rename: tmpdir may be on another filesystem.
+for (const [tmp, name] of built) {
+  copyFileSync(tmp, join('public/models', name));
+  rmSync(tmp);
+}
+const names = built.map(([, name]) => name);
+for (const old of readdirSync('public/models'))
+  if (old.startsWith('iroh-host') && !names.includes(old))
+    rmSync(join('public/models', old));
+for (const name of names) console.log(`public/models/${name}`);

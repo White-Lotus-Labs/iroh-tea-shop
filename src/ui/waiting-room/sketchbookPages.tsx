@@ -5,9 +5,6 @@ import { LotusMark } from './LotusMark';
 
 export type SketchPage = {
   key: string;
-  /** Short line used by tests and the baker, not drawn on the curl. */
-  label: string;
-  picture?: string;
   render: (live: boolean) => ReactNode;
 };
 
@@ -36,7 +33,7 @@ function sketchSources(src: string) {
   return { src, srcSet: undefined, sizes: undefined };
 }
 
-/** The same candidate `srcset` would pick, so a riffle warm-up is not a second download. */
+/** The same candidate `srcset` would pick, so a page-shot bake is not a second download. */
 export function sketchPreloadUrl(src: string) {
   if (typeof window === 'undefined') return src;
   const small = window.matchMedia('(max-width: 720px)').matches;
@@ -164,8 +161,6 @@ function Annotations({ notes }: { notes: Note[] }) {
 function memberPage(member: Member, n: number, folio: number): SketchPage {
   return {
     key: member.handle,
-    label: member.handle,
-    picture: member.portrait,
     render: (live) => (
       <div className="sb-page-inner sb-member">
         <span className="sb-figure">
@@ -201,18 +196,9 @@ function memberPage(member: Member, n: number, folio: number): SketchPage {
 const SHOP_SKETCH = '/images/waiting-room/sketch-shop-front.webp';
 const ROOM_SKETCH = '/images/waiting-room/sketch-tea-room.webp';
 
-/** Every picture in the book, so a fast riffle never shows a blank page. */
-export const SKETCH_IMAGES = [
-  SHOP_SKETCH,
-  ROOM_SKETCH,
-  ...TEAM.map((member) => member.portrait),
-];
-
 export const SKETCH_PAGES: SketchPage[] = [
   {
     key: 'cover',
-    label: 'The Tea Shop',
-    picture: SHOP_SKETCH,
     render: (live) => (
       <div className="sb-page-inner sb-cover-art">
         <Sketch
@@ -230,7 +216,6 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'title',
-    label: "Iroh's Tea Shop",
     render: () => (
       <div className="sb-page-inner sb-title">
         <span className="sb-mark" aria-hidden="true">
@@ -258,8 +243,6 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'room',
-    label: 'The Room',
-    picture: ROOM_SKETCH,
     render: (live) => (
       <div className="sb-page-inner sb-room">
         <Sketch
@@ -281,7 +264,6 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'stations',
-    label: 'Four stops',
     render: () => (
       <div className="sb-page-inner sb-stations">
         <DockPaints />
@@ -311,7 +293,6 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'team',
-    label: 'The Team',
     render: (live) => (
       <div className="sb-page-inner sb-hello">
         <p className="sb-kicker">The team</p>
@@ -337,7 +318,6 @@ export const SKETCH_PAGES: SketchPage[] = [
   },
   {
     key: 'team-close',
-    label: 'The Team',
     render: (live) => (
       <div className="sb-page-inner sb-hello">
         <p className="sb-kicker">White Lotus Labs</p>
@@ -372,7 +352,6 @@ export const SKETCH_PAGES: SketchPage[] = [
   ...TEAM.map((member, i) => memberPage(member, i + 1, i + 7)),
   {
     key: 'end',
-    label: 'tldde',
     render: () => (
       <div className="sb-page-inner sb-hello sb-end">
         <p className="sb-kicker">End of the book</p>

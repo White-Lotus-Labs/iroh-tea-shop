@@ -4,6 +4,7 @@ import {
   CatmullRomCurve3,
   CylinderGeometry,
   DoubleSide,
+  MathUtils,
   PlaneGeometry,
   TubeGeometry,
   Vector3,
@@ -99,11 +100,6 @@ function drawNoren(ctx: CanvasRenderingContext2D) {
   ctx.stroke();
 }
 
-const smooth = (a: number, b: number, x: number) => {
-  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
-
 /**
  * Soft folds that deepen toward the hem, at x with the slit closed (`side * u * half`),
  * so the two halves of the crest meet across the slit.
@@ -112,7 +108,7 @@ const fold = (side: -1 | 1, u: number, v: number) => {
   const closed = side * u * CLOTH.half;
   return (
     (0.008 + 0.03 * v) *
-    smooth(0, 0.25, v) *
+    MathUtils.smoothstep(v, 0, 0.25) *
     (0.55 * Math.sin(closed * 7.9 + 0.4) +
       0.3 * Math.sin(closed * 15.3 + 1.7) +
       0.18 * Math.sin(closed * 29 + 0.9))
@@ -135,8 +131,8 @@ export function drape(side: -1 | 1, u: number, v: number): Point {
     side *
       (slit / 2 +
         u * (half - slit / 2) +
-        splay * smooth(0.6, 1, v) * (1 - u) ** 2),
-    TOP - v * drop - scallop * (1 - smooth(0, 0.18, v)) - sag,
+        splay * MathUtils.smoothstep(v, 0.6, 1) * (1 - u) ** 2),
+    TOP - v * drop - scallop * (1 - MathUtils.smoothstep(v, 0, 0.18)) - sag,
     fold(side, u, v) + belly,
   ];
 }

@@ -591,9 +591,6 @@ function useFrozenPose() {
   return pose;
 }
 
-const damp = (from: number, to: number, rate: number, dt: number) =>
-  MathUtils.damp(from, to, rate, dt);
-
 /**
  * The sculpted, rigged Iroh. He breathes, blinks, follows the visitor or his
  * cup with head and eyes, and plays short actions picked by activity: sips,
@@ -807,8 +804,8 @@ export function IrohModel({
       sampleNumber(action, 'shake', t);
     const pitch =
       MathUtils.clamp(pitchWanted, -0.45, 0.3) - sampleNumber(action, 'nod', t);
-    m.yaw = damp(m.yaw, yaw, 5, dt);
-    m.pitch = damp(m.pitch, pitch, 4, dt);
+    m.yaw = MathUtils.damp(m.yaw, yaw, 5, dt);
+    m.pitch = MathUtils.damp(m.pitch, pitch, 4, dt);
     for (const [bone, share] of [
       [bones.neck, 0.4],
       [bones.head, 0.6],
@@ -834,7 +831,10 @@ export function IrohModel({
       -1,
       1,
     );
-    m.gaze.set(damp(m.gaze.x, gazeX, 10, dt), damp(m.gaze.y, gazeY, 10, dt));
+    m.gaze.set(
+      MathUtils.damp(m.gaze.x, gazeX, 10, dt),
+      MathUtils.damp(m.gaze.y, gazeY, 10, dt),
+    );
     rig.eyeGaze.copy(m.gaze);
     if (!frozen && now > m.nextBlink + 0.16)
       m.nextBlink = now + 2.5 + Math.random() * 3.5;

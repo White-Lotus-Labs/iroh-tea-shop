@@ -2,6 +2,7 @@ import { CatmullRomCurve3, DoubleSide, Vector2, Vector3 } from 'three';
 import { Solid } from '../Surfaces';
 import type { Point } from '../stations';
 import { Timber, type TimberBox, useBuilt } from './craft';
+import { NAGESHI, WAINSCOT_TOP } from './hanging';
 import { stemLeaves } from './Plants';
 import { ShojiWindow } from './Shoji';
 import { WallTrim } from './WallDetail';
@@ -137,14 +138,18 @@ export function RightWall() {
             [post + 0.085, to],
           ].map(
             ([a, b]): TimberBox => [
-              [at(0.045), 2.32, (a + b) / 2],
-              [0.09, 0.12, b - a],
+              [at(0.045), (NAGESHI.bottom + NAGESHI.top) / 2, (a + b) / 2],
+              [0.09, NAGESHI.top - NAGESHI.bottom, b - a],
               timber,
             ],
           ),
           [[at(0.035), 3.3, center], [0.07, 0.07, length], timber],
           [[at(0.02), 0.47, center], [0.04, 0.94, length], '#4a2e1d'],
-          [[at(0.04), 0.96, center], [0.07, 0.05, length], timber],
+          [
+            [at(0.04), WAINSCOT_TOP - 0.025, center],
+            [0.07, 0.05, length],
+            timber,
+          ],
           [[at(0.04), 0.035, center], [0.07, 0.07, length], timber],
           ...[0.33, 0.64].map(
             (y): TimberBox => [

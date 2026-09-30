@@ -1,5 +1,6 @@
 import { NansenError } from '../nansen/client';
 import { managedNansenPost } from '../nansen/managed-client';
+import { utcDateWindow } from '../nansen/payload';
 import { NansenManagerError } from '../nansen/request-manager';
 import { boardQuery, type HlBoard, type LeaderboardMetric } from './boards';
 import {
@@ -39,10 +40,7 @@ export async function fetchNansenLeaderboard(
     throw new LeaderboardError('Nansen API is not configured.', 503);
   const { filters, order_by, premium_labels } = boardQuery(board, metric);
   const body = {
-    date: {
-      from: new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      to: new Date(now).toISOString().slice(0, 10),
-    },
+    date: utcDateWindow(now, 30),
     pagination: { page: 1, per_page: 10 },
     filters,
     premium_labels,

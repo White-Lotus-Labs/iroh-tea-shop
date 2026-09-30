@@ -1,37 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import {
   createAccount,
   login,
   resolveSession,
   revokeSession,
 } from '../src/auth/service';
+import { openTempDb } from './temp-sqlite';
 
-let directory: string;
+let temp: ReturnType<typeof openTempDb>;
 let db: PrismaClient;
 
 beforeEach(() => {
-  directory = mkdtempSync(join(tmpdir(), 'tea-auth-'));
-  const path = join(directory, 'test.db');
-  const sqlite = new DatabaseSync(path);
-  sqlite.exec(
-    readFileSync(
-      'prisma/migrations/20260925205300_accounts_auth/migration.sql',
-      'utf8',
-    ),
-  );
-  sqlite.close();
-  db = new PrismaClient({ datasources: { db: { url: `file:${path}` } } });
+  temp = openTempDb();
+  db = temp.db;
 });
 
 afterEach(async () => {
-  await db.$disconnect();
-  rmSync(directory, { recursive: true, force: true });
+  await temp.close();
 });
 
 describe('persistent account and session', () => {

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
 import { NANSEN_WARMING_MESSAGE } from '../src/nansen/snapshot-store';
 import { THESES } from '../src/thesis/deck';
+import { mockNansen, stubNansenLimits } from './nansen-mock';
 import { openTempDb } from './temp-sqlite';
 
 const flowOk = {
@@ -25,35 +26,12 @@ const positionOk = {
   ],
 };
 
-function mockNansen(handler: (path: string, body: unknown) => unknown) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (url: string, init?: RequestInit) => {
-      const path = String(url).replace('https://api.nansen.ai/api/v1/', '');
-      const body = init?.body ? JSON.parse(String(init.body)) : {};
-      try {
-        return Response.json(handler(path, body));
-      } catch (error) {
-        if (error instanceof Error && error.message.startsWith('HTTP:'))
-          return new Response('fail', {
-            status: Number(error.message.slice(5)),
-          });
-        throw error;
-      }
-    }),
-  );
-}
-
 let temp: ReturnType<typeof openTempDb>;
 
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv('NANSEN_API_KEY', 'server-only-secret');
-  vi.stubEnv('NANSEN_REQUEST_STARTS_PER_SECOND', '1000');
-  vi.stubEnv('NANSEN_REQUEST_START_BURST', '1000');
-  vi.stubEnv('NANSEN_GLOBAL_MAX_CONCURRENT', '32');
-  vi.stubEnv('NANSEN_NORMAL_MAX_QUEUE', '200');
-  vi.stubEnv('NANSEN_JSON_MAX_RETRIES', '0');
+  stubNansenLimits();
   temp = openTempDb();
   const db: PrismaClient = temp.db;
   vi.doMock('../src/auth/db', () => ({ db }));

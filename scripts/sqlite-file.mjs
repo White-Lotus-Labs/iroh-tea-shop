@@ -6,7 +6,8 @@ export function sqliteFilePath(databaseUrl, schemaDir) {
   if (!raw.startsWith('file:')) {
     throw new Error('DATABASE_URL must be a file: SQLite URL.');
   }
-  const spec = decodeURIComponent(raw.slice('file:'.length));
+  // Drop connection parameters such as `?connection_limit=1`.
+  const spec = decodeURIComponent(raw.slice('file:'.length).split('?')[0]);
   if (spec.startsWith('/')) return spec;
   return resolve(schemaDir, spec);
 }

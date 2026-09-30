@@ -353,20 +353,6 @@ h2 {
   inset: 0;
 }
 
-.hotspot {
-  white-space: nowrap;
-  border: 1px solid #b9a581;
-  border-radius: 100px;
-  background: #f3e9d5;
-  color: #25352d;
-  font-size: 11px;
-  padding: 6px 12px;
-  min-height: 30px;
-  box-shadow: 0 3px 15px #0004;
-}
-.hotspot span {
-  margin-left: 10px;
-}
 .reading-panel {
   position: absolute;
   z-index: 10;
@@ -485,17 +471,6 @@ input {
 }
 .primary:hover {
   background: #25392c;
-}
-.secondary {
-  background: transparent;
-  border: 1px solid #b6ab95;
-  color: var(--ink);
-  border-radius: 4px;
-  padding: 12px 18px;
-  font-size: 13px;
-}
-.secondary:hover {
-  background: #e7dcc6;
 }
 
 .error {
@@ -850,7 +825,6 @@ input {
   color: #7a4932;
   text-decoration: underline;
 }
-.iroh-waiting,
 .iroh-activity {
   color: var(--moss);
   font:
@@ -1388,8 +1362,7 @@ body:has(.auth-shell) {
   letter-spacing: 0.02em;
   cursor: pointer;
 }
-.leaderboard-tab.is-active,
-.leaderboard-tab[aria-selected='true'] {
+.leaderboard-tab[aria-pressed='true'] {
   background: rgba(138, 47, 34, 0.12);
   color: #8a2f22;
   box-shadow: inset 0 0 0 1px rgba(138, 47, 34, 0.28);
@@ -2548,217 +2521,6 @@ body:has(.auth-shell) {
   border-top: 1px solid rgba(212, 175, 120, 0.2);
   transform: rotate(45deg);
 }
-.entrance-hero {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.entrance-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      ellipse 60% 55% at 50% 48%,
-      rgba(20, 14, 10, 0.55),
-      rgba(20, 14, 10, 0.2) 70%,
-      transparent
-    ),
-    radial-gradient(
-      ellipse at 50% 45%,
-      rgba(20, 14, 10, 0.2),
-      rgba(20, 14, 10, 0.78) 80%
-    );
-  pointer-events: none;
-  animation: backdrop-arrive 0.9s ease-out both;
-}
-
-.entrance-hero-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  max-width: 600px;
-  padding: 0 32px;
-  color: #f6ecd8;
-  pointer-events: auto;
-}
-
-.entrance-hero-content > * {
-  animation: entrance-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-.entrance-hero-content > :nth-child(2) {
-  animation-delay: 0.08s;
-}
-.entrance-hero-content > :nth-child(3) {
-  animation-delay: 0.16s;
-}
-.entrance-hero-content > :nth-child(4) {
-  animation-delay: 0.26s;
-}
-.entrance-hero-content > :nth-child(5) {
-  animation-delay: 0.34s;
-}
-.entrance-hero-content > :nth-child(6) {
-  animation-delay: 0.44s;
-}
-
-.entrance-hero-mark {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 22px;
-  border: 1px solid rgba(215, 170, 105, 0.35);
-  border-radius: 50%;
-  font-size: 30px;
-  line-height: 1;
-  color: #d7aa69;
-  background: radial-gradient(rgba(215, 170, 105, 0.14), transparent 70%);
-  box-shadow: 0 0 32px rgba(212, 175, 120, 0.18);
-}
-
-.entrance-hero .eyebrow {
-  margin-bottom: 20px;
-  color: #e6bd84;
-  font-size: 11px;
-  letter-spacing: 3px;
-}
-
-.entrance-hero h1 {
-  margin-bottom: 0;
-  color: #f6ecd8;
-  font-size: clamp(38px, 4.4vw, 60px);
-  line-height: 1.08;
-  letter-spacing: -1px;
-  text-shadow: 0 2px 24px rgba(10, 7, 5, 0.55);
-  text-wrap: balance;
-}
-
-.entrance-hero h1 em {
-  color: #eecb95;
-}
-
-.entrance-hero-rule {
-  width: 56px;
-  height: 1px;
-  margin: 26px 0 22px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(230, 189, 132, 0.8),
-    transparent
-  );
-}
-
-.entrance-hero .intro {
-  max-width: 440px;
-  margin-bottom: 34px;
-  color: rgba(246, 236, 216, 0.78);
-  font-size: 17px;
-  line-height: 1.7;
-  text-shadow: 0 1px 12px rgba(10, 7, 5, 0.6);
-  text-wrap: pretty;
-}
-
-.entrance-hero-cta {
-  gap: 14px;
-  min-width: 168px;
-  padding: 14px 26px 14px 30px;
-  justify-content: center;
-  font-size: 15px;
-  letter-spacing: 0.4px;
-  background: #d7aa69;
-  border-color: #d7aa69;
-  color: #1f160f;
-  box-shadow:
-    0 10px 30px rgba(10, 7, 5, 0.45),
-    0 0 0 6px rgba(215, 170, 105, 0.12);
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-}
-.entrance-hero-cta:hover,
-.entrance-hero-cta:hover:not(:disabled) {
-  background: #e6bd84;
-  border-color: #e6bd84;
-  transform: translateY(-1px);
-  box-shadow:
-    0 14px 34px rgba(10, 7, 5, 0.5),
-    0 0 0 8px rgba(215, 170, 105, 0.16);
-}
-.entrance-hero-cta:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.entrance-hero-cta-arrow {
-  transition: transform 0.2s ease;
-}
-.entrance-hero-cta:hover .entrance-hero-cta-arrow {
-  transform: translateX(3px);
-}
-
-/* Hold the entrance reveal until the loader lifts. */
-.app-shell[aria-busy='true'] .entrance-hero::before,
-.app-shell[aria-busy='true'] .entrance-hero-content > * {
-  animation-play-state: paused;
-}
-
-@keyframes entrance-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .entrance-hero::before,
-  .entrance-hero-content > * {
-    animation: none;
-  }
-
-  .entrance-hero-cta,
-  .entrance-hero-cta-arrow {
-    transition: none;
-  }
-}
-
-@media (max-width: 760px) {
-  .entrance-hero-content {
-    padding: 0 22px;
-  }
-  .entrance-hero-mark {
-    width: 54px;
-    height: 54px;
-    margin-bottom: 18px;
-    font-size: 26px;
-  }
-  .entrance-hero .eyebrow {
-    letter-spacing: 2.4px;
-  }
-  .entrance-hero h1 {
-    font-size: 36px;
-  }
-  .entrance-hero-rule {
-    margin: 20px 0 18px;
-  }
-  .entrance-hero .intro {
-    font-size: 15px;
-    margin-bottom: 28px;
-  }
-}
 
 /* ==========================================================================
    Scroll UI — hanging-scroll chrome for Counter, Host, and generic panels.
@@ -3104,7 +2866,7 @@ body:has(.auth-shell) {
   color: #8a7a62;
 }
 
-/* Buttons on paper: ink-lacquer primary with a gold glint, paper secondary. */
+/* Buttons on paper: ink-lacquer primary with a gold glint. */
 .app-shell:not([data-station='Shelf']) .reading-panel .primary {
   position: relative;
   overflow: hidden;
@@ -3160,7 +2922,6 @@ body:has(.auth-shell) {
     inset 0 2px 4px rgba(0, 0, 0, 0.45),
     0 0 0 #0e0906;
 }
-.app-shell:not([data-station='Shelf']) .reading-panel .secondary,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button,
 .app-shell:not([data-station='Shelf']) .iroh-error button,
 .app-shell:not([data-station='Shelf']) .iroh-limit-cta,
@@ -3173,7 +2934,6 @@ body:has(.auth-shell) {
   letter-spacing: 0.06em;
   box-shadow: 0 1px 0 rgba(74, 47, 29, 0.14);
 }
-.app-shell:not([data-station='Shelf']) .reading-panel .secondary:hover,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button:hover,
 .app-shell:not([data-station='Shelf']) .iroh-error button:hover,
 .app-shell:not([data-station='Shelf']) .iroh-limit-cta:hover,
@@ -3190,7 +2950,6 @@ body:has(.auth-shell) {
 .app-shell:not([data-station='Shelf']) .iroh-byok-using {
   color: var(--scroll-ink-soft, var(--muted));
 }
-.app-shell:not([data-station='Shelf']) .reading-panel .secondary:active,
 .app-shell:not([data-station='Shelf']) .iroh-chat-actions button:active,
 .app-shell:not([data-station='Shelf']) .iroh-error button:active,
 .app-shell:not([data-station='Shelf']) .iroh-limit-cta:active,
@@ -3372,7 +3131,6 @@ body:has(.auth-shell) {
   color: #8a2f22;
   text-underline-offset: 3px;
 }
-.app-shell:not([data-station='Shelf']) .iroh-waiting,
 .app-shell:not([data-station='Shelf']) .iroh-activity {
   color: var(--scroll-muted);
   font: italic 500 16px / 1.4 var(--font-display);
@@ -3932,7 +3690,7 @@ body:has(.auth-shell) {
 }
 
 /* ==========================================================================
-   Scroll UI — topbar slips and entrance hero share the language.
+   Scroll UI — the topbar slips share the scroll language.
    ========================================================================== */
 .brand-text {
   font-family: var(--font-display);
@@ -4017,9 +3775,6 @@ body:has(.auth-shell) {
 .status-value.live {
   color: var(--jade);
 }
-.status-value.demo {
-  color: var(--scroll-muted);
-}
 .account-menu[open] .account-popover {
   animation: slip-unroll 320ms var(--ease-unroll) both;
 }
@@ -4061,10 +3816,6 @@ body:has(.auth-shell) {
   outline: 2px solid var(--gold-bright);
   outline-offset: 3px;
 }
-.entrance-hero-cta:focus-visible {
-  outline: 2px solid var(--gold-bright);
-  outline-offset: 5px;
-}
 @media (max-width: 760px) {
   .topbar-right {
     gap: 10px;
@@ -4091,81 +3842,5 @@ body:has(.auth-shell) {
   }
   to {
     clip-path: inset(-12px -12px -40px -12px);
-  }
-}
-
-/* Entrance hero: display serif, ink-bleed rise, lacquer-gold call to action. */
-.entrance-hero h1 {
-  font-weight: 600;
-  font-size: clamp(42px, 4.8vw, 68px);
-  line-height: 1.02;
-  letter-spacing: -0.012em;
-}
-.entrance-hero h1 em {
-  font-weight: 500;
-  color: var(--gold-bright);
-}
-.entrance-hero .eyebrow {
-  font-weight: 600;
-  letter-spacing: 0.28em;
-}
-.entrance-hero-content > * {
-  animation-name: entrance-ink;
-}
-.entrance-hero-cta {
-  position: relative;
-  overflow: hidden;
-  border-radius: 3px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: 13px;
-  background: linear-gradient(180deg, #ecca87, #c99a52);
-  border: 1px solid #f3d99e;
-  box-shadow:
-    inset 0 1px rgba(255, 246, 220, 0.7),
-    0 2px 0 #7a5424,
-    0 12px 30px rgba(10, 7, 5, 0.45),
-    0 0 0 6px rgba(215, 170, 105, 0.12);
-}
-.entrance-hero-cta::after {
-  content: '';
-  position: absolute;
-  inset: -40% auto -40% -60%;
-  width: 40%;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    rgba(255, 250, 230, 0.7),
-    transparent
-  );
-  transform: translateX(-120%) skewX(-18deg);
-  pointer-events: none;
-}
-.entrance-hero-cta:hover::after {
-  transform: translateX(560%) skewX(-18deg);
-  transition: transform 760ms var(--ease-lift);
-}
-.entrance-hero-cta:hover,
-.entrance-hero-cta:hover:not(:disabled) {
-  background: linear-gradient(180deg, #f3d69a, #d4a65e);
-}
-.entrance-hero-cta:active:not(:disabled) {
-  transform: translateY(2px);
-  box-shadow:
-    inset 0 2px 4px rgba(90, 60, 20, 0.45),
-    0 0 0 #7a5424,
-    0 8px 20px rgba(10, 7, 5, 0.4);
-}
-@keyframes entrance-ink {
-  from {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: none;
   }
 }

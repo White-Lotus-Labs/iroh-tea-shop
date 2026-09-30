@@ -1,26 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { createAccount } from '../src/auth/service';
+import type { NansenRequestManager } from '../src/nansen/request-manager';
+import { openTempDb } from './temp-sqlite';
 
-let directory: string;
+let temp: ReturnType<typeof openTempDb>;
 let db: PrismaClient;
 
 beforeEach(() => {
   process.env.NANSEN_AGENT_DAILY_LIMIT = '1000';
-  directory = mkdtempSync(join(tmpdir(), 'tea-iroh-routes-'));
-  const path = join(directory, 'test.db');
-  const sqlite = new DatabaseSync(path);
-  for (const migration of [
-    'prisma/migrations/20260925205300_accounts_auth/migration.sql',
-    'prisma/migrations/20260926080000_iroh_chat_history/migration.sql',
-  ])
-    sqlite.exec(readFileSync(migration, 'utf8'));
-  sqlite.close();
-  db = new PrismaClient({ datasources: { db: { url: `file:${path}` } } });
+  temp = openTempDb();
+  db = temp.db;
   vi.resetModules();
   vi.doMock('../src/auth/db', () => ({ db }));
 });
@@ -30,9 +20,20 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   delete process.env.NANSEN_API_KEY;
   delete process.env.NANSEN_AGENT_DAILY_LIMIT;
-  await db.$disconnect();
-  rmSync(directory, { recursive: true, force: true });
+  await temp.close();
 });
+
+/** Resolves once the next acquireIroh call has queued its job. */
+function queuedIn(manager: NansenRequestManager) {
+  const acquire = manager.acquireIroh.bind(manager);
+  return new Promise<void>((resolve) => {
+    vi.spyOn(manager, 'acquireIroh').mockImplementationOnce((...args) => {
+      const lease = acquire(...args);
+      resolve();
+      return lease;
+    });
+  });
+}
 
 function request(url: string, token?: string, body?: object) {
   return new Request(`http://localhost${url}`, {
@@ -179,6 +180,7 @@ describe('Iroh chat HTTP routes', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const controller = new AbortController();
+    const queued = queuedIn(nansenRequestManager);
     const pending = POST(
       new Request('http://localhost/api/nansen-agent', {
         method: 'POST',
@@ -190,7 +192,7 @@ describe('Iroh chat HTTP routes', () => {
         signal: controller.signal,
       }),
     );
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await queued;
     controller.abort();
     expect((await pending).status).toBe(499);
     expect(fetch).not.toHaveBeenCalled();
@@ -258,13 +260,14 @@ describe('Iroh chat HTTP routes', () => {
         );
       }),
     );
+    const queued = queuedIn(nansenRequestManager);
     const pending = POST(
       request('/api/nansen-agent', owner.token, {
         chatId: chat.id,
         text: 'Follow up',
       }),
     );
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await queued;
     await setConversationId(db, owner.user.id, chat.id, 'conv_latest');
     first.release();
     const response = await pending;

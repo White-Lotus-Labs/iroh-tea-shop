@@ -26,19 +26,10 @@ import {
   SHELF_GUEST_NAME,
   shelfIdentityForRank,
 } from './shelfIdentities';
+import { formatRelative } from './deckModel';
 import { shelfLabel } from './shelfLabels';
 
 const snapshotCache = new Map<string, SmartWalletLeaderboardSnapshot>();
-
-// Same wording as deckModel's formatRelative. Importing that module here
-// would pull the whole deck model into the first-paint shell chunk.
-function ageLabel(iso: string) {
-  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
-}
 
 function viewKey(board: LeaderboardBoard, metric: LeaderboardMetric) {
   return `${board}:${metric}`;
@@ -509,6 +500,8 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
     if (!freshnessAnchor) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // An open account menu takes its own Escape.
+      if ((e.target as Element).closest?.('.account-menu[open]')) return;
       // Capture phase: Escape closes the popover and keeps the panel open.
       e.stopPropagation();
       setFreshnessAnchor(null);
@@ -601,26 +594,24 @@ export function SmartWalletShelf({ nansen }: { nansen: NansenAvailability }) {
   const entries = snapshot?.entries.slice(0, 10) ?? [];
   const leader = entries[0];
   const unconfigured = nansen === 'unavailable' && !snapshot && !revealed;
-  const updated = snapshot ? ageLabel(snapshot.fetchedAt) : '';
+  const updated = snapshot ? formatRelative(snapshot.fetchedAt) : '';
   return (
     <div className="parchment-hanger" data-testid="leaderboard-parchment">
       <div className="parchment-rod" aria-hidden="true" />
       <div className="leaderboard-parchment">
         <div className="leaderboard-controls">
+          {/* Toggle buttons, not tabs: there is one shared list, no tab panels. */}
           <div
             className="leaderboard-tabs"
-            role="tablist"
+            role="group"
             aria-label="Leaderboard boards"
           >
             {LEADERBOARD_BOARDS.map((id) => (
               <button
                 key={id}
                 type="button"
-                role="tab"
-                aria-selected={board === id}
-                className={
-                  board === id ? 'leaderboard-tab is-active' : 'leaderboard-tab'
-                }
+                aria-pressed={board === id}
+                className="leaderboard-tab"
                 onClick={() => {
                   setBoard(id);
                   if (!BOARD_METRICS[id].includes(metric)) setMetric('wins');

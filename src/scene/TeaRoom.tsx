@@ -9,7 +9,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import { advance, Canvas, useStore, type RootState } from '@react-three/fiber';
+import {
+  advance,
+  Canvas,
+  useStore,
+  type Dpr,
+  type Frameloop,
+  type RootState,
+} from '@react-three/fiber';
 import { ContactShadows, useProgress } from '@react-three/drei';
 import { WebGLRenderTarget } from 'three';
 import { CameraRig } from './CameraRig';
@@ -53,6 +60,7 @@ function RoomGeometry({
   onNavigate,
   onObservatoriumOpen,
   onStaged,
+  onDpr,
 }: {
   mood: SceneMood;
   reduced: boolean;
@@ -67,6 +75,7 @@ function RoomGeometry({
   onNavigate: (station: Station) => void;
   onObservatoriumOpen: () => void;
   onStaged?: () => void;
+  onDpr: (dpr: number) => void;
 }) {
   const [hostHalo, setHostHalo] = useState(false);
   const posters = station !== 'Entrance';
@@ -105,7 +114,10 @@ function RoomGeometry({
     [reduced, selectShelf, shelfRevealed, posters],
   );
   const covered = station === 'Counter' && !menuClosed;
-  const finish = useMemo(() => <ScenePolish covered={covered} />, [covered]);
+  const finish = useMemo(
+    () => <ScenePolish covered={covered} onDpr={onDpr} />,
+    [covered, onDpr],
+  );
   return (
     <>
       <color attach="background" args={['#2f2119']} />
@@ -254,6 +266,24 @@ function HiddenFrames({ hidden }: { hidden: boolean }) {
 }
 
 /**
+ * Staged and HiddenFrames switch the loop on the store, but the Canvas
+ * re-applies its `frameloop` prop on every render. Reporting the store's loop
+ * back into that prop keeps a re-render from restarting a paused loop.
+ */
+function FrameloopReport({
+  onChange,
+}: {
+  onChange: (loop: Frameloop) => void;
+}) {
+  const store = useStore();
+  useEffect(() => {
+    onChange(store.getState().frameloop);
+    return store.subscribe((state) => onChange(state.frameloop));
+  }, [store, onChange]);
+  return null;
+}
+
+/**
  * Mounts the room in a transition, so React slices its first render into
  * short tasks instead of one long one while the sketchbook is on screen.
  */
@@ -299,10 +329,6 @@ class SceneBoundary extends Component<
 export default function TeaRoom({
   station,
   reduced,
-  resetKey,
-  typing,
-  reading,
-  allowTravelWhileTyping,
   mood,
   requestKey,
   irohActivity,
@@ -323,10 +349,6 @@ export default function TeaRoom({
 }: {
   station: Station;
   reduced: boolean;
-  resetKey: number;
-  typing: boolean;
-  reading: boolean;
-  allowTravelWhileTyping: boolean;
   mood: SceneMood;
   requestKey: string | null;
   irohActivity: IrohActivity;
@@ -347,6 +369,10 @@ export default function TeaRoom({
 }) {
   const [lost, setLost] = useState(false);
   const light = lightExperience();
+  // The Canvas re-applies its dpr prop on every render, so the quality
+  // ladder's choice has to live here rather than in the store.
+  const [dpr, setDpr] = useState<Dpr>(light ? [1, 1] : [1, 1.25]);
+  const [loop, setLoop] = useState<Frameloop>('always');
   const counterPosition = STATIONS.find(
     (place) => place.id === 'Counter',
   )!.position;
@@ -367,7 +393,8 @@ export default function TeaRoom({
       >
         <Canvas
           shadows="percentage"
-          dpr={light ? [1, 1] : [1, 1.25]}
+          dpr={dpr}
+          frameloop={loop}
           camera={{
             position: light ? [0.05, 1.66, 7.82] : counterPosition,
             fov: 58,
@@ -406,6 +433,7 @@ export default function TeaRoom({
                   onNavigate={onNavigate}
                   onObservatoriumOpen={onObservatoriumOpen}
                   onStaged={onStaged}
+                  onDpr={setDpr}
                 />
               </InTransition>
             </Surfaces>
@@ -414,15 +442,12 @@ export default function TeaRoom({
             station={station}
             shelfFocused={shelfFocused}
             reduced={reduced}
-            resetKey={resetKey}
-            typing={typing}
-            reading={reading}
-            allowTravelWhileTyping={allowTravelWhileTyping}
             observatoriumZoomKey={observatoriumZoomKey}
             onArrive={onArrive}
             onObservatoriumZoomEnd={onObservatoriumZoomEnd}
           />
           <DevShotCamera />
+          <FrameloopReport onChange={setLoop} />
           <HiddenFrames hidden={station === 'Entrance'} />
         </Canvas>
       </SceneBoundary>

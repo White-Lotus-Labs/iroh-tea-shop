@@ -8,33 +8,35 @@ import type {
   TickerDetail,
   TickerSignal,
 } from '../thesis/types';
-import { formatRelative, isDust } from './deckModel';
+import { formatRelative, isDust, shopErrorText } from './deckModel';
 
-// While this scroll stays open, reuse the detail we already loaded.
-// A reload reads the saved copy from the shop database again.
-const detailCache = new Map<string, Promise<TickerDetail>>();
+// Reuse a loaded detail for a few minutes, so reopening an asset is instant.
+// The shop saves new readings every hour, so a tab left open still refreshes.
+const DETAIL_REUSE_MS = 5 * 60 * 1000;
+const detailCache = new Map<
+  string,
+  { loadedAt: number; pending: Promise<TickerDetail> }
+>();
+
+/** An error the shop reported, safe to show as is. */
+class DetailError extends Error {}
 
 function loadDetail(thesisId: ThesisId, symbol: string) {
   const key = `${thesisId}/${symbol}`;
-  let pending = detailCache.get(key);
-  if (!pending) {
-    pending = fetch(`/api/theses/${thesisId}/${encodeURIComponent(symbol)}`, {
-      cache: 'no-store',
-    }).then(async (response) => {
-      if (response.ok) return (await response.json()) as TickerDetail;
-      const body = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      throw new Error(
-        body?.error ??
-          (response.status === 503
-            ? 'Nansen is not configured.'
-            : 'Nansen is unavailable right now.'),
-      );
-    });
-    detailCache.set(key, pending);
-    pending.catch(() => detailCache.delete(key));
-  }
+  const cached = detailCache.get(key);
+  if (cached && Date.now() - cached.loadedAt < DETAIL_REUSE_MS)
+    return cached.pending;
+  const pending = fetch(
+    `/api/theses/${thesisId}/${encodeURIComponent(symbol)}`,
+    { cache: 'no-store' },
+  ).then(async (response) => {
+    if (response.ok) return (await response.json()) as TickerDetail;
+    throw new DetailError(await shopErrorText(response));
+  });
+  detailCache.set(key, { loadedAt: Date.now(), pending });
+  pending.catch(() => {
+    if (detailCache.get(key)?.pending === pending) detailCache.delete(key);
+  });
   return pending;
 }
 
@@ -393,8 +395,9 @@ export function ThesisLeaf({
       (error: unknown) =>
         setState({
           status: 'error',
+          // Never show raw text such as 'Failed to fetch' or a JSON SyntaxError.
           reason:
-            error instanceof Error
+            error instanceof DetailError
               ? error.message
               : 'Nansen is unavailable right now.',
         }),

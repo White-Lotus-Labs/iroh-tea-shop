@@ -8,7 +8,7 @@
 // Needs TRIPO_API_KEY in .env.local. Tasks cost credits (image_to_model with
 // detailed textures is about 40); see docs.tripo3d.ai/get-started/pricing.
 import { readFile, writeFile } from 'node:fs/promises';
-import { basename, extname } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 
 process.loadEnvFile('.env.local');
 const API = 'https://api.tripo3d.ai/v2/openapi';
@@ -59,8 +59,12 @@ console.log(`task ${taskId}`);
 let task;
 do {
   await new Promise((r) => setTimeout(r, 5000));
-  // The gateway sometimes answers with an HTML error page; poll again.
+  // The gateway sometimes answers with an HTML error page (SyntaxError) or
+  // drops the connection (TypeError); poll again. An API error code, such as
+  // a bad task id, is final.
   task = await call(`/task/${taskId}`).catch((error) => {
+    if (!(error instanceof SyntaxError || error instanceof TypeError))
+      throw error;
     console.log(`poll failed: ${error.message.slice(0, 80)}`);
     return { status: 'running' };
   });
@@ -82,10 +86,8 @@ const model = task.output.pbr_model ?? task.output.model;
 if (out && model) {
   await save(model, out);
   if (task.output.rendered_image) {
-    await save(
-      task.output.rendered_image,
-      out.replace(/\.glb$/, '-preview.webp'),
-    );
+    const preview = `${basename(out, extname(out))}-preview.webp`;
+    await save(task.output.rendered_image, join(dirname(out), preview));
   }
   console.log(`saved ${out}`);
 }

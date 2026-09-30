@@ -36,12 +36,12 @@ PowerShell has no such one-run form. In Windows PowerShell 5.1, `$env:NANSEN_API
 
 The app reads each variable from the shell, then `.env.local`, then `.env`. The first value it finds wins, even an empty one.
 
-| Variable                   | Default         | What it does                                                                                                 |
-| -------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`             | none in the app | The SQLite file. Use `file:./dev.db` locally (the path is relative to `prisma/`). The app fails without it.  |
-| `NANSEN_API_KEY`           | empty           | The house key. It pays for the background save and for free Uncle messages. It never goes to the browser.    |
-| `NANSEN_AGENT_DAILY_LIMIT` | `1`             | Free house-key Uncle messages per IP address per UTC day. `0` turns them off. A bad value falls back to `1`. |
-| `TRIPO_API_KEY`            | empty           | Used only by `scripts/tripo.mjs`. That script reads `.env.local` only, not `.env`.                           |
+| Variable                   | Default         | What it does                                                                                                                 |
+| -------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`             | none in the app | The SQLite file. Use `file:./dev.db` locally (the path is relative to `prisma/`). The app fails without it.                  |
+| `NANSEN_API_KEY`           | empty           | The house key. It pays for the background save and for free Uncle messages. It never goes to the browser.                    |
+| `NANSEN_AGENT_DAILY_LIMIT` | `1`             | Free house-key Uncle messages per IP address (IPv6: per /64) per UTC day. `0` turns them off. A bad value falls back to `1`. |
+| `TRIPO_API_KEY`            | empty           | Used only by `scripts/tripo.mjs`. That script reads `.env.local` only, not `.env`.                                           |
 
 Ten more variables set how the server paces its Nansen calls. [Nansen request queue](nansen-request-manager.md) lists them.
 
@@ -77,7 +77,7 @@ The database is one SQLite file with five tables: `User`, `Session`, `Chat`, `Me
 
 The Prisma CLI reads `.env`, not `.env.local`. Give it the URL when you run it. In bash: `DATABASE_URL=file:./dev.db npx prisma studio`. In PowerShell: `$env:DATABASE_URL = 'file:./dev.db'; npx prisma studio`.
 
-The database tests do not run the migrations. They read the migration files from lists. When you add a migration, add the path of its `migration.sql` to `tests/temp-sqlite.ts`. `tests/auth-service.test.ts`, `tests/iroh-history.test.ts`, and `tests/iroh-routes.test.ts` keep their own lists. Update those too when the migration changes their tables.
+The database tests do not run `prisma migrate`. `openTempDb()` in `tests/temp-sqlite.ts` makes a temporary SQLite file and applies every `prisma/migrations/*/migration.sql` in folder-name order. A new migration is picked up with no test changes.
 
 ## Tests
 
@@ -96,6 +96,10 @@ One unit test reads `README.md`. It fails unless the README still contains the t
 - Use a dev server, not `npm start`. Some specs need the dev-only camera hook `window.__teaCamera`.
 - Most specs fake the app's own API answers. The dev server still runs the real background save, so a key in `.env.local` can spend Nansen credits during a test run.
 - The tests create real accounts, with nicknames such as `Test_…`, in the database of the server under test.
+
+### CI
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`. It runs `npm run format:check`, `npm run typecheck`, `npm test`, and `npm run build`, with `NANSEN_API_KEY` empty. It does not run the browser tests, because they need a GPU.
 
 ## Scripts
 
@@ -155,13 +159,15 @@ The code uses a few older names:
 
 The saved-reading routes never call Nansen. When nothing is saved yet, they answer `503` with the text that the panels show.
 
+The `POST` routes refuse a request that the browser marks as coming from another site (`Sec-Fetch-Site`). `register`, `login`, and `nansen-agent` also refuse a body that is not `application/json`.
+
 ## Deploy
 
 The site runs on Railway:
 
 - One service, `web`, with one replica. Keep it at one: see the limits in [How the tea shop works](how-it-works.md#known-limits).
 - A GitHub trigger deploys each push to `main`. The trigger lives in the Railway settings, so check that a deploy started after you push.
-- The repo has no CI. A push to `main` deploys even when tests fail.
+- CI (see [CI](#ci)) checks pull requests, but Railway does not wait for it. A push to `main` deploys even when CI fails, so merge only green pull requests.
 - Railway builds with Railpack and has no custom build command. The repo has no Railway config file.
 - The start command lives in the Railway settings, not in the repo:
 

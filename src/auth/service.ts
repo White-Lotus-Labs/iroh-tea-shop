@@ -17,6 +17,8 @@ async function createSession(
   user: PublicUser,
 ): Promise<AuthResult> {
   const token = randomBytes(32).toString('base64url');
+  // Nothing else reads an expired session, so each new one sweeps them away.
+  await db.session.deleteMany({ where: { expiresAt: { lte: new Date() } } });
   await db.session.create({
     data: {
       tokenHash: hashToken(token),

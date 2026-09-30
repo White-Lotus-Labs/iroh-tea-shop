@@ -11,11 +11,10 @@ import {
 } from 'three';
 import type { Point } from '../stations';
 import { createRandom } from '../motion/dynamics';
-import { once } from '../Surfaces';
+import { canvasTexture, once } from '../Surfaces';
 import {
   block,
   brushText,
-  canvasTexture,
   merge,
   paint,
   paper,

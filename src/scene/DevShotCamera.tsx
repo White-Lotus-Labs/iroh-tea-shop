@@ -12,7 +12,7 @@ function stationShot(id: Station): Shot {
 }
 
 /** Fixed art-review poses, keyed by `?shot=<name>`. Station shots match the product frame. */
-export const SHOTS: Record<string, Shot> = {
+const SHOTS: Record<string, Shot> = {
   'room-wide': {
     position: [-0.35, 2.05, 2.95],
     target: [0.25, 1.0, -3.4],

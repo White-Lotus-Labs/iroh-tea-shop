@@ -186,7 +186,7 @@ At the Shelf, the scroll stays rolled up. Press **See the top traders**, click t
 
 The 3D shelf shows three hanging papers: the spirits of ranks 1, 2, and 3. The open scroll lists all ten.
 
-**Boards.** The tabs at the top pick a board. Each board shows ten wallets over the last 30 days:
+**Boards.** The buttons at the top pick a board. Each board shows ten wallets over the last 30 days:
 
 | Board             | Which wallets                                                               | Chains                    |
 | ----------------- | --------------------------------------------------------------------------- | ------------------------- |
@@ -240,7 +240,7 @@ The Thesis Desk and the Shelf never call Nansen when you open them. Instead, the
 
 ### When the server saves
 
-The background save starts when the server starts. It then runs every hour. It does not run during `npm run build`. Without a house key (`NANSEN_API_KEY`), it does nothing.
+The background save starts when the server starts. It then runs again when the next saved reading is due, and at least once an hour. So after a restart, the next save keeps to the old schedule instead of waiting a full hour. It does not run during `npm run build`. Without a house key (`NANSEN_API_KEY`), it does nothing.
 
 The server keeps 30 readings:
 
@@ -308,7 +308,9 @@ Accounts are optional. Without one, you can use every stop, including Uncle. An 
 - **Log out** is in the menu under your nickname. It ends the session in this browser only.
 - There is no password reset, no password change, and no account deletion.
 
-The free Uncle message is counted by IP address, not by account.
+The free Uncle message is counted by IP address, not by account. [Known limits](#known-limits) says which address the server reads. An IPv6 visitor controls a whole /64 network, so every address in the same /64 shares one free message.
+
+The server refuses a POST that another site sends from your browser. It checks the browser's `Sec-Fetch-Site` header, and login, account creation, and Uncle questions must send JSON.
 
 ## What the server stores
 

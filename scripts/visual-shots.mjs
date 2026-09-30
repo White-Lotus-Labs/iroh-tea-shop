@@ -127,7 +127,7 @@ async function open(shot) {
     waitUntil: 'domcontentloaded',
   });
   await page.locator('main[aria-busy="false"]').waitFor({ timeout: 60_000 });
-  await page.getByRole('button', { name: /Step inside|Enter Teashop/ }).click();
+  await page.getByRole('button', { name: 'Enter Teashop' }).click();
   await page
     .locator('main[data-station="Counter"][data-camera-at="Counter"]')
     .waitFor({ timeout: 30_000 });
@@ -136,7 +136,7 @@ async function open(shot) {
     .waitFor({ timeout: 30_000 });
   if (!has('ui'))
     await page.addStyleTag({
-      content: `.topbar,.reading-panel,.station-dock,.entrance-hero,.shelf-approach,.scene-caption{visibility:hidden!important}`,
+      content: `.topbar,.reading-panel,.station-dock,.shelf-approach,.scene-caption{visibility:hidden!important}`,
     });
 }
 

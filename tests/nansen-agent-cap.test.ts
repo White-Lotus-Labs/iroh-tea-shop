@@ -87,7 +87,7 @@ describe('Nansen Research Agent daily cap', () => {
       ipFrom({
         'x-forwarded-for': '2001:db8::5, 100.64.0.2, fd12::1, 127.0.0.1, ::1',
       }),
-    ).toBe('2001:db8::5');
+    ).toBe('2001:db8:0:0::/64');
   });
 
   it('ignores a forged left-most forwarded IP', () => {
@@ -114,12 +114,30 @@ describe('Nansen Research Agent daily cap', () => {
   it('falls back to x-real-ip, then to one shared unknown bucket', () => {
     expect(
       ipFrom({ 'x-forwarded-for': 'not-an-ip', 'x-real-ip': '2001:db8::1' }),
-    ).toBe('2001:db8::1');
+    ).toBe('2001:db8:0:0::/64');
     expect(
       ipFrom({ 'x-forwarded-for': '10.0.0.1', 'x-real-ip': '203.0.113.12' }),
     ).toBe('203.0.113.12');
     expect(ipFrom({ 'x-forwarded-for': '::1' })).toBe('unknown-client');
     expect(ipFrom({ 'x-real-ip': 'garbage' })).toBe('unknown-client');
     expect(ipFrom({})).toBe('unknown-client');
+  });
+
+  it('counts an IPv6 visitor by /64 and an IPv4-mapped address as IPv4', () => {
+    const ip = (value: string) => ipFrom({ 'x-forwarded-for': value });
+    expect(ip('2001:db8:0:1::1')).toBe('2001:db8:0:1::/64');
+    expect(ip('2001:0db8:0000:0001:ffff:ffff:ffff:ffff')).toBe(
+      '2001:db8:0:1::/64',
+    );
+    expect(ip('2001:db8::1')).toBe('2001:db8:0:0::/64');
+    expect(ip('::ffff:203.0.113.10')).toBe('203.0.113.10');
+    // Groups written after '::' still count toward the /64.
+    expect(ip('2a01::5:1:2:3:4')).toBe('2a01:0:0:5::/64');
+    expect(ip('2a01:0:0:5::1')).toBe('2a01:0:0:5::/64');
+    expect(ip('2001:db8::1:2:3:4:5')).toBe('2001:db8:0:1::/64');
+    expect(ip('2001:DB8::1')).toBe('2001:db8:0:0::/64');
+    expect(ip('0:0:0:0:0:ffff:1.2.3.4')).toBe('1.2.3.4');
+    // The fallback header is keyed the same way.
+    expect(ipFrom({ 'x-real-ip': '2a01::5:1:2:3:4' })).toBe('2a01:0:0:5::/64');
   });
 });

@@ -60,6 +60,17 @@ export function formatRelative(iso: string | null, now = Date.now()): string {
   return `${Math.round(hours / 24)} d ago`;
 }
 
+/** The error text a shop API answer carries, or a plain fallback; never raw exception text. */
+export async function shopErrorText(response: Response): Promise<string> {
+  const body = (await response.json().catch(() => null)) as {
+    error?: unknown;
+  } | null;
+  if (typeof body?.error === 'string') return body.error;
+  return response.status === 503
+    ? 'Nansen is not configured.'
+    : 'Nansen is unavailable right now.';
+}
+
 export function accumulatingLine(
   conviction: Conviction,
   total: number,

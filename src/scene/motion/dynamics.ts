@@ -8,7 +8,7 @@ export type SceneMood =
   | 'unknown'
   | 'card'
   | 'error';
-export const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 export const smootherstep = (n: number) => {
   const t = clamp01(n);
   return t * t * t * (t * (t * 6 - 15) + 10);

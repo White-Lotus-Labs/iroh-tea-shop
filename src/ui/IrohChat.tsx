@@ -50,6 +50,8 @@ export function IrohChat({
   const loadGeneration = useRef(0);
   const input = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  // Sending disables the composer, and the browser drops its focus to <body>.
+  const refocusAfterAnswer = useRef(false);
 
   const fetchChats = async () => {
     const response = await fetch('/api/iroh/chats', { cache: 'no-store' });
@@ -168,10 +170,15 @@ export function IrohChat({
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [chat.messages.at(-1)?.content, chat.error]);
+  useEffect(() => {
+    if (chat.isStreaming || !refocusAfterAnswer.current) return;
+    refocusAfterAnswer.current = false;
+    // Only hand focus back if the visitor has not moved on to something else.
+    if (!document.activeElement || document.activeElement === document.body)
+      input.current?.focus();
+  }, [chat.isStreaming]);
   const dailyCap = chat.errorCode === 'nansen_agent_daily_limit';
   const needsUserKey = !hasUserKey && (dailyCap || nansen === 'unavailable');
-  const composerLockedByCup =
-    (dailyCap || nansen === 'unavailable') && !hasUserKey;
   const saveUserKey = (event: FormEvent) => {
     event.preventDefault();
     if (!setUserNansenApiKey(keyDraft)) return;
@@ -188,6 +195,15 @@ export function IrohChat({
   const send = () => {
     const pending = session.send(draft);
     if (pending) {
+      refocusAfterAnswer.current = document.activeElement === input.current;
+      // A click anywhere (selecting answer text, dragging the room) means the
+      // visitor moved on, even if focus stays on <body>.
+      if (refocusAfterAnswer.current)
+        document.addEventListener(
+          'pointerdown',
+          () => (refocusAfterAnswer.current = false),
+          { once: true, capture: true },
+        );
       setDraft('');
       if (user) void pending.then(fetchChats).then(setHistory, () => {});
     }
@@ -369,15 +385,13 @@ export function IrohChat({
               role="alert"
             >
               <p>{chat.error}</p>
-              {dailyCap ? (
-                !hasUserKey && byokActions
-              ) : (
-                (nansen === 'configured' || hasUserKey) && (
-                  <button type="button" onClick={() => session.retry()}>
-                    Try again
-                  </button>
-                )
-              )}
+              {dailyCap
+                ? !hasUserKey && byokActions
+                : (nansen === 'configured' || hasUserKey) && (
+                    <button type="button" onClick={() => session.retry()}>
+                      Try again
+                    </button>
+                  )}
             </div>
           )}
           <div ref={bottom} />
@@ -420,7 +434,7 @@ export function IrohChat({
           placeholder={
             historyLoading
               ? 'Loading your chats…'
-              : composerLockedByCup
+              : needsUserKey
                 ? dailyCap
                   ? 'Daily limit reached. Enter your key to continue.'
                   : 'Enter a Nansen API key to ask Uncle.'
@@ -430,7 +444,7 @@ export function IrohChat({
           disabled={
             chat.isStreaming ||
             historyLoading ||
-            composerLockedByCup ||
+            needsUserKey ||
             (Boolean(user) && !chat.chatId)
           }
         />
@@ -454,7 +468,7 @@ export function IrohChat({
               disabled={
                 !draft.trim() ||
                 historyLoading ||
-                composerLockedByCup ||
+                needsUserKey ||
                 (Boolean(user) && !chat.chatId)
               }
             >

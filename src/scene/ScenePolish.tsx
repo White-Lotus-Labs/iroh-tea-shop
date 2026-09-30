@@ -196,7 +196,14 @@ function Composer({
     composer.addPass(grade);
     return { composer, occlusion, grade, bloom, output };
   }, [gl, scene, camera]);
-  useEffect(() => () => pipeline.composer.dispose(), [pipeline]);
+  useEffect(
+    () => () => {
+      // The composer frees only its own buffers; each pass owns targets and materials.
+      for (const pass of pipeline.composer.passes) pass.dispose();
+      pipeline.composer.dispose();
+    },
+    [pipeline],
+  );
   const linked = useRef(false);
   useEffect(() => {
     let live = true;
@@ -256,9 +263,17 @@ function openingTier() {
   return lightExperience() ? 0 : 3;
 }
 
-/** `covered`: a panel hides most of the room, so it is drawn every other frame. */
-export function ScenePolish({ covered }: { covered: boolean }) {
-  const setDpr = useThree((state) => state.setDpr);
+/**
+ * `covered`: a panel hides most of the room, so it is drawn every other frame.
+ * `onDpr` receives the rung's pixel ratio; the Canvas owner applies it.
+ */
+export function ScenePolish({
+  covered,
+  onDpr,
+}: {
+  covered: boolean;
+  onDpr: (dpr: number) => void;
+}) {
   // Behind the waiting room the room draws a few frames a second on purpose;
   // measuring that would read as a slow GPU and drop the quality for good.
   const measuring = useThree((state) => state.frameloop === 'always');
@@ -270,8 +285,8 @@ export function ScenePolish({ covered }: { covered: boolean }) {
   // fallback in ~10 s. Stop climbing after the first decline instead.
   const declined = useRef(false);
   useEffect(() => {
-    setDpr(Math.min(window.devicePixelRatio || 1, rung.dpr));
-  }, [rung, setDpr]);
+    onDpr(Math.min(window.devicePixelRatio || 1, rung.dpr));
+  }, [rung, onDpr]);
   return (
     <>
       {measuring && (

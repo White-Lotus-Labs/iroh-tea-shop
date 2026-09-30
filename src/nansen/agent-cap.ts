@@ -84,6 +84,45 @@ export function createAgentDailyCap() {
 
 export const agentDailyCap = createAgentDailyCap();
 
+/** The eight 16-bit groups of an IPv6 address; a dotted IPv4 tail is two. */
+function ipv6Groups(ip: string): number[] {
+  const parse = (part: string | undefined) =>
+    part
+      ? part.split(':').flatMap((group) => {
+          if (!group.includes('.')) return [parseInt(group, 16)];
+          const [a, b, c, d] = group.split('.').map(Number);
+          return [(a << 8) | b, (c << 8) | d];
+        })
+      : [];
+  const [head, tail] = ip.replace(/%.*$/, '').split('::');
+  const left = parse(head);
+  if (tail === undefined) return left;
+  const right = parse(tail);
+  return [
+    ...left,
+    ...Array<number>(8 - left.length - right.length).fill(0),
+    ...right,
+  ];
+}
+
+/** An IPv6 visitor owns a whole /64, so the cup counts the /64, not the address. */
+function capKey(ip: string): string {
+  if (isIP(ip) !== 6) return ip;
+  const groups = ipv6Groups(ip);
+  // An IPv4-mapped address (::ffff:a.b.c.d) is that IPv4 visitor.
+  if (groups.slice(0, 5).every((group) => group === 0) && groups[5] === 0xffff)
+    return [
+      groups[6] >> 8,
+      groups[6] & 255,
+      groups[7] >> 8,
+      groups[7] & 255,
+    ].join('.');
+  return `${groups
+    .slice(0, 4)
+    .map((group) => group.toString(16))
+    .join(':')}::/64`;
+}
+
 // Proxy hops and local traffic. A visitor on the internet never has these.
 const INTERNAL_NETWORKS = new BlockList();
 for (const [network, prefix] of [
@@ -112,15 +151,16 @@ function isInternal(ip: string) {
  * The visitor is the right-most public x-forwarded-for entry, the one the
  * deployment proxy added. Entries to its left come from the client and can be
  * forged, so an unreadable entry stops the walk instead of skipping to them.
+ * An IPv6 visitor is counted by its /64.
  */
 export function clientIpFromRequest(request: Request) {
   const hops = request.headers.get('x-forwarded-for')?.split(',') ?? [];
   for (let index = hops.length - 1; index >= 0; index--) {
     const hop = hops[index].trim();
     if (!isIP(hop)) break;
-    if (!isInternal(hop)) return hop;
+    if (!isInternal(hop)) return capKey(hop);
   }
 
   const realIp = request.headers.get('x-real-ip')?.trim();
-  return realIp && isIP(realIp) ? realIp : UNKNOWN_CLIENT;
+  return realIp && isIP(realIp) ? capKey(realIp) : UNKNOWN_CLIENT;
 }

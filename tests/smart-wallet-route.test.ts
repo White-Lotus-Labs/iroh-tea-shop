@@ -38,7 +38,8 @@ test('GET reads the saved leaderboard and does not call Nansen', async () => {
   const { DEFAULT_LEADERBOARD_CACHE_KEY: LEADERBOARD_CACHE_KEY } = await import(
     '../src/leaderboard/boards'
   );
-  const saved = await writeNansenSnapshot(
+  const savedAt = Date.parse('2026-09-27T12:00:00Z');
+  await writeNansenSnapshot(
     temp.db,
     LEADERBOARD_CACHE_KEY,
     {
@@ -53,7 +54,7 @@ test('GET reads the saved leaderboard and does not call Nansen', async () => {
         },
       ],
     },
-    Date.parse('2026-09-27T12:00:00Z'),
+    savedAt,
   );
   const { GET } = await import('../src/app/api/smart-wallet-leaderboard/route');
   const first = await GET();
@@ -64,7 +65,7 @@ test('GET reads the saved leaderboard and does not call Nansen', async () => {
   const body = await first.text();
   expect(await second.text()).toBe(body);
   expect(body).not.toContain('server-only-secret');
-  expect(body).toContain(saved.fetchedAt);
+  expect(body).toContain(new Date(savedAt).toISOString());
   expect(first.headers.get('cache-control')).toBe('no-store');
 });
 

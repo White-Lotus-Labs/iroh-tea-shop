@@ -15,6 +15,12 @@ describe('sqliteFilePath', () => {
     );
   });
 
+  it('drops connection parameters from the file name', () => {
+    expect(sqliteFilePath('file:./dev.db?connection_limit=1', schemaDir)).toBe(
+      resolve(schemaDir, 'dev.db'),
+    );
+  });
+
   it('uses the local file when DATABASE_URL is empty', () => {
     expect(sqliteFilePath('  ', schemaDir)).toBe(resolve(schemaDir, 'dev.db'));
   });

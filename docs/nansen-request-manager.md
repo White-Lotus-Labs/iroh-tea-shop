@@ -42,7 +42,7 @@ A retry must also start before the same deadline. So the first try and the pause
 
 The server tries a normal call again after a timeout, a network error, HTTP 429 (too many requests), or HTTP 500, 502, 503, or 504. It does not retry other errors. It never retries an Uncle message. The visitor can press **Try again**.
 
-When Nansen answers 429 to any call, in either lane, every new call waits. The pause lasts as long as Nansen's `Retry-After` header says, or 1 second when the header is missing.
+When Nansen answers 429 to a call made with the house key, in either lane, every new call waits. The pause lasts as long as Nansen's `Retry-After` header says, or 1 second when the header is missing. A 429 on an Uncle message sent with a visitor's own key pauses nothing, because that key has its own limit.
 
 ## Shared calls
 

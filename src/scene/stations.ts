@@ -141,12 +141,13 @@ export function keepInRoom<T extends Vec>(point: T, room: Room): T {
   return point;
 }
 
-const DOOR = { z: 3.32, halfWidth: 1.3, height: 2.38 };
+/** The partition doorway: its plane, clear width, and how high a sightline may pass. */
+export const DOORWAY = { z: 3.32, width: 2.6, height: 2.38 };
 /** True when the partition wall, not its doorway, blocks the segment from `a` to `b`. */
 export function wallBetween(a: Vec, b: Vec) {
-  if (a.z > DOOR.z === b.z > DOOR.z) return false;
-  const t = (DOOR.z - a.z) / (b.z - a.z),
+  if (a.z > DOORWAY.z === b.z > DOORWAY.z) return false;
+  const t = (DOORWAY.z - a.z) / (b.z - a.z),
     x = a.x + (b.x - a.x) * t,
     y = a.y + (b.y - a.y) * t;
-  return Math.abs(x) > DOOR.halfWidth || y < 0 || y > DOOR.height;
+  return Math.abs(x) > DOORWAY.width / 2 || y < 0 || y > DOORWAY.height;
 }

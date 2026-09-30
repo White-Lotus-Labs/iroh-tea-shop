@@ -51,4 +51,13 @@ describe('scene quality ladder', () => {
     const source = readFileSync('src/scene/ScenePolish.tsx', 'utf8');
     expect(source).not.toMatch(/flipflops=|onFallback=/);
   });
+
+  // The Canvas re-applies its dpr prop on every render, undoing a store setDpr.
+  it('keeps the rung DPR in the Canvas prop', () => {
+    const polish = readFileSync('src/scene/ScenePolish.tsx', 'utf8');
+    const room = readFileSync('src/scene/TeaRoom.tsx', 'utf8');
+    expect(polish).not.toMatch(/setDpr/);
+    expect(room).toMatch(/dpr=\{dpr\}/);
+    expect(room).toMatch(/onDpr=\{setDpr\}/);
+  });
 });

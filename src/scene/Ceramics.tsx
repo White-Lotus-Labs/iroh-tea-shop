@@ -4,6 +4,7 @@ import {
   CanvasTexture,
   CatmullRomCurve3,
   Float32BufferAttribute,
+  MathUtils,
   RepeatWrapping,
   SRGBColorSpace,
   Vector2,
@@ -124,11 +125,6 @@ export const tint = (a: string, b: string, t: number) =>
   `#${mix(rgb(a), rgb(b), t)
     .map((c) => Math.round(c).toString(16).padStart(2, '0'))
     .join('')}`;
-const smooth = (edge0: number, edge1: number, x: number) => {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-};
-
 /** Value noise that tiles with the given periods (in lattice cells). */
 export function tiledNoise(seed: number) {
   const random = createRandom(seed),
@@ -175,7 +171,8 @@ export function fbm(
   }
   return sum / norm;
 }
-export function canvasTexture(image: ImageData, color: boolean) {
+/** A U-repeating texture from painted pixels; `color` marks it sRGB. */
+export function imageTexture(image: ImageData, color: boolean) {
   const canvas = document.createElement('canvas');
   canvas.width = image.width;
   canvas.height = image.height;
@@ -231,9 +228,10 @@ function paintGlaze(g: Glaze) {
         for (const e of g.edges) t -= 0.7 * Math.exp(-(((v - e) / 0.022) ** 2));
         for (const p of g.pools ?? [])
           t += 0.5 * Math.exp(-(((v - p) / 0.07) ** 2));
-        if (g.foot > 0) t += 0.5 * (1 - smooth(0, 0.04, v - line));
+        if (g.foot > 0)
+          t += 0.5 * (1 - MathUtils.smoothstep(v - line, 0, 0.04));
         const base = g.inner !== undefined && v > g.inner ? inner : glaze;
-        c = mix(thin, base, smooth(0.08, 0.72, t));
+        c = mix(thin, base, MathUtils.smoothstep(t, 0.08, 0.72));
         const deep = 1 - Math.max(0, t - 0.78) * 0.5;
         c = [c[0] * deep, c[1] * deep, c[2] * deep];
         if (grit > 1 - (g.speckle ?? 1) * 0.004) c = mix(c, iron, 0.65);
@@ -251,14 +249,14 @@ function paintGlaze(g: Glaze) {
     }
   }
   return {
-    color: canvasTexture(color, true),
-    surface: canvasTexture(surface, false),
+    color: imageTexture(color, true),
+    surface: imageTexture(surface, false),
   };
 }
 
 const glazes = new Map<string, ReturnType<typeof paintGlaze>>();
 /** Glaze maps shared by every mount with the same recipe; painted once, never disposed. */
-export function useGlaze(glaze: Glaze) {
+function useGlaze(glaze: Glaze) {
   const key = JSON.stringify(glaze);
   let maps = glazes.get(key);
   if (!maps) glazes.set(key, (maps = paintGlaze(glaze)));

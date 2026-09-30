@@ -3,7 +3,7 @@ import { ContactShadows } from '@react-three/drei';
 import { DoubleSide, Vector2, type BufferGeometry } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Solid, SurfaceMaterial, useCanvasTexture } from './Surfaces';
-import type { Point } from './stations';
+import { DOORWAY, type Point } from './stations';
 import { createRandom } from './motion/dynamics';
 import { Counter } from './props/Counter';
 import { ChamberDressing, WaitingDressing } from './props/Dressing';
@@ -26,11 +26,13 @@ import {
   WoodMaterial,
 } from './props/craft';
 import {
+  NAGESHI,
   SCROLL,
   SCROLL_HANGER,
   SCROLL_HOOK_Y,
   SCROLL_ROD,
   SCROLL_WEIGHT,
+  WAINSCOT_TOP,
 } from './props/hanging';
 
 const timber = '#3a2419';
@@ -436,10 +438,18 @@ function FramedWall({
       ...posts.map((z) =>
         block([0.13, 3.7, 0.14], [at(0.06), 1.85, z], timber),
       ),
-      block([0.09, 0.12, length], [at(0.045), 2.32, center], timber),
+      block(
+        [0.09, NAGESHI.top - NAGESHI.bottom, length],
+        [at(0.045), (NAGESHI.bottom + NAGESHI.top) / 2, center],
+        timber,
+      ),
       block([0.07, 0.07, length], [at(0.035), 3.3, center], timber),
       block([0.04, 0.94, length], [at(0.02), 0.47, center], '#4a2e1d'),
-      block([0.07, 0.05, length], [at(0.04), 0.96, center], timber),
+      block(
+        [0.07, 0.05, length],
+        [at(0.04), WAINSCOT_TOP - 0.025, center],
+        timber,
+      ),
       block([0.07, 0.07, length], [at(0.04), 0.035, center], timber),
       ...[0.33, 0.64].map((y) =>
         block([0.004, 0.006, length], [at(0.041), y, center], '#1f140d'),
@@ -505,7 +515,9 @@ function Tatami({ center }: { center: Point }) {
     </group>
   );
 }
-const DOOR = { width: 2.6, post: 0.22, depth: 0.26, z: 3.32 };
+const DOOR = { ...DOORWAY, post: 0.22, depth: 0.26 };
+/** The noren rod centre, just under the doorway lintel's soffit (2.41). */
+export const NOREN_ROD_Y = 2.38;
 /** Wall andon centre: on the right jamb post's face (x 1.41, front at z 3.45), 15 cm proud. */
 const ANDON: Point = [1.41, 1.94, 3.6];
 const lacquer = '#25150e';
@@ -665,7 +677,7 @@ function TeaHouseDoorway() {
       ))}
 
       {/* Split noren on a rod just under the lintel soffit (2.41), clear of the andon */}
-      <Noren position={[0, 2.38, z + 0.08]} span={doorWidth + 0.02} />
+      <Noren position={[0, NOREN_ROD_Y, z + 0.08]} span={doorWidth + 0.02} />
 
       {/* Wall andon on the jamb: lit washi inside the frame, hung from the bracket arm */}
       <group position={ANDON}>

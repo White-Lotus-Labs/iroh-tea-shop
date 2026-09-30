@@ -6,6 +6,7 @@ out/
 !.env.example
 playwright-report/
 test-results/
+docs/perf-runs/latest.json
 .DS_Store
 prisma/*.db
 prisma/*.db-*

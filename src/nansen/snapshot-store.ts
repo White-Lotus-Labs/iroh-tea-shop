@@ -82,12 +82,12 @@ export async function readNansenSnapshot<T extends object>(
   };
 }
 
-export async function writeNansenSnapshot<T extends object>(
+export async function writeNansenSnapshot(
   database: PrismaClient,
   key: string,
-  value: T,
+  value: object,
   now: number,
-): Promise<T & SnapshotMeta> {
+): Promise<void> {
   const payload = JSON.stringify(stripSnapshotMeta(value));
   const fetchedAt = new Date(now);
   await database.nansenSnapshot.upsert({
@@ -106,20 +106,15 @@ export async function writeNansenSnapshot<T extends object>(
       refreshError: null,
     },
   });
-  const saved = await readNansenSnapshot<T>(database, key, now);
-  if (!saved) throw new Error('Saved Nansen reading could not be read back.');
-  return saved;
 }
 
-export async function markNansenSnapshotStale<T extends object>(
+export async function markNansenSnapshotStale(
   database: PrismaClient,
   key: string,
   refreshError: string,
-  now: number = Date.now(),
-): Promise<(T & SnapshotMeta) | null> {
+): Promise<void> {
   await database.nansenSnapshot.update({
     where: { key },
     data: { stale: true, refreshError },
   });
-  return readNansenSnapshot<T>(database, key, now);
 }

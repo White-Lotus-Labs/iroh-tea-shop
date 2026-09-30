@@ -42,10 +42,14 @@ export function IrohMessage({ content }: { content: string }) {
           const items = lines.map((line, i) => (
             <li key={i}>{inline(line.replace(/^\s*(?:[-*]|\d+\.) /, ''))}</li>
           ));
+          // Answers often put a blank line between items, so each one is its
+          // own block: keep counting from the block's first number.
           return bullets ? (
             <ul key={index}>{items}</ul>
           ) : (
-            <ol key={index}>{items}</ol>
+            <ol key={index} start={parseInt(lines[0], 10)}>
+              {items}
+            </ol>
           );
         }
         return (

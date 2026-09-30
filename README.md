@@ -57,7 +57,7 @@ A link such as `/?thesis=bullrun` skips the waiting room and opens that thesis. 
 
 Uncle is the old tea master who runs the shop. He answers questions about tokens, wallets, and markets. Nansen's Research Agent writes each answer when you ask. A question can be up to 100 characters.
 
-The shop pays for **one free message per IP address per day**. Uncle calls it a cup. The count resets at midnight UTC. When you have used your free message, Uncle shows two buttons:
+The shop pays for **one free message per IP address per day** (an IPv6 /64 network counts as one address). Uncle calls it a cup. The count resets at midnight UTC. When you have used your free message, Uncle shows two buttons:
 
 - **Enter your key.** Paste your own Nansen API key. Your browser keeps it and uses it for Uncle only.
 - **Get a Nansen API key ↗.** This opens [nsn.ai/iroh0x](https://nsn.ai/iroh0x).
@@ -164,7 +164,7 @@ npm run test:e2e
 - The unit tests (`npm test`) replace Nansen with recorded answers. They spend nothing.
 - `npx playwright install chromium` is needed once, before the first browser test run.
 - The browser tests (`npm run test:e2e`) use the server on port 3000, for example the one from step 5. If none runs, they start `npm run dev`. That server runs the real background save, so a key in `.env.local` can spend Nansen credits.
-- The repo has no CI. Run the checks before you push.
+- CI runs the format check, typecheck, unit tests, and build on each pull request. It skips the browser tests, so run those yourself before you push.
 
 ## Deploy
 
